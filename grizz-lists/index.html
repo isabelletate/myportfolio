@@ -1,15 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="loading">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Grizz Lists 🐻</title>
     
-    <!-- Hide body until CSS and JS are loaded -->
-    <style>
-        body { display: none; }
-        body.ready { display: block; }
-    </style>
+    <!-- Hide page until CSS and JS are loaded - must be first -->
+    <style>html.loading { visibility: hidden; }</style>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +17,7 @@
         
         function checkReady() {
             if (window.__loadState.css && window.__loadState.js) {
-                document.body.classList.add('ready');
+                document.documentElement.classList.remove('loading');
             }
         }
         
