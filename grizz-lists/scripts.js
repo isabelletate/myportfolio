@@ -53,8 +53,9 @@ const confettiContainer = document.getElementById('confetti');
 
 // Touch drag state
 let touchStartY = 0;
-let touchCurrentY = 0;
 let touchElement = null;
+let touchClone = null;
+let touchPlaceholder = null;
 
 // Initialize
 function init() {
@@ -346,33 +347,77 @@ function handleTouchStart(e) {
     
     touchElement = this;
     touchStartY = e.touches[0].clientY;
-    this.classList.add('dragging');
+    
+    // Create a visual clone that follows the finger
+    const rect = this.getBoundingClientRect();
+    touchClone = this.cloneNode(true);
+    touchClone.classList.add('touch-clone');
+    touchClone.style.position = 'fixed';
+    touchClone.style.left = rect.left + 'px';
+    touchClone.style.top = rect.top + 'px';
+    touchClone.style.width = rect.width + 'px';
+    touchClone.style.zIndex = '1000';
+    touchClone.style.opacity = '0.9';
+    touchClone.style.pointerEvents = 'none';
+    touchClone.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+    touchClone.style.transform = 'scale(1.02)';
+    document.body.appendChild(touchClone);
+    
+    // Create placeholder in original position
+    touchPlaceholder = document.createElement('div');
+    touchPlaceholder.className = 'touch-placeholder';
+    touchPlaceholder.style.height = rect.height + 'px';
+    touchPlaceholder.style.background = 'rgba(255,255,255,0.1)';
+    touchPlaceholder.style.borderRadius = '16px';
+    touchPlaceholder.style.border = '2px dashed rgba(255,255,255,0.3)';
+    touchPlaceholder.style.margin = '8px 0';
+    
+    this.style.opacity = '0';
+    this.style.height = '0';
+    this.style.margin = '0';
+    this.style.padding = '0';
+    this.style.overflow = 'hidden';
+    this.parentNode.insertBefore(touchPlaceholder, this);
 }
 
 function handleTouchMove(e) {
-    if (!touchElement) return;
+    if (!touchElement || !touchClone) return;
     e.preventDefault();
     
-    touchCurrentY = e.touches[0].clientY;
-    const deltaY = touchCurrentY - touchStartY;
+    const touchY = e.touches[0].clientY;
+    const deltaY = touchY - touchStartY;
     
-    touchElement.style.transform = `translateY(${deltaY}px)`;
+    // Move the clone
+    const originalRect = touchPlaceholder.getBoundingClientRect();
+    touchClone.style.top = (originalRect.top + deltaY) + 'px';
     
-    // Find element to swap with
-    const items = [...document.querySelectorAll('.task-item:not(.dragging)')];
+    // Find the element we're hovering over
+    const items = [...document.querySelectorAll('.task-item:not([style*="opacity: 0"])')];
+    
     for (const item of items) {
+        if (item === touchElement) continue;
+        
         const rect = item.getBoundingClientRect();
         const midY = rect.top + rect.height / 2;
         
-        if (touchCurrentY < midY && item.previousElementSibling === touchElement) {
-            taskList.insertBefore(touchElement, item);
-            touchStartY = touchCurrentY;
-            touchElement.style.transform = '';
+        // Check if we should move the placeholder
+        if (touchY < midY && touchPlaceholder.nextElementSibling !== item) {
+            // Move placeholder before this item
+            if (item.previousElementSibling !== touchPlaceholder) {
+                taskList.insertBefore(touchPlaceholder, item);
+                taskList.insertBefore(touchElement, touchPlaceholder.nextElementSibling);
+            }
             break;
-        } else if (touchCurrentY > midY && item.nextElementSibling === touchElement) {
-            taskList.insertBefore(touchElement, item.nextSibling);
-            touchStartY = touchCurrentY;
-            touchElement.style.transform = '';
+        } else if (touchY > midY && touchY < rect.bottom) {
+            // Move placeholder after this item
+            if (item.nextElementSibling !== touchPlaceholder) {
+                if (item.nextElementSibling) {
+                    taskList.insertBefore(touchPlaceholder, item.nextElementSibling);
+                } else {
+                    taskList.appendChild(touchPlaceholder);
+                }
+                taskList.insertBefore(touchElement, touchPlaceholder.nextElementSibling);
+            }
             break;
         }
     }
@@ -381,8 +426,25 @@ function handleTouchMove(e) {
 function handleTouchEnd() {
     if (!touchElement) return;
     
-    touchElement.classList.remove('dragging');
-    touchElement.style.transform = '';
+    // Clean up clone
+    if (touchClone) {
+        touchClone.remove();
+        touchClone = null;
+    }
+    
+    // Clean up placeholder
+    if (touchPlaceholder) {
+        touchPlaceholder.remove();
+        touchPlaceholder = null;
+    }
+    
+    // Restore original element
+    touchElement.style.opacity = '';
+    touchElement.style.height = '';
+    touchElement.style.margin = '';
+    touchElement.style.padding = '';
+    touchElement.style.overflow = '';
+    
     updateTaskOrder();
     touchElement = null;
 }

@@ -7,6 +7,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script>
+        // Force reload CSS and JS on explicit page reload
+        (function() {
+            const nav = performance.getEntriesByType('navigation')[0];
+            const isReload = nav && nav.type === 'reload';
+            
+            if (isReload) {
+                const cacheBuster = Date.now();
+                
+                // Reload CSS by replacing the stylesheet link
+                document.addEventListener('DOMContentLoaded', () => {
+                    const existingLink = document.querySelector('link[href="styles.css"]');
+                    if (existingLink) {
+                        const newLink = document.createElement('link');
+                        newLink.rel = 'stylesheet';
+                        newLink.href = 'styles.css?v=' + cacheBuster;
+                        existingLink.parentNode.replaceChild(newLink, existingLink);
+                    }
+                });
+                
+                // Store cache buster for script loading
+                window.__cacheBuster = cacheBuster;
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -90,6 +115,9 @@
 
     <div class="confetti-container" id="confetti"></div>
 
-    <script type="module" src="scripts.js"></script>
+    <script>
+        // Load scripts with cache-busting if this is a reload
+        document.write('<script type="module" src="scripts.js' + (window.__cacheBuster ? '?v=' + window.__cacheBuster : '') + '"><\/script>');
+    </script>
 </body>
 </html>

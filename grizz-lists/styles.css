@@ -661,6 +661,29 @@ header {
     height: 70px;
 }
 
+/* Touch drag clone */
+.touch-clone {
+    border-radius: 16px;
+    transition: none !important;
+    animation: none !important;
+}
+
+.touch-placeholder {
+    transition: none;
+}
+
+/* Mobile touch improvements */
+@media (hover: none) and (pointer: coarse) {
+    .delete-btn {
+        opacity: 0.6;
+    }
+    
+    .drag-handle {
+        opacity: 0.6;
+        padding: 8px;
+    }
+}
+
 /* All done state */
 .all-done {
     text-align: center;
