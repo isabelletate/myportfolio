@@ -28,11 +28,11 @@ const encouragements = [
 // Default tasks for office environment
 const defaultTasks = [
     { text: 'Check emails', time: '15m' },
-    { text: 'Stand-up meeting', time: '15m' },
-    { text: 'Review PRs', time: '30m' },
-    { text: 'Code review', time: '45m' },
-    { text: 'Deep work block', time: '2h' },
-    { text: 'Update Jira', time: '15m' },
+    { text: 'Process incoming shipments', time: '45m' },
+    { text: 'Update tracking spreadsheet', time: '30m' },
+    { text: 'Schedule outbound pickups', time: '20m' },
+    { text: 'Verify package labels', time: '30m' },
+    { text: 'Follow up on delayed deliveries', time: '30m' },
 ];
 
 // State
