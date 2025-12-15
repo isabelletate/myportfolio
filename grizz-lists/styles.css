@@ -183,11 +183,89 @@ header {
     100% { transform: translateX(100%); }
 }
 
-/* Task List */
+/* Task List Wrapper with Timeline */
+.task-list-wrapper {
+    display: flex;
+    gap: 12px;
+    position: relative;
+}
+
 .task-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Timeline */
+.timeline {
+    width: 44px;
+    flex-shrink: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent-teal), var(--accent-purple));
+    opacity: 0.3;
+    transform: translateX(-50%);
+}
+
+.timeline-marker {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-dark);
+    padding: 2px 0;
+}
+
+.timeline-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    background: var(--bg-dark);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.timeline-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-teal);
+    border-radius: 50%;
+    margin: 4px auto;
+}
+
+.timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 70px;
+    justify-content: flex-start;
+    padding-top: 16px;
+}
+
+.timeline-end {
+    min-height: auto;
+    padding-top: 0;
+}
+
+.timeline-end .timeline-time {
+    color: var(--accent-teal);
+    font-weight: 500;
+}
+
+.timeline-marker.completed {
+    opacity: 0.4;
 }
 
 .task-item {

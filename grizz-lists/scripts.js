@@ -221,8 +221,45 @@ function updateProgress() {
     }
 }
 
+// Parse time string to minutes
+function parseTimeToMinutes(timeStr) {
+    const str = timeStr.toLowerCase().trim();
+    let minutes = 0;
+    
+    // Match hours (e.g., "2h", "1.5h")
+    const hourMatch = str.match(/([\d.]+)\s*h/);
+    if (hourMatch) {
+        minutes += parseFloat(hourMatch[1]) * 60;
+    }
+    
+    // Match minutes (e.g., "30m", "15m")
+    const minMatch = str.match(/(\d+)\s*m/);
+    if (minMatch) {
+        minutes += parseInt(minMatch[1]);
+    }
+    
+    // If just a number, assume minutes
+    if (!hourMatch && !minMatch) {
+        const numMatch = str.match(/(\d+)/);
+        if (numMatch) minutes = parseInt(numMatch[1]);
+    }
+    
+    return minutes || 30; // Default to 30 min
+}
+
+// Format minutes from start of day to time string
+function formatTime(totalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    const hour12 = hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? 'p' : 'a';
+    return `${hour12}:${mins.toString().padStart(2, '0')}${ampm}`;
+}
+
 function renderTasks() {
+    const timeline = document.getElementById('timeline');
     taskList.innerHTML = '';
+    timeline.innerHTML = '';
     
     if (tasks.length === 0) {
         taskList.innerHTML = `
@@ -235,11 +272,11 @@ function renderTasks() {
         return;
     }
 
-    // Sort: uncompleted first, then completed
-    const sortedTasks = [...tasks].sort((a, b) => {
-        if (a.completed !== b.completed) return a.completed ? 1 : -1;
-        return tasks.indexOf(a) - tasks.indexOf(b);
-    });
+    // Keep tasks in their original order
+    const sortedTasks = [...tasks];
+
+    // Start at 9am (9 * 60 = 540 minutes from midnight)
+    let currentMinutes = 9 * 60;
 
     sortedTasks.forEach((task, index) => {
         const el = document.createElement('div');
@@ -290,7 +327,27 @@ function renderTasks() {
         el.addEventListener('touchend', handleTouchEnd);
 
         taskList.appendChild(el);
+
+        // Add timeline marker for all tasks
+        const marker = document.createElement('div');
+        marker.className = 'timeline-marker' + (task.completed ? ' completed' : '');
+        marker.innerHTML = `
+            <div class="timeline-time">${formatTime(currentMinutes)}</div>
+            <div class="timeline-dot"></div>
+        `;
+        timeline.appendChild(marker);
+
+        // Add duration to current time
+        currentMinutes += parseTimeToMinutes(task.time);
     });
+
+    // Add end time marker
+    const endMarker = document.createElement('div');
+    endMarker.className = 'timeline-marker timeline-end';
+    endMarker.innerHTML = `
+        <div class="timeline-time">${formatTime(currentMinutes)}</div>
+    `;
+    timeline.appendChild(endMarker);
 
     // Check if all done
     const allDone = tasks.length > 0 && tasks.every(t => t.completed);
