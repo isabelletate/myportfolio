@@ -4,10 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Grizz Lists 🐻</title>
+    
+    <!-- Hide body until CSS and JS are loaded -->
+    <style>
+        body { display: none; }
+        body.ready { display: block; }
+    </style>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <script>
+        // Track loading state
+        window.__loadState = { css: false, js: false };
+        
+        function checkReady() {
+            if (window.__loadState.css && window.__loadState.js) {
+                document.body.classList.add('ready');
+            }
+        }
+        
         // Force reload CSS and JS on explicit page reload
         (function() {
             const nav = performance.getEntriesByType('navigation')[0];
@@ -23,6 +39,7 @@
                         const newLink = document.createElement('link');
                         newLink.rel = 'stylesheet';
                         newLink.href = 'styles.css?v=' + cacheBuster;
+                        newLink.onload = () => { window.__loadState.css = true; checkReady(); };
                         existingLink.parentNode.replaceChild(newLink, existingLink);
                     }
                 });
@@ -32,7 +49,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" onload="window.__loadState.css = true; if(window.checkReady) checkReady();">
 </head>
 <body>
     <div class="bg-shapes">

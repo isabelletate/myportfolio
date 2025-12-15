@@ -459,5 +459,13 @@ function updateTaskOrder() {
 }
 
 // Start the app when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    
+    // Signal JS is loaded and check if ready to show
+    if (window.__loadState) {
+        window.__loadState.js = true;
+        if (window.checkReady) window.checkReady();
+    }
+});
 
