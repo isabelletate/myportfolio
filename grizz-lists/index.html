@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Grizz Lists 🐻</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1 class="logo">🐻 Grizz Lists</h1>
+            <p class="date-display" id="dateDisplay"></p>
+        </header>
+
+        <div class="progress-section">
+            <div class="progress-header">
+                <span class="progress-label">Today's Progress</span>
+                <span class="progress-count" id="progressCount">0/0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="task-list" id="taskList"></div>
+    </div>
+
+    <div class="add-section">
+        <button class="add-btn" id="addBtn">+ Add new task</button>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-handle"></div>
+            <h2 class="modal-title">✨ New Task</h2>
+            <input type="text" class="task-input" id="taskInput" placeholder="What needs doing?" autofocus>
+            <p class="time-selector-label">How long will it take?</p>
+            <div class="time-selector">
+                <button class="time-btn" data-time="15m">
+                    <span class="time-emoji">⚡</span>
+                    15m
+                </button>
+                <button class="time-btn" data-time="30m">
+                    <span class="time-emoji">🚀</span>
+                    30m
+                </button>
+                <button class="time-btn" data-time="45m">
+                    <span class="time-emoji">☕</span>
+                    45m
+                </button>
+                <button class="time-btn selected" data-time="1h">
+                    <span class="time-emoji">💪</span>
+                    1h
+                </button>
+                <button class="time-btn" data-time="1.5h">
+                    <span class="time-emoji">🎯</span>
+                    1.5h
+                </button>
+                <button class="time-btn" data-time="2h">
+                    <span class="time-emoji">🔥</span>
+                    2h
+                </button>
+                <button class="time-btn" data-time="3h">
+                    <span class="time-emoji">🏔️</span>
+                    3h
+                </button>
+                <button class="time-btn" data-time="4h+">
+                    <span class="time-emoji">🌟</span>
+                    4h+
+                </button>
+            </div>
+            <button class="submit-btn" id="submitBtn">Add Task 🎉</button>
+        </div>
+    </div>
+
+    <div class="encouragement" id="encouragement">
+        <span class="encouragement-emoji" id="encourageEmoji">🎉</span>
+        <span id="encourageText">Amazing work!</span>
+    </div>
+
+    <div class="confetti-container" id="confetti"></div>
+
+    <script type="module" src="scripts.js"></script>
+</body>
+</html>
