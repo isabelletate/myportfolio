@@ -855,3 +855,89 @@ header {
     color: var(--success);
 }
 
+/* Header right section */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Sync indicator */
+.sync-indicator {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    transition: all 0.3s ease;
+}
+
+.sync-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+}
+
+.sync-indicator.syncing {
+    background: rgba(255,199,60,0.15);
+}
+
+.sync-indicator.syncing .sync-icon {
+    color: var(--accent-yellow);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sync-indicator.synced {
+    background: rgba(74,222,128,0.15);
+}
+
+.sync-indicator.synced .sync-icon {
+    color: var(--success);
+}
+
+.sync-indicator.error {
+    background: rgba(255,46,99,0.15);
+}
+
+.sync-indicator.error .sync-icon {
+    color: var(--accent-pink);
+}
+
+.sync-indicator.offline {
+    background: rgba(139,147,168,0.15);
+}
+
+.sync-indicator.offline .sync-icon {
+    color: var(--text-muted);
+}
+
+/* Loading state */
+.loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    animation: slideUp 0.6s ease-out;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 20px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent-teal);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-state p {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+

@@ -66,46 +66,154 @@ const defaultTasks = [
 ];
 
 // ============================================
-// EVENT SOURCING - Changelog Management
+// EVENT SOURCING - Changelog Management (Server-Backed)
 // ============================================
 
-const STORAGE_KEY = 'grizzChangelog';
-const DATE_KEY = 'grizzChangelogDate';
+// API Configuration
+const API_BASE = 'https://sheet-logger.david8603.workers.dev/grizz.biz/grizz-lists';
+const USER_EMAIL = 'test@testing.com';
 
-// Get current UTC timestamp as ISO8601
-function timestamp() {
-    return new Date().toISOString();
+// Get today's date in yyyy-mm-dd format for the API endpoint
+function getTodayDateKey() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
-// Load changelog from localStorage
-function loadChangelog() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const savedDate = localStorage.getItem(DATE_KEY);
-    const today = new Date().toDateString();
+// Build the API endpoint URL for today
+function getApiUrl() {
+    return `${API_BASE}/${USER_EMAIL}/${getTodayDateKey()}`;
+}
+
+// In-memory changelog cache
+let changelogCache = [];
+let isSyncing = false;
+let syncError = null;
+
+// Update sync status UI
+function updateSyncStatus(status) {
+    const indicator = document.getElementById('syncIndicator');
+    if (!indicator) return;
     
-    if (saved && savedDate === today) {
-        return JSON.parse(saved);
+    indicator.className = 'sync-indicator';
+    switch (status) {
+        case 'syncing':
+            indicator.classList.add('syncing');
+            indicator.title = 'Syncing...';
+            break;
+        case 'synced':
+            indicator.classList.add('synced');
+            indicator.title = 'Synced';
+            break;
+        case 'error':
+            indicator.classList.add('error');
+            indicator.title = 'Sync error - changes saved locally';
+            break;
+        case 'offline':
+            indicator.classList.add('offline');
+            indicator.title = 'Offline - changes saved locally';
+            break;
     }
-    return [];
 }
 
-// Save changelog to localStorage
-function saveChangelog(changelog) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(changelog));
-    localStorage.setItem(DATE_KEY, new Date().toDateString());
+// Load changelog from server
+async function loadChangelogFromServer() {
+    try {
+        updateSyncStatus('syncing');
+        const response = await fetch(getApiUrl());
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Normalize events: server uses 'timeStamp', we use 'ts'
+        // Also convert string IDs back to numbers (URL params stringify everything)
+        changelogCache = (data || []).map(event => ({
+            ...event,
+            ts: event.timeStamp || event.ts,
+            id: event.id ? (isNaN(Number(event.id)) ? event.id : Number(event.id)) : event.id
+        }));
+        
+        updateSyncStatus('synced');
+        return changelogCache;
+    } catch (error) {
+        console.error('Failed to load changelog from server:', error);
+        updateSyncStatus('error');
+        
+        // Fall back to localStorage if server fails
+        const saved = localStorage.getItem('grizzChangelog_fallback');
+        if (saved) {
+            changelogCache = JSON.parse(saved);
+        }
+        return changelogCache;
+    }
+}
+
+// Load changelog (returns cached version, call loadChangelogFromServer for fresh data)
+function loadChangelog() {
+    return changelogCache;
+}
+
+// Save changelog to localStorage as fallback
+function saveChangelogLocal(changelog) {
+    localStorage.setItem('grizzChangelog_fallback', JSON.stringify(changelog));
+}
+
+// Post an event to the server
+async function postEvent(event) {
+    try {
+        updateSyncStatus('syncing');
+        
+        // Server reads data from URL query parameters, not body
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(event)) {
+            // Convert non-string values to strings
+            params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+        }
+        
+        const url = `${getApiUrl()}?${params.toString()}`;
+        
+        const response = await fetch(url, {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        updateSyncStatus('synced');
+        return true;
+    } catch (error) {
+        console.error('Failed to post event to server:', error);
+        updateSyncStatus('error');
+        return false;
+    }
 }
 
 // Add an event to the changelog
-function addEvent(op, data) {
-    const changelog = loadChangelog();
+async function addEvent(op, data) {
+    // Create event WITHOUT ts - server adds timeStamp automatically
     const event = {
-        ts: timestamp(),
         op,
         ...data
     };
-    changelog.push(event);
-    saveChangelog(changelog);
-    return event;
+    
+    // Optimistic update: add to local cache with temporary ts
+    const tempTs = new Date().toISOString();
+    const localEvent = { ...event, ts: tempTs };
+    changelogCache.push(localEvent);
+    
+    // Save to localStorage as fallback
+    saveChangelogLocal(changelogCache);
+    
+    // Post to server (fire and forget for responsiveness, but track status)
+    postEvent(event);
+    
+    return localEvent;
 }
 
 // Merge changelogs from multiple sources (dedupes by timestamp)
@@ -114,14 +222,15 @@ function mergeChangelogs(local, remote) {
     const merged = [];
     
     [...local, ...remote].forEach(event => {
-        if (!seen.has(event.ts)) {
-            seen.add(event.ts);
+        const key = event.ts || event.timeStamp;
+        if (key && !seen.has(key)) {
+            seen.add(key);
             merged.push(event);
         }
     });
     
     // Sort by timestamp
-    merged.sort((a, b) => a.ts.localeCompare(b.ts));
+    merged.sort((a, b) => (a.ts || '').localeCompare(b.ts || ''));
     return merged;
 }
 
@@ -184,7 +293,17 @@ function replayChangelog(changelog) {
             case 'reorder':
                 // Full reorder - replace order array
                 order.length = 0;
-                order.push(...event.order.filter(id => tasksMap.has(id)));
+                if (event.order) {
+                    // Handle order as either array or JSON string (from URL params)
+                    const orderArray = typeof event.order === 'string' 
+                        ? JSON.parse(event.order) 
+                        : event.order;
+                    // Normalize IDs to numbers for consistent lookup
+                    const normalizedOrder = orderArray.map(id => 
+                        isNaN(Number(id)) ? id : Number(id)
+                    );
+                    order.push(...normalizedOrder.filter(id => tasksMap.has(id)));
+                }
                 break;
                 
             case 'enjoyment':
@@ -200,20 +319,32 @@ function replayChangelog(changelog) {
 }
 
 // Initialize default tasks as events
-function initializeDefaultTasks() {
-    const changelog = [];
-    defaultTasks.forEach((t, i) => {
-        changelog.push({
-            ts: new Date(Date.now() + i).toISOString(), // Ensure unique timestamps
+async function initializeDefaultTasks() {
+    const baseTime = Date.now();
+    
+    // Add each default task as an event to the server
+    for (let i = 0; i < defaultTasks.length; i++) {
+        const t = defaultTasks[i];
+        const event = {
             op: 'added',
-            id: Date.now() + i,
+            id: baseTime + i,
             text: t.text,
             time: t.time,
             color: colors[i % colors.length]
-        });
-    });
-    saveChangelog(changelog);
-    return changelog;
+        };
+        
+        // Add to local cache with temp ts
+        const tempTs = new Date(baseTime + i).toISOString();
+        changelogCache.push({ ...event, ts: tempTs });
+        
+        // Post to server
+        await postEvent(event);
+    }
+    
+    // Save to local fallback
+    saveChangelogLocal(changelogCache);
+    
+    return changelogCache;
 }
 
 // ============================================
@@ -246,10 +377,19 @@ let touchClone = null;
 let touchPlaceholder = null;
 
 // Initialize
-function init() {
+async function init() {
     updateDate();
-    loadTasks();
     setupEventListeners();
+    
+    // Show loading state
+    taskList.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading tasks...</p>
+        </div>
+    `;
+    
+    await loadTasks();
     renderTasks();
 }
 
@@ -259,12 +399,13 @@ function updateDate() {
     document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', options);
 }
 
-function loadTasks() {
-    let changelog = loadChangelog();
+async function loadTasks() {
+    // Load from server
+    let changelog = await loadChangelogFromServer();
     
     if (changelog.length === 0) {
         // New day or first run - initialize with default tasks
-        changelog = initializeDefaultTasks();
+        changelog = await initializeDefaultTasks();
     }
     
     tasks = replayChangelog(changelog);
@@ -880,47 +1021,62 @@ function updateTaskOrder() {
     updateStartTimes();
 }
 
-// Poll localStorage for external changes every 2 seconds
+// Poll server for external changes every 5 seconds
 let lastKnownEventCount = 0;
+let pollInterval = null;
 
-function pollForChanges() {
-    const changelog = loadChangelog();
+async function pollForChanges() {
+    // Skip if we're already syncing
+    if (isSyncing) return;
     
-    // If there are new events from external sources, re-render
-    if (changelog.length > lastKnownEventCount) {
-        const newEvents = changelog.slice(lastKnownEventCount);
-        lastKnownEventCount = changelog.length;
+    try {
+        isSyncing = true;
+        const changelog = await loadChangelogFromServer();
+        isSyncing = false;
         
-        // Rebuild state and re-render only if needed
-        const oldTaskIds = tasks.map(t => t.id).join(',');
-        tasks = replayChangelog(changelog);
-        const newTaskIds = tasks.map(t => t.id).join(',');
-        
-        // Only full re-render if structure changed significantly
-        if (oldTaskIds !== newTaskIds) {
-            renderTasks();
-        } else {
-            // Just update completion states and timeline
-            tasks.forEach(task => {
-                const el = document.querySelector(`[data-id="${task.id}"]`);
-                if (el) {
-                    el.classList.toggle('completed', task.completed);
-                    el.querySelector('.checkbox').classList.toggle('checked', task.completed);
-                }
-            });
-            updateStartTimes();
-            updateProgress();
+        // If there are new events from external sources, re-render
+        if (changelog.length > lastKnownEventCount) {
+            lastKnownEventCount = changelog.length;
+            
+            // Rebuild state and re-render only if needed
+            const oldTaskIds = tasks.map(t => t.id).join(',');
+            const oldCompletedIds = tasks.filter(t => t.completed).map(t => t.id).join(',');
+            
+            tasks = replayChangelog(changelog);
+            
+            const newTaskIds = tasks.map(t => t.id).join(',');
+            const newCompletedIds = tasks.filter(t => t.completed).map(t => t.id).join(',');
+            
+            // Only full re-render if structure changed significantly
+            if (oldTaskIds !== newTaskIds) {
+                renderTasks();
+            } else if (oldCompletedIds !== newCompletedIds) {
+                // Just update completion states and timeline
+                tasks.forEach(task => {
+                    const el = document.querySelector(`[data-id="${task.id}"]`);
+                    if (el) {
+                        el.classList.toggle('completed', task.completed);
+                        el.querySelector('.checkbox').classList.toggle('checked', task.completed);
+                    }
+                });
+                updateStartTimes();
+                updateProgress();
+                updateScoreDisplay();
+            }
         }
+    } catch (error) {
+        isSyncing = false;
+        console.error('Poll error:', error);
     }
 }
 
 // Start the app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    init();
+document.addEventListener('DOMContentLoaded', async () => {
+    await init();
     
     // Initialize polling with current event count
     lastKnownEventCount = loadChangelog().length;
-    setInterval(pollForChanges, 2000);
+    pollInterval = setInterval(pollForChanges, 5000); // Poll every 5 seconds
     
     // Signal JS is loaded and check if ready to show
     if (window.__loadState) {
