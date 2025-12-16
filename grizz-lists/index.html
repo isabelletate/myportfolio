@@ -61,7 +61,13 @@
 
     <div class="container">
         <header>
-            <h1 class="logo">🐻 Grizz Lists</h1>
+            <div class="header-top">
+                <h1 class="logo">🐻 Grizz Lists</h1>
+                <div class="score-display">
+                    <span class="score-value" id="scoreValue">0</span>
+                    <span class="score-label">pts</span>
+                </div>
+            </div>
             <p class="date-display" id="dateDisplay"></p>
         </header>
 
@@ -75,10 +81,7 @@
             </div>
         </div>
 
-        <div class="task-list-wrapper">
-            <div class="task-list" id="taskList"></div>
-            <div class="timeline" id="timeline"></div>
-        </div>
+        <div class="task-list" id="taskList"></div>
     </div>
 
     <div class="add-section">
@@ -124,6 +127,14 @@
                     <span class="time-emoji">🌟</span>
                     4h+
                 </button>
+            </div>
+            <p class="enjoyment-selector-label">How do you feel about it?</p>
+            <div class="enjoyment-selector" id="enjoymentSelector">
+                <button class="enjoyment-option" data-value="0">🤮</button>
+                <button class="enjoyment-option" data-value="1">😕</button>
+                <button class="enjoyment-option selected" data-value="2">😐</button>
+                <button class="enjoyment-option" data-value="3">🙂</button>
+                <button class="enjoyment-option" data-value="4">😍</button>
             </div>
             <button class="submit-btn" id="submitBtn">Add Task 🎉</button>
         </div>

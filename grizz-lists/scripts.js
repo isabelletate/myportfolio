@@ -25,6 +25,36 @@ const encouragements = [
     { emoji: '🐻', text: 'Bear-y good!' },
 ];
 
+// Enjoyment scale (0-4, with 2 being neutral)
+const enjoymentEmojis = ['🤮', '😕', '😐', '🙂', '😍'];
+
+// Scoring system: short+loved=100, long+hated=10000
+const timePoints = {
+    '15m': 100,
+    '30m': 200,
+    '45m': 300,
+    '1h': 400,
+    '1.5h': 600,
+    '2h': 800,
+    '3h': 1200,
+    '4h+': 1600
+};
+
+const enjoymentMultipliers = {
+    0: 6,    // 🤮 hated - 6x points
+    1: 4,    // 😕 dislike - 4x points
+    2: 2.5,  // 😐 neutral - 2.5x points
+    3: 1.5,  // 🙂 like - 1.5x points
+    4: 1     // 😍 loved - 1x points
+};
+
+function calculateTaskScore(task) {
+    const basePoints = timePoints[task.time] || 400;
+    const enjoyment = task.enjoyment !== undefined ? task.enjoyment : 2;
+    const multiplier = enjoymentMultipliers[enjoyment];
+    return Math.round(basePoints * multiplier);
+}
+
 // Default tasks for office environment
 const defaultTasks = [
     { text: 'Check emails', time: '15m' },
@@ -111,7 +141,8 @@ function replayChangelog(changelog) {
                     text: event.text,
                     time: event.time,
                     color: event.color,
-                    completed: false
+                    completed: false,
+                    enjoyment: event.enjoyment !== undefined ? event.enjoyment : 2
                 });
                 order.push(event.id);
                 break;
@@ -155,6 +186,12 @@ function replayChangelog(changelog) {
                 order.length = 0;
                 order.push(...event.order.filter(id => tasksMap.has(id)));
                 break;
+                
+            case 'enjoyment':
+                if (tasksMap.has(event.id)) {
+                    tasksMap.get(event.id).enjoyment = event.value;
+                }
+                break;
         }
     }
     
@@ -186,7 +223,9 @@ function initializeDefaultTasks() {
 // State
 let tasks = [];
 let selectedTime = '1h';
+let selectedEnjoyment = 2; // Default to neutral
 let draggedItem = null;
+let displayedScore = 0; // Current displayed score for animation
 
 // DOM elements
 const taskList = document.getElementById('taskList');
@@ -198,6 +237,7 @@ const progressFill = document.getElementById('progressFill');
 const progressCount = document.getElementById('progressCount');
 const encouragement = document.getElementById('encouragement');
 const confettiContainer = document.getElementById('confetti');
+const scoreValue = document.getElementById('scoreValue');
 
 // Touch drag state
 let touchStartY = 0;
@@ -248,6 +288,14 @@ function setupEventListeners() {
             selectedTime = btn.dataset.time;
         });
     });
+    
+    document.querySelectorAll('.enjoyment-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.enjoyment-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedEnjoyment = parseInt(btn.dataset.value);
+        });
+    });
 
     submitBtn.addEventListener('click', addTask);
     taskInput.addEventListener('keypress', (e) => {
@@ -259,6 +307,11 @@ function openModal() {
     modal.classList.add('active');
     taskInput.value = '';
     taskInput.focus();
+    
+    // Reset enjoyment to neutral
+    selectedEnjoyment = 2;
+    document.querySelectorAll('.enjoyment-option').forEach(b => b.classList.remove('selected'));
+    document.querySelector('.enjoyment-option[data-value="2"]').classList.add('selected');
 }
 
 function closeModal() {
@@ -273,6 +326,9 @@ function createTaskElement(task, index = 0) {
     el.style.setProperty('--task-color', task.color);
     el.style.animationDelay = `${index * 0.05}s`;
     el.draggable = true;
+    
+    const enjoyment = task.enjoyment !== undefined ? task.enjoyment : 2;
+    const enjoymentEmoji = enjoymentEmojis[enjoyment];
 
     el.innerHTML = `
         <div class="drag-handle">
@@ -280,10 +336,13 @@ function createTaskElement(task, index = 0) {
             <span></span>
             <span></span>
         </div>
-        <div class="checkbox ${task.completed ? 'checked' : ''}" data-task-id="${task.id}">
-            <svg viewBox="0 0 24 24">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+        <div class="checkbox-wrapper">
+            <span class="enjoyment-badge">${enjoymentEmoji}</span>
+            <div class="checkbox ${task.completed ? 'checked' : ''}" data-task-id="${task.id}">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
         </div>
         <div class="task-content">
             <div class="task-text">${task.text}</div>
@@ -317,6 +376,18 @@ function createTaskElement(task, index = 0) {
     return el;
 }
 
+// Create a time divider element
+function createTimeDivider(time) {
+    const el = document.createElement('div');
+    el.className = 'time-divider';
+    el.innerHTML = `
+        <div class="time-divider-line"></div>
+        <span class="time-divider-time">${time}</span>
+        <div class="time-divider-line"></div>
+    `;
+    return el;
+}
+
 // Append a single task element to the list
 function appendTaskElement(task) {
     // Remove empty state if present
@@ -327,38 +398,52 @@ function appendTaskElement(task) {
     const allDone = taskList.querySelector('.all-done');
     if (allDone) allDone.remove();
     
+    // Calculate start time for this task
+    const startTime = calculateStartTime(tasks.length - 1);
+    
+    // Add time divider before the task
+    taskList.appendChild(createTimeDivider(startTime));
+    
     const el = createTaskElement(task, tasks.length - 1);
     taskList.appendChild(el);
 }
 
-// Update the timeline without re-rendering tasks
-function updateTimeline() {
-    const timeline = document.getElementById('timeline');
-    timeline.innerHTML = '';
+// Calculate start time for a task at given index
+function calculateStartTime(index) {
+    let currentMinutes = 9 * 60; // Start at 9am
+    for (let i = 0; i < index; i++) {
+        currentMinutes += parseTimeToMinutes(tasks[i].time);
+    }
+    return formatTime(currentMinutes);
+}
+
+// Update time dividers to reflect current task order
+function updateStartTimes() {
+    // Remove all existing time dividers
+    taskList.querySelectorAll('.time-divider').forEach(el => el.remove());
     
     if (tasks.length === 0) return;
     
     let currentMinutes = 9 * 60; // Start at 9am
     
+    // Insert dividers before each task
     tasks.forEach(task => {
-        const marker = document.createElement('div');
-        marker.className = 'timeline-marker' + (task.completed ? ' completed' : '');
-        marker.dataset.id = task.id;
-        marker.innerHTML = `
-            <div class="timeline-time">${formatTime(currentMinutes)}</div>
-            <div class="timeline-dot"></div>
-        `;
-        timeline.appendChild(marker);
+        const taskEl = document.querySelector(`[data-id="${task.id}"]`);
+        if (taskEl) {
+            const divider = createTimeDivider(formatTime(currentMinutes));
+            taskEl.parentNode.insertBefore(divider, taskEl);
+        }
         currentMinutes += parseTimeToMinutes(task.time);
     });
     
-    // Add end time marker
-    const endMarker = document.createElement('div');
-    endMarker.className = 'timeline-marker timeline-end';
-    endMarker.innerHTML = `
-        <div class="timeline-time">${formatTime(currentMinutes)}</div>
-    `;
-    timeline.appendChild(endMarker);
+    // Add final divider at the end (before all-done if present, or at end)
+    const allDoneEl = taskList.querySelector('.all-done');
+    const endDivider = createTimeDivider(formatTime(currentMinutes));
+    if (allDoneEl) {
+        taskList.insertBefore(endDivider, allDoneEl);
+    } else {
+        taskList.appendChild(endDivider);
+    }
 }
 
 function addTask() {
@@ -368,19 +453,20 @@ function addTask() {
     const id = Date.now();
     const color = colors[Math.floor(Math.random() * colors.length)];
     const time = selectedTime;
+    const enjoyment = selectedEnjoyment;
     
     // Create task object
-    const task = { id, text, time, color, completed: false };
+    const task = { id, text, time, color, completed: false, enjoyment };
     
     // Emit added event
-    addEvent('added', { id, text, time, color });
+    addEvent('added', { id, text, time, color, enjoyment });
     
     // Update local state
     tasks.push(task);
     
     // Append new task element (no full re-render)
     appendTaskElement(task);
-    updateTimeline();
+    updateStartTimes();
     updateProgress();
     
     closeModal();
@@ -388,13 +474,9 @@ function addTask() {
 
 function deleteTask(id) {
     const taskEl = document.querySelector(`[data-id="${id}"]`);
-    const timelineMarker = document.querySelector(`.timeline-marker[data-id="${id}"]`);
     
     taskEl.style.transform = 'translateX(100%)';
     taskEl.style.opacity = '0';
-    if (timelineMarker) {
-        timelineMarker.style.opacity = '0';
-    }
     
     setTimeout(() => {
         // Emit removed event
@@ -403,12 +485,11 @@ function deleteTask(id) {
         // Update local state
         tasks = tasks.filter(t => t.id !== id);
         
-        // Remove elements from DOM
+        // Remove element from DOM
         taskEl.remove();
-        if (timelineMarker) timelineMarker.remove();
         
-        // Update timeline times and progress
-        updateTimeline();
+        // Update start times and progress
+        updateStartTimes();
         updateProgress();
     }, 300);
 }
@@ -420,7 +501,6 @@ function toggleTask(id) {
     const wasCompleted = task.completed;
     const taskEl = document.querySelector(`[data-id="${id}"]`);
     const checkbox = taskEl.querySelector('.checkbox');
-    const timelineMarker = document.querySelector(`.timeline-marker[data-id="${id}"]`);
     
     // Emit completed or uncompleted event
     addEvent(wasCompleted ? 'uncompleted' : 'completed', { id });
@@ -431,17 +511,28 @@ function toggleTask(id) {
     // Update DOM directly (no full re-render)
     taskEl.classList.toggle('completed', task.completed);
     checkbox.classList.toggle('checked', task.completed);
-    if (timelineMarker) {
-        timelineMarker.classList.toggle('completed', task.completed);
-    }
 
     if (!wasCompleted) {
+        // Task just completed - show score popup and animate
+        const points = calculateTaskScore(task);
+        showScorePopup(taskEl, points);
+        
+        setTimeout(() => {
+            const newTotal = calculateTotalScore();
+            animateScore(newTotal);
+        }, 150);
+        
         showEncouragement();
         createConfetti();
+    } else {
+        // Task uncompleted - update score without popup
+        const newTotal = calculateTotalScore();
+        animateScore(newTotal, 300);
     }
 
     updateProgress();
 }
+
 
 function showEncouragement() {
     const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
@@ -472,6 +563,63 @@ function createConfetti() {
         
         setTimeout(() => confetti.remove(), 3500);
     }
+}
+
+// Calculate total score from completed tasks
+function calculateTotalScore() {
+    return tasks
+        .filter(t => t.completed)
+        .reduce((sum, task) => sum + calculateTaskScore(task), 0);
+}
+
+// Animate score counter from current to target
+function animateScore(targetScore, duration = 600) {
+    const startScore = displayedScore;
+    const diff = targetScore - startScore;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Ease out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const currentScore = Math.round(startScore + diff * eased);
+        
+        scoreValue.textContent = currentScore.toLocaleString();
+        displayedScore = currentScore;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            scoreValue.classList.remove('bump');
+        }
+    }
+    
+    if (diff > 0) {
+        scoreValue.classList.add('bump');
+    }
+    requestAnimationFrame(update);
+}
+
+// Show floating score popup at element position
+function showScorePopup(element, points) {
+    const rect = element.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.className = 'score-popup';
+    popup.textContent = `+${points.toLocaleString()}`;
+    popup.style.left = `${rect.left + rect.width / 2}px`;
+    popup.style.top = `${rect.top}px`;
+    document.body.appendChild(popup);
+    
+    popup.addEventListener('animationend', () => popup.remove());
+}
+
+// Update score display (without animation, for initial load)
+function updateScoreDisplay() {
+    const totalScore = calculateTotalScore();
+    displayedScore = totalScore;
+    scoreValue.textContent = totalScore.toLocaleString();
 }
 
 function updateProgress() {
@@ -537,16 +685,27 @@ function renderTasks() {
                 <p class="empty-text">No tasks yet! Add one below.</p>
             </div>
         `;
-        updateTimeline();
         updateProgress();
+        updateScoreDisplay();
         return;
     }
 
-    // Render all task elements
+    // Calculate start times and render all task elements with dividers
+    let currentMinutes = 9 * 60; // Start at 9am
     tasks.forEach((task, index) => {
+        // Add time divider before each task
+        const startTime = formatTime(currentMinutes);
+        taskList.appendChild(createTimeDivider(startTime));
+        
+        // Add task element
         const el = createTaskElement(task, index);
         taskList.appendChild(el);
+        
+        currentMinutes += parseTimeToMinutes(task.time);
     });
+    
+    // Add final time divider showing end time
+    taskList.appendChild(createTimeDivider(formatTime(currentMinutes)));
 
     // Check if all done
     const allDone = tasks.every(t => t.completed);
@@ -560,8 +719,8 @@ function renderTasks() {
         taskList.appendChild(doneEl);
     }
 
-    updateTimeline();
     updateProgress();
+    updateScoreDisplay();
 }
 
 // Drag and drop handlers
@@ -718,7 +877,7 @@ function updateTaskOrder() {
     tasks = newOrder.map(id => tasks.find(t => t.id === id)).filter(Boolean);
     
     // Update timeline to reflect new order
-    updateTimeline();
+    updateStartTimes();
 }
 
 // Poll localStorage for external changes every 2 seconds
@@ -749,7 +908,7 @@ function pollForChanges() {
                     el.querySelector('.checkbox').classList.toggle('checked', task.completed);
                 }
             });
-            updateTimeline();
+            updateStartTimes();
             updateProgress();
         }
     }
