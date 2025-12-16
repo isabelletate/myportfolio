@@ -331,6 +331,89 @@
     </div>
 
     <script>
+        // ============================================
+        // EVENT SOURCING - Changelog Management
+        // ============================================
+        
+        const STORAGE_KEY = 'grizzChangelog';
+        const DATE_KEY = 'grizzChangelogDate';
+        
+        function loadChangelog() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const savedDate = localStorage.getItem(DATE_KEY);
+            const today = new Date().toDateString();
+            
+            if (saved && savedDate === today) {
+                return JSON.parse(saved);
+            }
+            return [];
+        }
+        
+        function saveChangelog(changelog) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(changelog));
+            localStorage.setItem(DATE_KEY, new Date().toDateString());
+        }
+        
+        function addEvent(op, data) {
+            const changelog = loadChangelog();
+            const event = {
+                ts: new Date().toISOString(),
+                op,
+                ...data
+            };
+            changelog.push(event);
+            saveChangelog(changelog);
+            return event;
+        }
+        
+        function replayChangelog(changelog) {
+            const tasksMap = new Map();
+            const order = [];
+            
+            // Sort events by timestamp to ensure correct chronological order
+            const sortedEvents = [...changelog].sort((a, b) => a.ts.localeCompare(b.ts));
+            
+            for (const event of sortedEvents) {
+                switch (event.op) {
+                    case 'added':
+                        tasksMap.set(event.id, {
+                            id: event.id,
+                            text: event.text,
+                            time: event.time,
+                            color: event.color,
+                            completed: false
+                        });
+                        order.push(event.id);
+                        break;
+                    case 'removed':
+                        tasksMap.delete(event.id);
+                        const removeIdx = order.indexOf(event.id);
+                        if (removeIdx > -1) order.splice(removeIdx, 1);
+                        break;
+                    case 'completed':
+                        if (tasksMap.has(event.id)) {
+                            tasksMap.get(event.id).completed = true;
+                        }
+                        break;
+                    case 'uncompleted':
+                        if (tasksMap.has(event.id)) {
+                            tasksMap.get(event.id).completed = false;
+                        }
+                        break;
+                    case 'reorder':
+                        order.length = 0;
+                        order.push(...event.order.filter(id => tasksMap.has(id)));
+                        break;
+                }
+            }
+            
+            return order.map(id => tasksMap.get(id)).filter(Boolean);
+        }
+        
+        // ============================================
+        // END EVENT SOURCING
+        // ============================================
+
         // Parse time string to minutes
         function parseTimeToMinutes(timeStr) {
             const str = timeStr.toLowerCase().trim();
@@ -379,15 +462,9 @@
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('reportDate').textContent = now.toLocaleDateString('en-US', options);
 
-            // Load tasks from localStorage
-            const saved = localStorage.getItem('grizzTasks');
-            const savedDate = localStorage.getItem('grizzTasksDate');
-            const today = new Date().toDateString();
-
-            let tasks = [];
-            if (saved && savedDate === today) {
-                tasks = JSON.parse(saved);
-            }
+            // Load tasks from changelog
+            const changelog = loadChangelog();
+            let tasks = replayChangelog(changelog);
 
             if (tasks.length === 0) {
                 document.getElementById('taskList').innerHTML = '<div class="empty-state">No tasks scheduled for today</div>';
@@ -490,44 +567,46 @@
 
                 row.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    // Save new order
-                    const newOrder = [...taskList.querySelectorAll('.task-row')].map(el => {
-                        return tasks[parseInt(el.dataset.index)];
+                    // Get new order of task IDs
+                    const newOrderIds = [...taskList.querySelectorAll('.task-row')].map(el => {
+                        return tasks[parseInt(el.dataset.index)].id;
                     });
                     
-                    // Update localStorage
-                    localStorage.setItem('grizzTasks', JSON.stringify(newOrder));
+                    // Emit reorder event
+                    addEvent('reorder', { order: newOrderIds });
                     
-                    // Re-render to update times
-                    renderTasks(newOrder);
+                    // Update event count to prevent self-reload
+                    lastKnownEventCount = loadChangelog().length;
+                    
+                    // Reload from changelog and re-render
+                    const updatedTasks = replayChangelog(loadChangelog());
+                    renderTasks(updatedTasks);
                     
                     // Update the tasks array reference for future drags
                     tasks.length = 0;
-                    tasks.push(...newOrder);
+                    tasks.push(...updatedTasks);
                 });
             });
         }
 
         // Poll localStorage for external changes every 2 seconds
-        let lastKnownData = null;
-        let currentTasks = [];
+        let lastKnownEventCount = 0;
 
         function pollForChanges() {
-            const currentData = localStorage.getItem('grizzTasks');
+            const changelog = loadChangelog();
             
-            if (lastKnownData !== null && currentData !== lastKnownData) {
-                // Data changed externally, reload
+            // If there are new events, reload the page to recalculate stats
+            if (changelog.length !== lastKnownEventCount) {
+                lastKnownEventCount = changelog.length;
                 location.reload();
             }
-            
-            lastKnownData = currentData;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             init();
             
-            // Initialize polling
-            lastKnownData = localStorage.getItem('grizzTasks');
+            // Initialize polling with current event count
+            lastKnownEventCount = loadChangelog().length;
             setInterval(pollForChanges, 2000);
         });
     </script>

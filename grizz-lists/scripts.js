@@ -35,6 +35,154 @@ const defaultTasks = [
     { text: 'Follow up on delayed deliveries', time: '30m' },
 ];
 
+// ============================================
+// EVENT SOURCING - Changelog Management
+// ============================================
+
+const STORAGE_KEY = 'grizzChangelog';
+const DATE_KEY = 'grizzChangelogDate';
+
+// Get current UTC timestamp as ISO8601
+function timestamp() {
+    return new Date().toISOString();
+}
+
+// Load changelog from localStorage
+function loadChangelog() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const savedDate = localStorage.getItem(DATE_KEY);
+    const today = new Date().toDateString();
+    
+    if (saved && savedDate === today) {
+        return JSON.parse(saved);
+    }
+    return [];
+}
+
+// Save changelog to localStorage
+function saveChangelog(changelog) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(changelog));
+    localStorage.setItem(DATE_KEY, new Date().toDateString());
+}
+
+// Add an event to the changelog
+function addEvent(op, data) {
+    const changelog = loadChangelog();
+    const event = {
+        ts: timestamp(),
+        op,
+        ...data
+    };
+    changelog.push(event);
+    saveChangelog(changelog);
+    return event;
+}
+
+// Merge changelogs from multiple sources (dedupes by timestamp)
+function mergeChangelogs(local, remote) {
+    const seen = new Set();
+    const merged = [];
+    
+    [...local, ...remote].forEach(event => {
+        if (!seen.has(event.ts)) {
+            seen.add(event.ts);
+            merged.push(event);
+        }
+    });
+    
+    // Sort by timestamp
+    merged.sort((a, b) => a.ts.localeCompare(b.ts));
+    return merged;
+}
+
+// Replay changelog to build current task state
+function replayChangelog(changelog) {
+    const tasksMap = new Map(); // id -> task
+    const order = []; // maintains order of task ids
+    
+    // Sort events by timestamp to ensure correct chronological order
+    const sortedEvents = [...changelog].sort((a, b) => a.ts.localeCompare(b.ts));
+    
+    for (const event of sortedEvents) {
+        switch (event.op) {
+            case 'added':
+                tasksMap.set(event.id, {
+                    id: event.id,
+                    text: event.text,
+                    time: event.time,
+                    color: event.color,
+                    completed: false
+                });
+                order.push(event.id);
+                break;
+                
+            case 'removed':
+                tasksMap.delete(event.id);
+                const removeIdx = order.indexOf(event.id);
+                if (removeIdx > -1) order.splice(removeIdx, 1);
+                break;
+                
+            case 'completed':
+                if (tasksMap.has(event.id)) {
+                    tasksMap.get(event.id).completed = true;
+                }
+                break;
+                
+            case 'uncompleted':
+                if (tasksMap.has(event.id)) {
+                    tasksMap.get(event.id).completed = false;
+                }
+                break;
+                
+            case 'moved':
+                // Remove from current position
+                const moveIdx = order.indexOf(event.id);
+                if (moveIdx > -1) order.splice(moveIdx, 1);
+                
+                // Insert at new position
+                if (event.toIndex !== undefined) {
+                    order.splice(event.toIndex, 0, event.id);
+                } else if (event.afterId !== undefined) {
+                    const afterIdx = order.indexOf(event.afterId);
+                    order.splice(afterIdx + 1, 0, event.id);
+                } else {
+                    order.push(event.id);
+                }
+                break;
+                
+            case 'reorder':
+                // Full reorder - replace order array
+                order.length = 0;
+                order.push(...event.order.filter(id => tasksMap.has(id)));
+                break;
+        }
+    }
+    
+    // Build final task array in order
+    return order.map(id => tasksMap.get(id)).filter(Boolean);
+}
+
+// Initialize default tasks as events
+function initializeDefaultTasks() {
+    const changelog = [];
+    defaultTasks.forEach((t, i) => {
+        changelog.push({
+            ts: new Date(Date.now() + i).toISOString(), // Ensure unique timestamps
+            op: 'added',
+            id: Date.now() + i,
+            text: t.text,
+            time: t.time,
+            color: colors[i % colors.length]
+        });
+    });
+    saveChangelog(changelog);
+    return changelog;
+}
+
+// ============================================
+// END EVENT SOURCING
+// ============================================
+
 // State
 let tasks = [];
 let selectedTime = '1h';
@@ -72,28 +220,19 @@ function updateDate() {
 }
 
 function loadTasks() {
-    const saved = localStorage.getItem('grizzTasks');
-    const savedDate = localStorage.getItem('grizzTasksDate');
-    const today = new Date().toDateString();
-
-    if (saved && savedDate === today) {
-        tasks = JSON.parse(saved);
-    } else {
-        // New day - reset with default tasks
-        tasks = defaultTasks.map((t, i) => ({
-            id: Date.now() + i,
-            text: t.text,
-            time: t.time,
-            completed: false,
-            color: colors[i % colors.length]
-        }));
-        saveTasks();
+    let changelog = loadChangelog();
+    
+    if (changelog.length === 0) {
+        // New day or first run - initialize with default tasks
+        changelog = initializeDefaultTasks();
     }
+    
+    tasks = replayChangelog(changelog);
 }
 
 function saveTasks() {
-    localStorage.setItem('grizzTasks', JSON.stringify(tasks));
-    localStorage.setItem('grizzTasksDate', new Date().toDateString());
+    // This is now a no-op - events are saved individually
+    // Kept for compatibility with existing code patterns
 }
 
 function setupEventListeners() {
@@ -126,33 +265,151 @@ function closeModal() {
     modal.classList.remove('active');
 }
 
+// Create a task element without appending it
+function createTaskElement(task, index = 0) {
+    const el = document.createElement('div');
+    el.className = `task-item${task.completed ? ' completed' : ''}`;
+    el.dataset.id = task.id;
+    el.style.setProperty('--task-color', task.color);
+    el.style.animationDelay = `${index * 0.05}s`;
+    el.draggable = true;
+
+    el.innerHTML = `
+        <div class="drag-handle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="checkbox ${task.completed ? 'checked' : ''}" data-task-id="${task.id}">
+            <svg viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+        <div class="task-content">
+            <div class="task-text">${task.text}</div>
+            <span class="task-time">${task.time}</span>
+        </div>
+        <button class="delete-btn" data-delete-id="${task.id}">
+            <svg viewBox="0 0 24 24" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    `;
+
+    // Checkbox click handler
+    el.querySelector('.checkbox').addEventListener('click', () => toggleTask(task.id));
+    
+    // Delete button handler
+    el.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.id));
+
+    // Drag events
+    el.addEventListener('dragstart', handleDragStart);
+    el.addEventListener('dragend', handleDragEnd);
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('drop', handleDrop);
+
+    // Touch events for mobile
+    el.addEventListener('touchstart', handleTouchStart, { passive: false });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd);
+
+    return el;
+}
+
+// Append a single task element to the list
+function appendTaskElement(task) {
+    // Remove empty state if present
+    const emptyState = taskList.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+    
+    // Remove "all done" state if present
+    const allDone = taskList.querySelector('.all-done');
+    if (allDone) allDone.remove();
+    
+    const el = createTaskElement(task, tasks.length - 1);
+    taskList.appendChild(el);
+}
+
+// Update the timeline without re-rendering tasks
+function updateTimeline() {
+    const timeline = document.getElementById('timeline');
+    timeline.innerHTML = '';
+    
+    if (tasks.length === 0) return;
+    
+    let currentMinutes = 9 * 60; // Start at 9am
+    
+    tasks.forEach(task => {
+        const marker = document.createElement('div');
+        marker.className = 'timeline-marker' + (task.completed ? ' completed' : '');
+        marker.dataset.id = task.id;
+        marker.innerHTML = `
+            <div class="timeline-time">${formatTime(currentMinutes)}</div>
+            <div class="timeline-dot"></div>
+        `;
+        timeline.appendChild(marker);
+        currentMinutes += parseTimeToMinutes(task.time);
+    });
+    
+    // Add end time marker
+    const endMarker = document.createElement('div');
+    endMarker.className = 'timeline-marker timeline-end';
+    endMarker.innerHTML = `
+        <div class="timeline-time">${formatTime(currentMinutes)}</div>
+    `;
+    timeline.appendChild(endMarker);
+}
+
 function addTask() {
     const text = taskInput.value.trim();
     if (!text) return;
 
-    const task = {
-        id: Date.now(),
-        text,
-        time: selectedTime,
-        completed: false,
-        color: colors[Math.floor(Math.random() * colors.length)]
-    };
-
-    tasks.unshift(task);
-    saveTasks();
-    renderTasks();
+    const id = Date.now();
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const time = selectedTime;
+    
+    // Create task object
+    const task = { id, text, time, color, completed: false };
+    
+    // Emit added event
+    addEvent('added', { id, text, time, color });
+    
+    // Update local state
+    tasks.push(task);
+    
+    // Append new task element (no full re-render)
+    appendTaskElement(task);
+    updateTimeline();
+    updateProgress();
+    
     closeModal();
 }
 
 function deleteTask(id) {
     const taskEl = document.querySelector(`[data-id="${id}"]`);
+    const timelineMarker = document.querySelector(`.timeline-marker[data-id="${id}"]`);
+    
     taskEl.style.transform = 'translateX(100%)';
     taskEl.style.opacity = '0';
+    if (timelineMarker) {
+        timelineMarker.style.opacity = '0';
+    }
     
     setTimeout(() => {
+        // Emit removed event
+        addEvent('removed', { id });
+        
+        // Update local state
         tasks = tasks.filter(t => t.id !== id);
-        saveTasks();
-        renderTasks();
+        
+        // Remove elements from DOM
+        taskEl.remove();
+        if (timelineMarker) timelineMarker.remove();
+        
+        // Update timeline times and progress
+        updateTimeline();
+        updateProgress();
     }, 300);
 }
 
@@ -160,11 +417,25 @@ function toggleTask(id) {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
 
-    task.completed = !task.completed;
-    saveTasks();
-    renderTasks();
+    const wasCompleted = task.completed;
+    const taskEl = document.querySelector(`[data-id="${id}"]`);
+    const checkbox = taskEl.querySelector('.checkbox');
+    const timelineMarker = document.querySelector(`.timeline-marker[data-id="${id}"]`);
+    
+    // Emit completed or uncompleted event
+    addEvent(wasCompleted ? 'uncompleted' : 'completed', { id });
+    
+    // Update local state
+    task.completed = !wasCompleted;
+    
+    // Update DOM directly (no full re-render)
+    taskEl.classList.toggle('completed', task.completed);
+    checkbox.classList.toggle('checked', task.completed);
+    if (timelineMarker) {
+        timelineMarker.classList.toggle('completed', task.completed);
+    }
 
-    if (task.completed) {
+    if (!wasCompleted) {
         showEncouragement();
         createConfetti();
     }
@@ -257,9 +528,7 @@ function formatTime(totalMinutes) {
 }
 
 function renderTasks() {
-    const timeline = document.getElementById('timeline');
     taskList.innerHTML = '';
-    timeline.innerHTML = '';
     
     if (tasks.length === 0) {
         taskList.innerHTML = `
@@ -268,89 +537,19 @@ function renderTasks() {
                 <p class="empty-text">No tasks yet! Add one below.</p>
             </div>
         `;
+        updateTimeline();
         updateProgress();
         return;
     }
 
-    // Keep tasks in their original order
-    const sortedTasks = [...tasks];
-
-    // Start at 9am (9 * 60 = 540 minutes from midnight)
-    let currentMinutes = 9 * 60;
-
-    sortedTasks.forEach((task, index) => {
-        const el = document.createElement('div');
-        el.className = `task-item${task.completed ? ' completed' : ''}`;
-        el.dataset.id = task.id;
-        el.style.setProperty('--task-color', task.color);
-        el.style.animationDelay = `${index * 0.05}s`;
-        el.draggable = true;
-
-        el.innerHTML = `
-            <div class="drag-handle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <div class="checkbox ${task.completed ? 'checked' : ''}" data-task-id="${task.id}">
-                <svg viewBox="0 0 24 24">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-            </div>
-            <div class="task-content">
-                <div class="task-text">${task.text}</div>
-                <span class="task-time">${task.time}</span>
-            </div>
-            <button class="delete-btn" data-delete-id="${task.id}">
-                <svg viewBox="0 0 24 24" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        `;
-
-        // Checkbox click handler
-        el.querySelector('.checkbox').addEventListener('click', () => toggleTask(task.id));
-        
-        // Delete button handler
-        el.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.id));
-
-        // Drag events
-        el.addEventListener('dragstart', handleDragStart);
-        el.addEventListener('dragend', handleDragEnd);
-        el.addEventListener('dragover', handleDragOver);
-        el.addEventListener('drop', handleDrop);
-
-        // Touch events for mobile
-        el.addEventListener('touchstart', handleTouchStart, { passive: false });
-        el.addEventListener('touchmove', handleTouchMove, { passive: false });
-        el.addEventListener('touchend', handleTouchEnd);
-
+    // Render all task elements
+    tasks.forEach((task, index) => {
+        const el = createTaskElement(task, index);
         taskList.appendChild(el);
-
-        // Add timeline marker for all tasks
-        const marker = document.createElement('div');
-        marker.className = 'timeline-marker' + (task.completed ? ' completed' : '');
-        marker.innerHTML = `
-            <div class="timeline-time">${formatTime(currentMinutes)}</div>
-            <div class="timeline-dot"></div>
-        `;
-        timeline.appendChild(marker);
-
-        // Add duration to current time
-        currentMinutes += parseTimeToMinutes(task.time);
     });
 
-    // Add end time marker
-    const endMarker = document.createElement('div');
-    endMarker.className = 'timeline-marker timeline-end';
-    endMarker.innerHTML = `
-        <div class="timeline-time">${formatTime(currentMinutes)}</div>
-    `;
-    timeline.appendChild(endMarker);
-
     // Check if all done
-    const allDone = tasks.length > 0 && tasks.every(t => t.completed);
+    const allDone = tasks.every(t => t.completed);
     if (allDone) {
         const doneEl = document.createElement('div');
         doneEl.className = 'all-done';
@@ -361,6 +560,7 @@ function renderTasks() {
         taskList.appendChild(doneEl);
     }
 
+    updateTimeline();
     updateProgress();
 }
 
@@ -508,39 +708,59 @@ function handleTouchEnd() {
 
 function updateTaskOrder() {
     const newOrder = [...document.querySelectorAll('.task-item')].map(el => 
-        tasks.find(t => t.id === parseInt(el.dataset.id))
+        parseInt(el.dataset.id)
     ).filter(Boolean);
     
-    tasks = newOrder;
-    saveTasks();
+    // Emit reorder event with new order
+    addEvent('reorder', { order: newOrder });
+    
+    // Update local tasks array to match new order
+    tasks = newOrder.map(id => tasks.find(t => t.id === id)).filter(Boolean);
+    
+    // Update timeline to reflect new order
+    updateTimeline();
 }
 
 // Poll localStorage for external changes every 2 seconds
-let lastKnownData = null;
+let lastKnownEventCount = 0;
 
 function pollForChanges() {
-    const currentData = localStorage.getItem('grizzTasks');
+    const changelog = loadChangelog();
     
-    if (lastKnownData !== null && currentData !== lastKnownData) {
-        // Data changed externally, reload tasks
-        const savedDate = localStorage.getItem('grizzTasksDate');
-        const today = new Date().toDateString();
+    // If there are new events from external sources, re-render
+    if (changelog.length > lastKnownEventCount) {
+        const newEvents = changelog.slice(lastKnownEventCount);
+        lastKnownEventCount = changelog.length;
         
-        if (savedDate === today && currentData) {
-            tasks = JSON.parse(currentData);
+        // Rebuild state and re-render only if needed
+        const oldTaskIds = tasks.map(t => t.id).join(',');
+        tasks = replayChangelog(changelog);
+        const newTaskIds = tasks.map(t => t.id).join(',');
+        
+        // Only full re-render if structure changed significantly
+        if (oldTaskIds !== newTaskIds) {
             renderTasks();
+        } else {
+            // Just update completion states and timeline
+            tasks.forEach(task => {
+                const el = document.querySelector(`[data-id="${task.id}"]`);
+                if (el) {
+                    el.classList.toggle('completed', task.completed);
+                    el.querySelector('.checkbox').classList.toggle('checked', task.completed);
+                }
+            });
+            updateTimeline();
+            updateProgress();
         }
     }
-    
-    lastKnownData = currentData;
 }
 
 // Start the app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     init();
     
-    // Initialize polling
-    lastKnownData = localStorage.getItem('grizzTasks');
+    // Initialize polling with current event count
+    lastKnownEventCount = loadChangelog().length;
     setInterval(pollForChanges, 2000);
     
     // Signal JS is loaded and check if ready to show
