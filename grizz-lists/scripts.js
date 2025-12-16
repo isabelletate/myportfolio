@@ -865,15 +865,25 @@ function renderTasks() {
 }
 
 // Drag and drop handlers
+let isDragging = false;
+
 function handleDragStart(e) {
     draggedItem = this;
+    isDragging = true;
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
 }
 
 function handleDragEnd() {
     this.classList.remove('dragging');
+    
+    // If we're still dragging (drop didn't fire), commit the order now
+    if (isDragging && draggedItem) {
+        updateTaskOrder();
+    }
+    
     draggedItem = null;
+    isDragging = false;
     document.querySelectorAll('.drag-placeholder').forEach(p => p.remove());
 }
 
@@ -884,18 +894,21 @@ function handleDragOver(e) {
     const rect = this.getBoundingClientRect();
     const midY = rect.top + rect.height / 2;
     
+    // Just move the DOM element visually - don't update state yet
     if (e.clientY < midY) {
         this.parentNode.insertBefore(draggedItem, this);
     } else {
         this.parentNode.insertBefore(draggedItem, this.nextSibling);
     }
-
-    // Update task order
-    updateTaskOrder();
 }
 
 function handleDrop(e) {
     e.preventDefault();
+    // Commit the reorder on drop
+    if (isDragging) {
+        isDragging = false; // Prevent double-commit in dragEnd
+        updateTaskOrder();
+    }
 }
 
 // Touch handlers for mobile drag
@@ -903,6 +916,7 @@ function handleTouchStart(e) {
     if (!e.target.closest('.drag-handle')) return;
     
     touchElement = this;
+    isDragging = true;
     touchStartY = e.touches[0].clientY;
     
     // Create a visual clone that follows the finger
@@ -1002,23 +1016,30 @@ function handleTouchEnd() {
     touchElement.style.padding = '';
     touchElement.style.overflow = '';
     
-    updateTaskOrder();
+    // Only update if we were actually dragging
+    if (isDragging) {
+        isDragging = false;
+        updateTaskOrder();
+    }
     touchElement = null;
 }
 
-function updateTaskOrder() {
+async function updateTaskOrder() {
     const newOrder = [...document.querySelectorAll('.task-item')].map(el => 
         parseInt(el.dataset.id)
     ).filter(Boolean);
-    
-    // Emit reorder event with new order
-    addEvent('reorder', { order: newOrder });
     
     // Update local tasks array to match new order
     tasks = newOrder.map(id => tasks.find(t => t.id === id)).filter(Boolean);
     
     // Update timeline to reflect new order
     updateStartTimes();
+    
+    // Emit reorder event with new order
+    await addEvent('reorder', { order: newOrder });
+    
+    // Update event count so polling doesn't see this as a new external event
+    lastKnownEventCount = loadChangelog().length;
 }
 
 // Poll server for external changes every 5 seconds
@@ -1026,8 +1047,8 @@ let lastKnownEventCount = 0;
 let pollInterval = null;
 
 async function pollForChanges() {
-    // Skip if we're already syncing
-    if (isSyncing) return;
+    // Skip if we're already syncing or if user is dragging
+    if (isSyncing || isDragging) return;
     
     try {
         isSyncing = true;
