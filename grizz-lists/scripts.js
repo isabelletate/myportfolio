@@ -515,9 +515,33 @@ function updateTaskOrder() {
     saveTasks();
 }
 
+// Poll localStorage for external changes every 2 seconds
+let lastKnownData = null;
+
+function pollForChanges() {
+    const currentData = localStorage.getItem('grizzTasks');
+    
+    if (lastKnownData !== null && currentData !== lastKnownData) {
+        // Data changed externally, reload tasks
+        const savedDate = localStorage.getItem('grizzTasksDate');
+        const today = new Date().toDateString();
+        
+        if (savedDate === today && currentData) {
+            tasks = JSON.parse(currentData);
+            renderTasks();
+        }
+    }
+    
+    lastKnownData = currentData;
+}
+
 // Start the app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     init();
+    
+    // Initialize polling
+    lastKnownData = localStorage.getItem('grizzTasks');
+    setInterval(pollForChanges, 2000);
     
     // Signal JS is loaded and check if ready to show
     if (window.__loadState) {

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Task Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <meta property="og:title" content="Daily Task Report">
+    <meta property="og:description" content="A daily report of tasks completed and progress made.">
+    <meta property="og:image" content="https://www.grizz.biz/grizz-lists/og-report-image.jpeg">
+    <meta property="og:image:width" content="1200">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border: #e5e5e5;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        header {
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .report-date {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .stat-card.highlight {
+            background: var(--success-bg);
+            border-color: var(--success);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-card.highlight .stat-value {
+            color: var(--success);
+        }
+
+        .stat-subtext {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 32px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .progress-percentage {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Task List */
+        .tasks-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .tasks-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .task-row {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            gap: 16px;
+            cursor: grab;
+            transition: background-color 0.15s ease;
+        }
+
+        .task-row:hover {
+            background-color: var(--bg);
+        }
+
+        .task-row:active {
+            cursor: grabbing;
+        }
+
+        .task-row.dragging {
+            opacity: 0.5;
+            background-color: var(--bg);
+        }
+
+        .task-row:last-child {
+            border-bottom: none;
+        }
+
+        .drag-handle {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px;
+            cursor: grab;
+            opacity: 0.3;
+        }
+
+        .drag-handle:hover {
+            opacity: 0.6;
+        }
+
+        .drag-handle span {
+            width: 12px;
+            height: 2px;
+            background: var(--text-secondary);
+            border-radius: 1px;
+        }
+
+        .task-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-status.completed {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .task-status.completed::after {
+            content: '';
+            width: 6px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) translateY(-1px);
+        }
+
+        .task-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-text {
+            font-size: 0.9375rem;
+            color: var(--text-primary);
+        }
+
+        .task-row.completed .task-text {
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .task-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .task-schedule {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 48px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        .report-footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                padding: 20px;
+            }
+            .drag-handle {
+                display: none;
+            }
+            .task-row {
+                cursor: default;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="report-title">Daily Task Report</h1>
+            <p class="report-date" id="reportDate"></p>
+        </header>
+
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="progress-section">
+            <div class="progress-header">
+                <span class="progress-title">Overall Completion</span>
+                <span class="progress-percentage" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="tasks-section">
+            <div class="tasks-header">Task Schedule</div>
+            <div id="taskList"></div>
+        </div>
+
+        <div class="report-footer">
+            Generated automatically from task data
+        </div>
+    </div>
+
+    <script>
+        // Parse time string to minutes
+        function parseTimeToMinutes(timeStr) {
+            const str = timeStr.toLowerCase().trim();
+            let minutes = 0;
+            
+            const hourMatch = str.match(/([\d.]+)\s*h/);
+            if (hourMatch) {
+                minutes += parseFloat(hourMatch[1]) * 60;
+            }
+            
+            const minMatch = str.match(/(\d+)\s*m/);
+            if (minMatch) {
+                minutes += parseInt(minMatch[1]);
+            }
+            
+            if (!hourMatch && !minMatch) {
+                const numMatch = str.match(/(\d+)/);
+                if (numMatch) minutes = parseInt(numMatch[1]);
+            }
+            
+            return minutes || 30;
+        }
+
+        // Format minutes to time string
+        function formatTime(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
+            const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            return `${hour12}:${mins.toString().padStart(2, '0')} ${ampm}`;
+        }
+
+        // Format duration for display
+        function formatDuration(minutes) {
+            if (minutes >= 60) {
+                const hrs = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+            }
+            return `${minutes}m`;
+        }
+
+        function init() {
+            // Set date
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('reportDate').textContent = now.toLocaleDateString('en-US', options);
+
+            // Load tasks from localStorage
+            const saved = localStorage.getItem('grizzTasks');
+            const savedDate = localStorage.getItem('grizzTasksDate');
+            const today = new Date().toDateString();
+
+            let tasks = [];
+            if (saved && savedDate === today) {
+                tasks = JSON.parse(saved);
+            }
+
+            if (tasks.length === 0) {
+                document.getElementById('taskList').innerHTML = '<div class="empty-state">No tasks scheduled for today</div>';
+                document.getElementById('statsGrid').innerHTML = '';
+                return;
+            }
+
+            // Calculate statistics
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(t => t.completed).length;
+            const completionRate = Math.round((completedTasks / totalTasks) * 100);
+            
+            const totalMinutes = tasks.reduce((sum, t) => sum + parseTimeToMinutes(t.time), 0);
+            const completedMinutes = tasks.filter(t => t.completed).reduce((sum, t) => sum + parseTimeToMinutes(t.time), 0);
+            const remainingMinutes = totalMinutes - completedMinutes;
+
+            // Render stats
+            const statsGrid = document.getElementById('statsGrid');
+            const stats = [
+                { label: 'Tasks Completed', value: `${completedTasks}/${totalTasks}`, highlight: completedTasks === totalTasks },
+                { label: 'Completion Rate', value: `${completionRate}%`, subtext: completionRate >= 80 ? 'Excellent progress' : completionRate >= 50 ? 'Good progress' : 'In progress', highlight: completionRate >= 80 },
+                { label: 'Time Invested', value: formatDuration(completedMinutes), subtext: `of ${formatDuration(totalMinutes)} planned` },
+                { label: 'Time Remaining', value: formatDuration(remainingMinutes), subtext: remainingMinutes === 0 ? 'All tasks complete' : 'Estimated' }
+            ];
+
+            statsGrid.innerHTML = stats.map(stat => `
+                <div class="stat-card${stat.highlight ? ' highlight' : ''}">
+                    <div class="stat-label">${stat.label}</div>
+                    <div class="stat-value">${stat.value}</div>
+                    ${stat.subtext ? `<div class="stat-subtext">${stat.subtext}</div>` : ''}
+                </div>
+            `).join('');
+
+            // Update progress bar
+            document.getElementById('progressPercent').textContent = `${completionRate}%`;
+            document.getElementById('progressFill').style.width = `${completionRate}%`;
+
+            renderTasks(tasks);
+        }
+
+        function renderTasks(tasks) {
+            let currentMinutes = 9 * 60; // Start at 9 AM
+            const taskList = document.getElementById('taskList');
+
+            taskList.innerHTML = tasks.map((task, index) => {
+                const startTime = formatTime(currentMinutes);
+                const duration = parseTimeToMinutes(task.time);
+                currentMinutes += duration;
+
+                return `
+                    <div class="task-row${task.completed ? ' completed' : ''}" draggable="true" data-index="${index}">
+                        <div class="drag-handle">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <div class="task-status${task.completed ? ' completed' : ''}"></div>
+                        <div class="task-content">
+                            <div class="task-text">${task.text}</div>
+                        </div>
+                        <span class="task-time">${task.time}</span>
+                        <span class="task-schedule">${startTime}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Setup drag and drop
+            setupDragAndDrop(tasks);
+        }
+
+        function setupDragAndDrop(tasks) {
+            const taskList = document.getElementById('taskList');
+            let draggedEl = null;
+
+            taskList.querySelectorAll('.task-row').forEach(row => {
+                row.addEventListener('dragstart', (e) => {
+                    draggedEl = row;
+                    row.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                row.addEventListener('dragend', () => {
+                    row.classList.remove('dragging');
+                    draggedEl = null;
+                });
+
+                row.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (!draggedEl || draggedEl === row) return;
+
+                    const rect = row.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+
+                    if (e.clientY < midY) {
+                        row.parentNode.insertBefore(draggedEl, row);
+                    } else {
+                        row.parentNode.insertBefore(draggedEl, row.nextSibling);
+                    }
+                });
+
+                row.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    // Save new order
+                    const newOrder = [...taskList.querySelectorAll('.task-row')].map(el => {
+                        return tasks[parseInt(el.dataset.index)];
+                    });
+                    
+                    // Update localStorage
+                    localStorage.setItem('grizzTasks', JSON.stringify(newOrder));
+                    
+                    // Re-render to update times
+                    renderTasks(newOrder);
+                    
+                    // Update the tasks array reference for future drags
+                    tasks.length = 0;
+                    tasks.push(...newOrder);
+                });
+            });
+        }
+
+        // Poll localStorage for external changes every 2 seconds
+        let lastKnownData = null;
+        let currentTasks = [];
+
+        function pollForChanges() {
+            const currentData = localStorage.getItem('grizzTasks');
+            
+            if (lastKnownData !== null && currentData !== lastKnownData) {
+                // Data changed externally, reload
+                location.reload();
+            }
+            
+            lastKnownData = currentData;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            
+            // Initialize polling
+            lastKnownData = localStorage.getItem('grizzTasks');
+            setInterval(pollForChanges, 2000);
+        });
+    </script>
+</body>
+</html>
+
