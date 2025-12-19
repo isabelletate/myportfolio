@@ -17,7 +17,7 @@ const listId = getListIdFromUrl();
 
 // If no list ID, redirect to main page
 if (!listId) {
-    window.location.href = '../';
+    window.location.href = '../index.html';
 }
 
 // ============================================
