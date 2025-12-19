@@ -18,18 +18,15 @@ const store = createEventStore('shopping');
 // ============================================
 
 function replayChangelog(changelog) {
-    // Create item from event
     const itemFactory = (event) => ({
         id: event.id,
         text: event.text,
-        quantity: event.quantity || null,
         category: event.category || 'other',
         checked: false
     });
     
     const { itemsMap, order, sortedEvents } = replayChangelogBase(changelog, itemFactory);
     
-    // Handle shopping-specific operations
     for (const event of sortedEvents) {
         switch (event.op) {
             case 'checked':
@@ -74,16 +71,6 @@ function detectCategory(text) {
         }
     }
     return 'other';
-}
-
-function parseQuantity(text) {
-    const match = text.match(/^(\d+(?:\.\d+)?)\s*(lb|lbs|oz|kg|g|pcs?|x)?\s+/i);
-    if (match) {
-        const qty = match[1] + (match[2] ? match[2] : '');
-        const name = text.slice(match[0].length).trim();
-        return { quantity: qty, name };
-    }
-    return { quantity: null, name: text };
 }
 
 // ============================================
@@ -135,22 +122,20 @@ function setupEventListeners() {
 // ============================================
 
 function addItem() {
-    const rawText = addInput.value.trim();
-    if (!rawText) return;
+    const text = addInput.value.trim();
+    if (!text) return;
     
-    const { quantity, name } = parseQuantity(rawText);
-    const category = detectCategory(name);
+    const category = detectCategory(text);
     const id = Date.now();
     
     const item = {
         id,
-        text: name,
-        quantity,
+        text,
         category,
         checked: false
     };
     
-    store.addEvent('added', { id, text: name, quantity, category });
+    store.addEvent('added', { id, text, category });
     items.unshift(item);
     
     addInput.value = '';
@@ -328,7 +313,6 @@ function createItemHTML(item, index) {
             </div>
             <div class="item-content">
                 <span class="item-text">${item.text}</span>
-                ${item.quantity ? `<span class="item-quantity">${item.quantity}</span>` : ''}
             </div>
             <button class="item-delete">
                 <svg viewBox="0 0 24 24" stroke-width="2">

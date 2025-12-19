@@ -324,16 +324,6 @@ header {
     transition: all 0.2s ease;
 }
 
-.item-quantity {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    color: var(--accent-cyan);
-    background: rgba(34, 211, 238, 0.1);
-    padding: 3px 8px;
-    border-radius: 6px;
-    flex-shrink: 0;
-}
-
 .item-category-tag {
     font-size: 0.7rem;
     color: var(--text-muted);
