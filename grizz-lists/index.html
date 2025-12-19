@@ -5,52 +5,344 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Grizz Lists 🐻</title>
     
-    <!-- Hide page until CSS and JS are loaded -->
-    <style>html { visibility: hidden; } html.ready { visibility: visible; }</style>
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <meta property="og:title" content="Grizz Lists 🐻">
-    <meta property="og:description" content="A simple to-do list app for your daily tasks.">
+    <meta property="og:description" content="Your friendly bear companion for lists of all kinds.">
     <meta property="og:image" content="https://www.grizz.biz/grizz-lists/og-image.jpeg">
     <meta property="og:image:width" content="1200">
-    <script>
-        // Track loading state
-        window.__loadState = { css: false, js: false };
-        
-        function checkReady() {
-            if (window.__loadState.css && window.__loadState.js) {
-                document.documentElement.classList.add('ready');
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-dark: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --accent-orange: #ff6b35;
+            --accent-teal: #00d9c0;
+            --accent-pink: #ff2e63;
+            --accent-yellow: #ffc93c;
+            --accent-purple: #a855f7;
+            --accent-green: #4ade80;
+            --accent-blue: #38bdf8;
+            --text-light: #eef0f2;
+            --text-muted: #8b93a8;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-light);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        .bg-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.3;
+            animation: float 25s ease-in-out infinite;
+        }
+
+        .bg-shape:nth-child(1) {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-orange);
+            top: -150px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .bg-shape:nth-child(2) {
+            width: 350px;
+            height: 350px;
+            background: var(--accent-teal);
+            bottom: 10%;
+            left: -120px;
+            animation-delay: -8s;
+        }
+
+        .bg-shape:nth-child(3) {
+            width: 300px;
+            height: 300px;
+            background: var(--accent-purple);
+            top: 40%;
+            right: -80px;
+            animation-delay: -16s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(40px, -40px) scale(1.1); }
+            50% { transform: translate(-30px, 30px) scale(0.95); }
+            75% { transform: translate(35px, 15px) scale(1.05); }
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 0 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .logo-bear {
+            display: inline-block;
+            animation: wave 2s ease-in-out infinite;
+            transform-origin: 70% 70%;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(20deg); }
+            75% { transform: rotate(-10deg); }
+        }
+
+        .logo-text {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* List Type Cards */
+        .list-types {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 1;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .list-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 28px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            border: 2px solid transparent;
+        }
+
+        .list-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .list-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .list-card:hover::before {
+            width: 10px;
+        }
+
+        .list-card:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+
+        /* Planner Card */
+        .list-card.planner::before {
+            background: linear-gradient(180deg, var(--accent-orange), var(--accent-pink));
+        }
+
+        .list-card.planner:hover {
+            border-color: var(--accent-orange);
+        }
+
+        .list-card.planner .card-icon {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-pink));
+        }
+
+        /* Shopping Card */
+        .list-card.shopping::before {
+            background: linear-gradient(180deg, var(--accent-teal), var(--accent-green));
+        }
+
+        .list-card.shopping:hover {
+            border-color: var(--accent-teal);
+        }
+
+        .list-card.shopping .card-icon {
+            background: linear-gradient(135deg, var(--accent-teal), var(--accent-green));
+        }
+
+        .card-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .card-description {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .card-arrow {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .list-card:hover .card-arrow {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(4px);
+        }
+
+        .card-arrow svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-muted);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        /* Coming Soon Badge */
+        .coming-soon {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .list-card.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .footer-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer-heart {
+            color: var(--accent-pink);
+            display: inline-block;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 2.4rem;
+            }
+            
+            .card-icon {
+                width: 56px;
+                height: 56px;
+                font-size: 1.7rem;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
             }
         }
-        
-        // Force reload CSS and JS on explicit page reload
-        (function() {
-            const nav = performance.getEntriesByType('navigation')[0];
-            const isReload = nav && nav.type === 'reload';
-            
-            if (isReload) {
-                const cacheBuster = Date.now();
-                
-                // Reload CSS by replacing the stylesheet link
-                document.addEventListener('DOMContentLoaded', () => {
-                    const existingLink = document.querySelector('link[href="styles.css"]');
-                    if (existingLink) {
-                        const newLink = document.createElement('link');
-                        newLink.rel = 'stylesheet';
-                        newLink.href = 'styles.css?v=' + cacheBuster;
-                        newLink.onload = () => { window.__loadState.css = true; checkReady(); };
-                        existingLink.parentNode.replaceChild(newLink, existingLink);
-                    }
-                });
-                
-                // Store cache buster for script loading
-                window.__cacheBuster = cacheBuster;
-            }
-        })();
-    </script>
-    <link rel="stylesheet" href="styles.css" onload="if(!window.__cacheBuster) { window.__loadState.css = true; if(window.checkReady) checkReady(); }">
+    </style>
 </head>
 <body>
     <div class="bg-shapes">
@@ -61,102 +353,44 @@
 
     <div class="container">
         <header>
-            <div class="header-top">
-                <h1 class="logo">🐻 Grizz Lists</h1>
-                <div class="header-right">
-                    <div class="sync-indicator" id="syncIndicator" title="Sync status">
-                        <svg class="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12a9 9 0 0 1-9 9m0 0a9 9 0 0 1-9-9m9 9v-3m0-12a9 9 0 0 1 9 9m-9-9a9 9 0 0 0-9 9m9-9v3"/>
-                        </svg>
-                    </div>
-                    <div class="score-display">
-                        <span class="score-value" id="scoreValue">0</span>
-                        <span class="score-label">pts</span>
-                    </div>
-                </div>
-            </div>
-            <p class="date-display" id="dateDisplay"></p>
+            <h1 class="logo">
+                <span class="logo-bear">🐻</span>
+                <span class="logo-text">Grizz Lists</span>
+            </h1>
+            <p class="tagline">Your friendly companion for lists of all kinds</p>
         </header>
 
-        <div class="progress-section">
-            <div class="progress-header">
-                <span class="progress-label">Today's Progress</span>
-                <span class="progress-count" id="progressCount">0/0</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-            </div>
+        <div class="list-types">
+            <a href="planner/" class="list-card planner">
+                <div class="card-icon">📋</div>
+                <div class="card-content">
+                    <h2 class="card-title">Daily Planner</h2>
+                    <p class="card-description">Time-blocked tasks with productivity scoring. Plan your day and crush your goals!</p>
+                </div>
+                <div class="card-arrow">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+            </a>
+
+            <a href="shopping/" class="list-card shopping">
+                <div class="card-icon">🛒</div>
+                <div class="card-content">
+                    <h2 class="card-title">Shopping List</h2>
+                    <p class="card-description">Simple and fast grocery lists. Tap to check off items as you shop!</p>
+                    </div>
+                <div class="card-arrow">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </a>
         </div>
 
-        <div class="task-list" id="taskList"></div>
+        <footer>
+            <p class="footer-text">Made with <span class="footer-heart">♥</span> by Grizz</p>
+        </footer>
     </div>
-
-    <div class="add-section">
-        <button class="add-btn" id="addBtn">+ Add new task</button>
-    </div>
-
-    <div class="modal-overlay" id="modal">
-        <div class="modal">
-            <div class="modal-handle"></div>
-            <h2 class="modal-title">✨ New Task</h2>
-            <input type="text" class="task-input" id="taskInput" placeholder="What needs doing?" autofocus>
-            <p class="time-selector-label">How long will it take?</p>
-            <div class="time-selector">
-                <button class="time-btn" data-time="15m">
-                    <span class="time-emoji">⚡</span>
-                    15m
-                </button>
-                <button class="time-btn" data-time="30m">
-                    <span class="time-emoji">🚀</span>
-                    30m
-                </button>
-                <button class="time-btn" data-time="45m">
-                    <span class="time-emoji">☕</span>
-                    45m
-                </button>
-                <button class="time-btn selected" data-time="1h">
-                    <span class="time-emoji">💪</span>
-                    1h
-                </button>
-                <button class="time-btn" data-time="1.5h">
-                    <span class="time-emoji">🎯</span>
-                    1.5h
-                </button>
-                <button class="time-btn" data-time="2h">
-                    <span class="time-emoji">🔥</span>
-                    2h
-                </button>
-                <button class="time-btn" data-time="3h">
-                    <span class="time-emoji">🏔️</span>
-                    3h
-                </button>
-                <button class="time-btn" data-time="4h+">
-                    <span class="time-emoji">🌟</span>
-                    4h+
-                </button>
-            </div>
-            <p class="enjoyment-selector-label">How do you feel about it?</p>
-            <div class="enjoyment-selector" id="enjoymentSelector">
-                <button class="enjoyment-option" data-value="0">🤮</button>
-                <button class="enjoyment-option" data-value="1">😕</button>
-                <button class="enjoyment-option selected" data-value="2">😐</button>
-                <button class="enjoyment-option" data-value="3">🙂</button>
-                <button class="enjoyment-option" data-value="4">😍</button>
-            </div>
-            <button class="submit-btn" id="submitBtn">Add Task 🎉</button>
-        </div>
-    </div>
-
-    <div class="encouragement" id="encouragement">
-        <span class="encouragement-emoji" id="encourageEmoji">🎉</span>
-        <span id="encourageText">Amazing work!</span>
-    </div>
-
-    <div class="confetti-container" id="confetti"></div>
-
-    <script>
-        // Load scripts with cache-busting if this is a reload
-        document.write('<script type="module" src="scripts.js' + (window.__cacheBuster ? '?v=' + window.__cacheBuster : '') + '"><\/script>');
-    </script>
 </body>
 </html>

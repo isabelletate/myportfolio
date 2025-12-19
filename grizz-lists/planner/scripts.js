@@ -72,6 +72,7 @@ const defaultTasks = [
 // API Configuration
 const API_BASE = 'https://sheet-logger.david8603.workers.dev/grizz.biz/grizz-lists';
 const USER_EMAIL = 'test@testing.com';
+const LIST_TYPE = 'planner';
 
 // Get today's date in yyyy-mm-dd format for the API endpoint
 function getTodayDateKey() {
@@ -84,7 +85,7 @@ function getTodayDateKey() {
 
 // Build the API endpoint URL for today
 function getApiUrl() {
-    return `${API_BASE}/${USER_EMAIL}/${getTodayDateKey()}`;
+    return `${API_BASE}/${USER_EMAIL}/${LIST_TYPE}/${getTodayDateKey()}`;
 }
 
 // In-memory changelog cache
@@ -145,7 +146,7 @@ async function loadChangelogFromServer() {
         updateSyncStatus('error');
         
         // Fall back to localStorage if server fails
-        const saved = localStorage.getItem('grizzChangelog_fallback');
+        const saved = localStorage.getItem('grizzChangelog_planner_fallback');
         if (saved) {
             changelogCache = JSON.parse(saved);
         }
@@ -160,7 +161,7 @@ function loadChangelog() {
 
 // Save changelog to localStorage as fallback
 function saveChangelogLocal(changelog) {
-    localStorage.setItem('grizzChangelog_fallback', JSON.stringify(changelog));
+    localStorage.setItem('grizzChangelog_planner_fallback', JSON.stringify(changelog));
 }
 
 // Post an event to the server

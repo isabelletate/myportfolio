@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Shopping List 🛒 - Grizz Lists</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <meta property="og:title" content="Shopping List 🛒 - Grizz Lists">
+    <meta property="og:description" content="A simple and fast shopping list. Tap to check off items!">
+    <meta property="og:image" content="https://www.grizz.biz/grizz-lists/og-image.jpeg">
+    <meta property="og:image:width" content="1200">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <a href="../" class="back-link" title="Back to Grizz Lists">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <h1 class="logo">🛒 Shopping List</h1>
+                <div class="header-right">
+                    <div class="sync-indicator" id="syncIndicator" title="Sync status">
+                        <svg class="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 1-9 9m0 0a9 9 0 0 1-9-9m9 9v-3m0-12a9 9 0 0 1 9 9m-9-9a9 9 0 0 0-9 9m9-9v3"/>
+                        </svg>
+                    </div>
+                    <button class="clear-done-btn" id="clearDoneBtn" title="Clear completed items">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <p class="item-count" id="itemCount">0 items</p>
+        </header>
+
+        <div class="categories-container" id="categoriesContainer">
+            <!-- Categories will be rendered here -->
+        </div>
+
+        <div class="item-list" id="itemList">
+            <!-- Items will be rendered here -->
+        </div>
+    </div>
+
+    <div class="add-section">
+        <div class="add-input-wrapper">
+            <input type="text" class="add-input" id="addInput" placeholder="Add an item..." autocomplete="off">
+            <button class="add-submit-btn" id="addSubmitBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="scripts.js" type="module"></script>
+</body>
+</html>
+
