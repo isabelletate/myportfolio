@@ -4,14 +4,27 @@
 
 import { 
     createEventStore, 
-    replayChangelogBase 
+    replayChangelogBase,
+    getListIdFromUrl,
+    addToRecentLists
 } from '../shared.js';
+
+// ============================================
+// LIST CONFIGURATION
+// ============================================
+
+const listId = getListIdFromUrl();
+
+// If no list ID, redirect to main page
+if (!listId) {
+    window.location.href = '../';
+}
 
 // ============================================
 // SHOPPING EVENT STORE
 // ============================================
 
-const store = createEventStore('shopping');
+const store = createEventStore('shopping', listId);
 
 // ============================================
 // SHOPPING-SPECIFIC REPLAY
@@ -103,6 +116,17 @@ async function init() {
     
     const changelog = await store.loadChangelogFromServer();
     items = replayChangelog(changelog);
+    
+    // Set the list title from metadata (extracted from changelog)
+    const metadata = store.getMetadata();
+    const listTitleEl = document.getElementById('listTitle');
+    if (listTitleEl && metadata.name) {
+        listTitleEl.textContent = metadata.name;
+        document.title = `${metadata.name} 🛒 - Grizz Lists`;
+    }
+    
+    // Track this list as recently accessed
+    addToRecentLists(listId, metadata.name, 'shopping');
     
     renderCategories();
     renderItems();

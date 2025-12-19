@@ -7,14 +7,27 @@ import {
     createEventStore, 
     replayChangelogBase,
     getTodayDateKey,
-    updateSyncStatus
+    updateSyncStatus,
+    getListIdFromUrl,
+    addToRecentLists
 } from '../shared.js';
+
+export { addToRecentLists };
+
+// ============================================
+// LIST CONFIGURATION
+// ============================================
+
+const listId = getListIdFromUrl();
+
+// Export list info for use in scripts
+export { listId };
 
 // ============================================
 // PLANNER EVENT STORE
 // ============================================
 
-const store = createEventStore('planner');
+const store = createEventStore('planner', listId);
 
 // Re-export store methods
 export const loadChangelogFromServer = store.loadChangelogFromServer;
@@ -26,6 +39,8 @@ export const getIsSyncing = store.getIsSyncing;
 export const setIsSyncing = store.setIsSyncing;
 export const getChangelogCache = store.getCache;
 export const setChangelogCache = store.setCache;
+export const getMetadata = store.getMetadata;
+export const renameList = store.renameList;
 
 // Re-export utilities from parent
 export { getTodayDateKey, updateSyncStatus };

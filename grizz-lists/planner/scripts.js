@@ -15,8 +15,16 @@ import {
     colors,
     getIsSyncing,
     setIsSyncing,
-    getChangelogCache
+    getChangelogCache,
+    getMetadata,
+    listId,
+    addToRecentLists
 } from './shared.js';
+
+// If no list ID, redirect to main page
+if (!listId) {
+    window.location.href = '../';
+}
 
 // ============================================
 // CONSTANTS
@@ -125,6 +133,18 @@ async function init() {
     `;
     
     await loadTasks();
+    
+    // Set the list title from metadata (extracted from changelog)
+    const metadata = getMetadata();
+    const listTitleEl = document.getElementById('listTitle');
+    if (listTitleEl && metadata.name) {
+        listTitleEl.textContent = metadata.name;
+        document.title = `${metadata.name} 📋 - Grizz Lists`;
+    }
+    
+    // Track this list as recently accessed
+    addToRecentLists(listId, metadata.name, 'planner');
+    
     renderTasks();
 }
 

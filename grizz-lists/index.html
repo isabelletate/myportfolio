@@ -25,6 +25,7 @@
         :root {
             --bg-dark: #0f0f1a;
             --bg-card: #1a1a2e;
+            --bg-card-hover: #222238;
             --accent-orange: #ff6b35;
             --accent-teal: #00d9c0;
             --accent-pink: #ff2e63;
@@ -34,6 +35,7 @@
             --accent-blue: #38bdf8;
             --text-light: #eef0f2;
             --text-muted: #8b93a8;
+            --danger: #ef4444;
         }
 
         body {
@@ -113,7 +115,7 @@
         /* Header */
         header {
             text-align: center;
-            padding: 40px 0 60px;
+            padding: 40px 0 40px;
             animation: fadeInDown 0.8s ease-out;
         }
 
@@ -153,11 +155,97 @@
             font-weight: 400;
         }
 
-        /* List Type Cards */
-        .list-types {
+        /* Sync indicator */
+        .sync-indicator {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            z-index: 100;
+        }
+
+        .sync-indicator svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+        }
+
+        .sync-indicator.syncing svg {
+            animation: spin 1s linear infinite;
+            stroke: var(--accent-blue);
+        }
+
+        .sync-indicator.synced svg {
+            stroke: var(--accent-green);
+        }
+
+        .sync-indicator.error svg {
+            stroke: var(--danger);
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Section Title */
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+
+        .section-title h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* Create Button */
+        .create-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-pink));
+            border: none;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .create-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .create-btn:active {
+            transform: translateY(0);
+        }
+
+        .create-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Lists Container */
+        .lists-container {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 12px;
             flex: 1;
             animation: fadeInUp 0.8s ease-out 0.2s both;
         }
@@ -167,15 +255,16 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* List Card */
         .list-card {
             background: var(--bg-card);
-            border-radius: 24px;
-            padding: 28px;
+            border-radius: 16px;
+            padding: 18px 20px;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
             text-decoration: none;
@@ -188,44 +277,40 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 6px;
+            width: 4px;
             height: 100%;
             transition: width 0.3s ease;
         }
 
         .list-card:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-        }
-
-        .list-card:hover::before {
-            width: 10px;
+            transform: translateX(4px);
+            background: var(--bg-card-hover);
         }
 
         .list-card:active {
-            transform: translateY(-2px) scale(1.01);
+            transform: translateX(2px);
         }
 
-        /* Planner Card */
+        /* Planner Card Styling */
         .list-card.planner::before {
             background: linear-gradient(180deg, var(--accent-orange), var(--accent-pink));
         }
 
         .list-card.planner:hover {
-            border-color: var(--accent-orange);
+            border-color: rgba(255, 107, 53, 0.3);
         }
 
         .list-card.planner .card-icon {
             background: linear-gradient(135deg, var(--accent-orange), var(--accent-pink));
         }
 
-        /* Shopping Card */
+        /* Shopping Card Styling */
         .list-card.shopping::before {
             background: linear-gradient(180deg, var(--accent-teal), var(--accent-green));
         }
 
         .list-card.shopping:hover {
-            border-color: var(--accent-teal);
+            border-color: rgba(0, 217, 192, 0.3);
         }
 
         .list-card.shopping .card-icon {
@@ -233,36 +318,74 @@
         }
 
         .card-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 18px;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.4rem;
             flex-shrink: 0;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .card-content {
             flex: 1;
+            min-width: 0;
         }
 
         .card-title {
-            font-size: 1.4rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .card-description {
-            font-size: 0.95rem;
+        .card-meta {
+            font-size: 0.85rem;
             color: var(--text-muted);
-            line-height: 1.4;
+        }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .delete-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+        }
+
+        .list-card:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .delete-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--danger);
+            stroke-width: 2;
         }
 
         .card-arrow {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.05);
             display: flex;
@@ -272,35 +395,249 @@
         }
 
         .list-card:hover .card-arrow {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.1);
             transform: translateX(4px);
         }
 
         .card-arrow svg {
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             stroke: var(--text-muted);
             stroke-width: 2;
             fill: none;
         }
 
-        /* Coming Soon Badge */
-        .coming-soon {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .empty-emoji {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .empty-text {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .empty-hint {
+            font-size: 0.95rem;
             color: var(--text-muted);
         }
 
-        .list-card.disabled {
+        /* Section Divider */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0 16px;
+            padding: 0 8px;
+        }
+
+        .section-divider::before,
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .section-divider-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Loading State */
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 20px;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 28px;
+            width: 100%;
+            max-width: 400px;
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--text-light);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Type Selector */
+        .type-selector {
+            display: flex;
+            gap: 12px;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 16px;
+            border-radius: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .type-option:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .type-option.selected {
+            border-color: var(--accent-orange);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .type-option.selected.shopping {
+            border-color: var(--accent-teal);
+            background: rgba(0, 217, 192, 0.1);
+        }
+
+        .type-option-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .type-option-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        /* Modal Buttons */
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+        }
+
+        .modal-btn.cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .modal-btn.submit {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-pink));
+            color: white;
+        }
+
+        .modal-btn.submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .modal-btn.submit:disabled {
             opacity: 0.5;
-            pointer-events: none;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         /* Footer */
@@ -326,6 +663,37 @@
             50% { transform: scale(1.2); }
         }
 
+        /* Delete confirmation modal */
+        .confirm-modal .modal-content {
+            text-align: center;
+        }
+
+        .confirm-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .confirm-text {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .confirm-name {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .modal-btn.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .modal-btn.danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
         /* Mobile adjustments */
         @media (max-width: 480px) {
             .logo {
@@ -333,13 +701,17 @@
             }
             
             .card-icon {
-                width: 56px;
-                height: 56px;
-                font-size: 1.7rem;
+                width: 42px;
+                height: 42px;
+                font-size: 1.2rem;
             }
             
             .card-title {
-                font-size: 1.2rem;
+                font-size: 1rem;
+            }
+
+            .delete-btn {
+                opacity: 1;
             }
         }
     </style>
@@ -351,6 +723,12 @@
         <div class="bg-shape"></div>
     </div>
 
+    <div class="sync-indicator" id="syncIndicator" title="Sync status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 0 1-9 9m0 0a9 9 0 0 1-9-9m9 9v-3m0-12a9 9 0 0 1 9 9m-9-9a9 9 0 0 0-9 9m9-9v3"/>
+        </svg>
+    </div>
+
     <div class="container">
         <header>
             <h1 class="logo">
@@ -360,37 +738,392 @@
             <p class="tagline">Your friendly companion for lists of all kinds</p>
         </header>
 
-        <div class="list-types">
-            <a href="planner/index.html" class="list-card planner">
-                <div class="card-icon">📋</div>
-                <div class="card-content">
-                    <h2 class="card-title">Daily Planner</h2>
-                    <p class="card-description">Time-blocked tasks with productivity scoring. Plan your day and crush your goals!</p>
-                </div>
-                <div class="card-arrow">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-            </a>
+        <div class="section-title">
+            <h2>Your Lists</h2>
+            <button class="create-btn" id="createBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                New List
+            </button>
+        </div>
 
-            <a href="shopping/index.html" class="list-card shopping">
-                <div class="card-icon">🛒</div>
-                <div class="card-content">
-                    <h2 class="card-title">Shopping List</h2>
-                    <p class="card-description">Simple and fast grocery lists. Tap to check off items as you shop!</p>
-                    </div>
-                <div class="card-arrow">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-            </a>
+        <div class="lists-container" id="listsContainer">
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Loading your lists...</p>
+            </div>
         </div>
 
         <footer>
             <p class="footer-text">Made with <span class="footer-heart">♥</span> by Grizz</p>
         </footer>
     </div>
+
+    <!-- Create List Modal -->
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Create New List</h3>
+            
+            <div class="form-group">
+                <label class="form-label">List Name</label>
+                <input type="text" class="form-input" id="listNameInput" placeholder="e.g., Weekly Groceries" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">List Type</label>
+                <div class="type-selector">
+                    <div class="type-option selected" data-type="shopping">
+                        <div class="type-option-icon">🛒</div>
+                        <div class="type-option-name">Shopping</div>
+                    </div>
+                    <div class="type-option" data-type="planner">
+                        <div class="type-option-icon">📋</div>
+                        <div class="type-option-name">Planner</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelCreate">Cancel</button>
+                <button class="modal-btn submit" id="submitCreate" disabled>Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal confirm-modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="confirm-icon">🗑️</div>
+            <h3 class="modal-title">Delete List?</h3>
+            <p class="confirm-text">Are you sure you want to delete</p>
+            <p class="confirm-name" id="deleteListName"></p>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelDelete">Cancel</button>
+                <button class="modal-btn danger" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Setup Modal -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content">
+            <div class="confirm-icon">👋</div>
+            <h3 class="modal-title">Welcome to Grizz Lists!</h3>
+            <p class="confirm-text">Enter your email to sync your lists across devices</p>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <input type="email" class="form-input" id="emailInput" placeholder="your@email.com" autocomplete="email">
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn submit" id="submitEmail" disabled>Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createListManager, hasUserEmail, getUserEmail, setUserEmail, getRecentLists, removeFromRecentLists } from './shared.js';
+
+        const listManager = createListManager();
+        
+        // DOM Elements
+        const listsContainer = document.getElementById('listsContainer');
+        const createBtn = document.getElementById('createBtn');
+        const createModal = document.getElementById('createModal');
+        const listNameInput = document.getElementById('listNameInput');
+        const cancelCreate = document.getElementById('cancelCreate');
+        const submitCreate = document.getElementById('submitCreate');
+        const typeOptions = document.querySelectorAll('.type-option');
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteListName = document.getElementById('deleteListName');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const emailModal = document.getElementById('emailModal');
+        const emailInput = document.getElementById('emailInput');
+        const submitEmail = document.getElementById('submitEmail');
+
+        let selectedType = 'shopping';
+        let listToDelete = null;
+        let pendingCreateList = false; // Track if we need to open create modal after email
+
+        // Initialize
+        async function init() {
+            setupEventListeners();
+            await loadLists();
+        }
+
+        function setupEventListeners() {
+            createBtn.addEventListener('click', openCreateModal);
+            cancelCreate.addEventListener('click', closeCreateModal);
+            createModal.addEventListener('click', (e) => {
+                if (e.target === createModal) closeCreateModal();
+            });
+
+            listNameInput.addEventListener('input', () => {
+                submitCreate.disabled = !listNameInput.value.trim();
+            });
+
+            listNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && listNameInput.value.trim()) {
+                    createList();
+                }
+            });
+
+            typeOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    typeOptions.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedType = option.dataset.type;
+                });
+            });
+
+            submitCreate.addEventListener('click', createList);
+
+            cancelDelete.addEventListener('click', closeDeleteModal);
+            deleteModal.addEventListener('click', (e) => {
+                if (e.target === deleteModal) closeDeleteModal();
+            });
+            confirmDelete.addEventListener('click', confirmDeleteList);
+
+            // Email modal listeners
+            emailInput.addEventListener('input', () => {
+                const email = emailInput.value.trim();
+                submitEmail.disabled = !email || !isValidEmail(email);
+            });
+
+            emailInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !submitEmail.disabled) {
+                    handleEmailSubmit();
+                }
+            });
+
+            submitEmail.addEventListener('click', handleEmailSubmit);
+
+            emailModal.addEventListener('click', (e) => {
+                if (e.target === emailModal) closeEmailModal();
+            });
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function openEmailModal() {
+            emailModal.classList.add('active');
+            emailInput.value = '';
+            emailInput.focus();
+            submitEmail.disabled = true;
+        }
+
+        function closeEmailModal() {
+            emailModal.classList.remove('active');
+            pendingCreateList = false;
+        }
+
+        async function handleEmailSubmit() {
+            const email = emailInput.value.trim();
+            if (!email || !isValidEmail(email)) return;
+
+            setUserEmail(email);
+            
+            // Save pending state before closing modal (which resets it)
+            const shouldOpenCreateModal = pendingCreateList;
+            
+            closeEmailModal();
+
+            // If user was trying to create a list, open that modal now
+            if (shouldOpenCreateModal) {
+                openCreateModalDirectly();
+            }
+        }
+
+        async function loadLists() {
+            // Get recent lists from localStorage (includes shared lists)
+            const recentLists = getRecentLists();
+            
+            // If no email is set, just show recent lists or welcome state
+            if (!hasUserEmail()) {
+                if (recentLists.length > 0) {
+                    renderLists(recentLists, []);
+                } else {
+                    renderWelcomeState();
+                }
+                return;
+            }
+            
+            // Load "my lists" from API
+            const myLists = await listManager.loadListsFromServer();
+            
+            // Merge: recent lists first, then add my lists that aren't in recent
+            const recentIds = new Set(recentLists.map(l => l.id));
+            const additionalMyLists = myLists.filter(l => !recentIds.has(l.id));
+            
+            renderLists(recentLists, additionalMyLists);
+        }
+
+        function renderWelcomeState() {
+            listsContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-emoji">👋</div>
+                    <p class="empty-text">Welcome to Grizz Lists!</p>
+                    <p class="empty-hint">Click "New List" to get started</p>
+                </div>
+            `;
+        }
+
+        function renderLists(recentLists, additionalMyLists = []) {
+            const allLists = [...recentLists, ...additionalMyLists];
+            
+            if (allLists.length === 0) {
+                listsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-emoji">📝</div>
+                        <p class="empty-text">No lists yet!</p>
+                        <p class="empty-hint">Create your first list to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            let animationIndex = 0;
+
+            // Render recent lists
+            recentLists.forEach((list) => {
+                html += renderListCard(list, animationIndex++);
+            });
+
+            // Render additional "my lists" with a section divider if there are any
+            if (additionalMyLists.length > 0) {
+                html += `
+                    <div class="section-divider">
+                        <span class="section-divider-text">My Lists</span>
+                    </div>
+                `;
+                additionalMyLists.forEach((list) => {
+                    html += renderListCard(list, animationIndex++);
+                });
+            }
+
+            listsContainer.innerHTML = html;
+
+            // Add delete button listeners
+            listsContainer.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openDeleteModal(btn.dataset.deleteId, btn.dataset.deleteName);
+                });
+            });
+        }
+
+        function renderListCard(list, index) {
+            const icon = list.type === 'shopping' ? '🛒' : '📋';
+            const typeName = list.type === 'shopping' ? 'Shopping List' : 'Daily Planner';
+            const href = list.type === 'shopping' 
+                ? `shopping/index.html?list=${list.id}`
+                : `planner/index.html?list=${list.id}`;
+            
+            return `
+                <a href="${href}" class="list-card ${list.type}" data-id="${list.id}" style="animation-delay: ${index * 0.05}s">
+                    <div class="card-icon">${icon}</div>
+                    <div class="card-content">
+                        <h3 class="card-title">${escapeHtml(list.name)}</h3>
+                        <p class="card-meta">${typeName}</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="delete-btn" data-delete-id="${list.id}" data-delete-name="${escapeHtml(list.name)}" title="Remove from list">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="card-arrow">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </a>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function openCreateModal() {
+            // Check if user has email set, if not prompt for it first
+            if (!hasUserEmail()) {
+                pendingCreateList = true;
+                openEmailModal();
+                return;
+            }
+            openCreateModalDirectly();
+        }
+
+        function openCreateModalDirectly() {
+            createModal.classList.add('active');
+            listNameInput.value = '';
+            listNameInput.focus();
+            submitCreate.disabled = true;
+            
+            // Reset type selection
+            typeOptions.forEach(o => o.classList.remove('selected'));
+            document.querySelector('[data-type="shopping"]').classList.add('selected');
+            selectedType = 'shopping';
+        }
+
+        function closeCreateModal() {
+            createModal.classList.remove('active');
+        }
+
+        async function createList() {
+            const name = listNameInput.value.trim();
+            if (!name) return;
+
+            closeCreateModal();
+            
+            await listManager.createList(name, selectedType);
+            
+            // Reload lists (will include the new list from API)
+            await loadLists();
+        }
+
+        function openDeleteModal(id, name) {
+            listToDelete = id;
+            deleteListName.textContent = `"${name}"?`;
+            deleteModal.classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            deleteModal.classList.remove('active');
+            listToDelete = null;
+        }
+
+        async function confirmDeleteList() {
+            if (!listToDelete) return;
+
+            const idToDelete = listToDelete;
+            closeDeleteModal();
+            
+            // Always remove from recent lists
+            removeFromRecentLists(idToDelete);
+            
+            // If user has email, also try to remove from their API lists
+            if (hasUserEmail()) {
+                await listManager.deleteList(idToDelete);
+            }
+            
+            // Reload lists
+            await loadLists();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
