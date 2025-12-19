@@ -64,7 +64,7 @@ function replayChangelog(changelog) {
 // ============================================
 
 const categories = {
-    produce: { name: 'Produce', emoji: '🥬', keywords: ['apple', 'banana', 'orange', 'tomato', 'lettuce', 'spinach', 'carrot', 'onion', 'garlic', 'potato', 'avocado', 'lemon', 'lime', 'grape', 'strawberry', 'blueberry', 'broccoli', 'cucumber', 'pepper', 'mushroom', 'celery', 'fruit', 'vegetable', 'salad'] },
+    produce: { name: 'Produce', emoji: '🥬', keywords: ['apple', 'banana', 'orange', 'tomato', 'lettuce', 'spinach', 'carrot', 'onion', 'garlic', 'potato', 'avocado', 'lemon', 'lime', 'grape', 'strawberry', 'blueberry', 'broccoli', 'cucumber', 'pepper', 'mushroom', 'celery', 'fruit', 'vegetable', 'salad', 'citrus'] },
     dairy: { name: 'Dairy', emoji: '🥛', keywords: ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg', 'eggs'] },
     meat: { name: 'Meat & Seafood', emoji: '🥩', keywords: ['chicken', 'beef', 'pork', 'fish', 'salmon', 'shrimp', 'bacon', 'sausage', 'steak', 'turkey', 'ham'] },
     bakery: { name: 'Bakery', emoji: '🍞', keywords: ['bread', 'bagel', 'muffin', 'croissant', 'roll', 'bun', 'cake', 'pie', 'donut', 'pastry'] },
