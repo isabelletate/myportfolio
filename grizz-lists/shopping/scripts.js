@@ -53,6 +53,19 @@ function replayChangelog(changelog) {
                     itemsMap.get(event.id).checked = false;
                 }
                 break;
+                
+            case 'clear_completed':
+                // Remove all items that were checked at the time of this event
+                const idsToRemove = typeof event.ids === 'string' 
+                    ? JSON.parse(event.ids) 
+                    : (event.ids || []);
+                for (const id of idsToRemove) {
+                    const normalizedId = isNaN(Number(id)) ? id : Number(id);
+                    itemsMap.delete(normalizedId);
+                    const idx = order.indexOf(normalizedId);
+                    if (idx > -1) order.splice(idx, 1);
+                }
+                break;
         }
     }
     
@@ -207,9 +220,11 @@ async function clearCheckedItems() {
     });
     
     setTimeout(async () => {
-        for (const item of checkedItems) {
-            await store.addEvent('removed', { id: item.id });
-        }
+        // Single event to clear all checked items
+        const checkedIds = checkedItems.map(i => i.id);
+        const event = store.addEvent('clear_completed', { ids: checkedIds });
+        await event._postPromise;
+        
         items = items.filter(i => !i.checked);
         renderCategories();
         renderItems();

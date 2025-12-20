@@ -385,7 +385,10 @@ export function createEventStore(listType, listId) {
         changelogCache.push(localEvent);
         
         saveChangelogLocal();
-        postEvent(event);
+        
+        // Return both the local event and the promise for callers who need to wait
+        const postPromise = postEvent(event);
+        localEvent._postPromise = postPromise;
         
         return localEvent;
     }
