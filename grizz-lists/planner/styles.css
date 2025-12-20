@@ -25,6 +25,10 @@ body {
     color: var(--text-light);
     overflow-x: hidden;
     position: relative;
+    /* Safe area for notched devices */
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 }
 
 /* Animated background */
@@ -550,7 +554,9 @@ header {
     left: 0;
     right: 0;
     background: linear-gradient(transparent, var(--bg-dark) 30%);
-    padding: 20px 16px;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
     z-index: 50;
 }
 
