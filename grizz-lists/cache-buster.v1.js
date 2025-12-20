@@ -332,8 +332,7 @@ class CacheBuster {
     _handlePageHide(event) {
         // Mobile Safari: fires on navigation/reload
         // event.persisted indicates if page might be restored from bfcache
-        // Always log this even without debug mode for troubleshooting
-        console.log('[CacheBuster] pagehide fired, persisted:', event.persisted, 'resources:', this.trackedResources.size);
+        this._log('pagehide fired, persisted:', event.persisted);
         
         if (this.trackedResources.size > 0) {
             this._bustCacheAsync();
@@ -435,9 +434,8 @@ class CacheBuster {
         try {
             sessionStorage.setItem(CACHE_BUST_FLAG, 'true');
             sessionStorage.setItem(CACHE_BUST_TIME, Date.now().toString());
-            console.log('[CacheBuster] Flag set for visual indicator');
-        } catch (e) {
-            console.log('[CacheBuster] Could not set sessionStorage:', e);
+        } catch {
+            // sessionStorage might be unavailable
         }
     }
 
@@ -449,8 +447,6 @@ class CacheBuster {
             const wasBusted = sessionStorage.getItem(CACHE_BUST_FLAG);
             const bustTime = sessionStorage.getItem(CACHE_BUST_TIME);
             
-            console.log('[CacheBuster] Checking for indicator flag:', { wasBusted, bustTime });
-            
             if (wasBusted) {
                 // Clear the flag immediately
                 sessionStorage.removeItem(CACHE_BUST_FLAG);
@@ -458,17 +454,12 @@ class CacheBuster {
                 
                 // Only show if bust was recent (within 10 seconds)
                 const elapsed = Date.now() - parseInt(bustTime || '0', 10);
-                console.log('[CacheBuster] Elapsed since bust:', elapsed, 'ms');
-                
                 if (elapsed < 10000) {
-                    console.log('[CacheBuster] Showing visual indicator!');
                     this._showVisualIndicator();
-                } else {
-                    console.log('[CacheBuster] Too much time elapsed, skipping indicator');
                 }
             }
-        } catch (e) {
-            console.log('[CacheBuster] Error checking sessionStorage:', e);
+        } catch {
+            // sessionStorage might be unavailable
         }
     }
 
@@ -662,18 +653,8 @@ export { CacheBuster };
 // ============================================
 
 // Check for auto-init data attribute
-if (typeof document !== 'undefined') {
-    console.log('[CacheBuster] Checking for auto-init...');
-    console.log('[CacheBuster] scriptElement:', scriptElement);
-    
-    if (scriptElement?.hasAttribute('data-auto-init')) {
-        const debug = scriptElement.hasAttribute('data-debug');
-        const showVisualIndicator = !scriptElement.hasAttribute('data-no-indicator');
-        console.log('[CacheBuster] Auto-init triggered with options:', { debug, showVisualIndicator });
-        initCacheBuster({ debug, showVisualIndicator });
-    } else {
-        console.log('[CacheBuster] No data-auto-init attribute found on script element');
-    }
-} else {
-    console.log('[CacheBuster] Not in browser environment');
+if (typeof document !== 'undefined' && scriptElement?.hasAttribute('data-auto-init')) {
+    const debug = scriptElement.hasAttribute('data-debug');
+    const showVisualIndicator = !scriptElement.hasAttribute('data-no-indicator');
+    initCacheBuster({ debug, showVisualIndicator });
 }
