@@ -2,7 +2,7 @@
   "name": "Grizz Lists",
   "short_name": "Grizz Lists",
   "description": "Your friendly bear companion for lists of all kinds.",
-  "start_url": "/grizz-lists/",
+  "start_url": "/grizz-lists/index.html",
   "scope": "/grizz-lists/",
   "display": "standalone",
   "background_color": "#0f0f1a",
