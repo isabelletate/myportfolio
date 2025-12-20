@@ -8,6 +8,7 @@ import {
     getListIdFromUrl,
     addToRecentLists
 } from '../shared.js';
+import { createAutocomplete } from '../autocomplete.js';
 
 // ============================================
 // LIST CONFIGURATION
@@ -105,6 +106,8 @@ function detectCategory(text) {
 
 let items = [];
 let selectedCategory = 'all';
+let itemFrequencies = new Map(); // Track historical item frequencies
+let autocomplete = null;
 
 const itemList = document.getElementById('itemList');
 const addInput = document.getElementById('addInput');
@@ -129,6 +132,21 @@ async function init() {
     
     const changelog = await store.loadChangelogFromServer();
     items = replayChangelog(changelog);
+    
+    // Build item frequency suggestions from historical data
+    buildItemFrequencies(changelog);
+    
+    // Initialize autocomplete
+    autocomplete = createAutocomplete({
+        input: addInput,
+        getSuggestions: getFrequencySortedSuggestions,
+        onSelect: (item) => {
+            // Trigger add when suggestion is selected
+            addItem();
+        },
+        maxSuggestions: 10,
+        showCount: true
+    });
     
     // Set the list title from metadata (extracted from changelog)
     const metadata = store.getMetadata();
@@ -188,6 +206,15 @@ function toggleItem(id) {
     item.checked = !wasChecked;
     
     store.addEvent(wasChecked ? 'unchecked' : 'checked', { id });
+    
+    // Each check = 1 frequency point for suggestions
+    if (!wasChecked) {
+        const lower = item.text.toLowerCase();
+        if (!itemFrequencies.has(lower)) {
+            itemFrequencies.set(lower, { text: item.text, count: 0 });
+        }
+        itemFrequencies.get(lower).count++;
+    }
     
     const el = document.querySelector(`[data-id="${id}"]`);
     if (el) {
@@ -378,6 +405,46 @@ function updateItemCount() {
 }
 
 // ============================================
+// ITEM SUGGESTIONS (AUTOCOMPLETE)
+// ============================================
+
+function buildItemFrequencies(changelog) {
+    itemFrequencies.clear();
+    
+    // Build id -> text map from added events
+    const itemTexts = new Map();
+    for (const event of changelog) {
+        if (event.op === 'added' && event.text) {
+            itemTexts.set(event.id, event.text.trim());
+        }
+    }
+    
+    // Count checked events - each check = 1 frequency point
+    // Only items with at least 1 check will be included
+    for (const event of changelog) {
+        if (event.op === 'checked' && itemTexts.has(event.id)) {
+            const text = itemTexts.get(event.id);
+            const lower = text.toLowerCase();
+            
+            if (!itemFrequencies.has(lower)) {
+                itemFrequencies.set(lower, { text, count: 0 });
+            }
+            itemFrequencies.get(lower).count++;
+        }
+    }
+}
+
+function getFrequencySortedSuggestions() {
+    // Get current items on the list (to exclude from suggestions)
+    const currentItems = new Set(items.map(i => i.text.toLowerCase()));
+    
+    // Sort by frequency (descending) and filter out current items
+    return Array.from(itemFrequencies.values())
+        .filter(item => !currentItems.has(item.text.toLowerCase()))
+        .sort((a, b) => b.count - a.count);
+}
+
+// ============================================
 // POLLING
 // ============================================
 
@@ -394,6 +461,7 @@ async function pollForChanges() {
         if (changelog.length !== lastKnownEventCount) {
             lastKnownEventCount = changelog.length;
             items = replayChangelog(changelog);
+            buildItemFrequencies(changelog);
             renderCategories();
             renderItems();
         }
