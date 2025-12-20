@@ -155,43 +155,46 @@
             font-weight: 400;
         }
 
-        /* Sync indicator */
+        /* Sync indicator - hidden by default, shows red dot when offline/error */
         .sync-indicator {
             position: fixed;
             top: 16px;
             right: 16px;
-            width: 32px;
-            height: 32px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-card);
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
             z-index: 100;
+            pointer-events: none;
         }
 
         .sync-indicator svg {
-            width: 18px;
-            height: 18px;
-            stroke: var(--text-muted);
+            display: none;
         }
 
-        .sync-indicator.syncing svg {
-            animation: spin 1s linear infinite;
-            stroke: var(--accent-blue);
+        .sync-indicator.syncing,
+        .sync-indicator.synced {
+            opacity: 0;
         }
 
-        .sync-indicator.synced svg {
-            stroke: var(--accent-green);
+        .sync-indicator.error,
+        .sync-indicator.offline {
+            opacity: 1;
+            transform: scale(1);
+            background: var(--danger, #ef4444);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+            animation: pulse-dot 2s ease-in-out infinite;
         }
 
-        .sync-indicator.error svg {
-            stroke: var(--danger);
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        @keyframes pulse-dot {
+            0%, 100% {
+                box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+            }
         }
 
         /* Section Title */

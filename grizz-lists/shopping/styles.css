@@ -507,53 +507,42 @@ header {
     margin-top: 8px;
 }
 
-/* Sync indicator */
+/* Sync indicator - hidden by default, shows red dot when offline/error */
 .sync-indicator {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.05);
+    opacity: 0;
+    transform: scale(0);
     transition: all 0.3s ease;
+    pointer-events: none;
 }
 
 .sync-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--text-muted);
-    transition: all 0.3s ease;
+    display: none;
 }
 
-.sync-indicator.syncing {
-    background: rgba(255,199,60,0.15);
-}
-
-.sync-indicator.syncing .sync-icon {
-    color: #ffc93c;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
+.sync-indicator.syncing,
 .sync-indicator.synced {
-    background: rgba(74,222,128,0.15);
+    opacity: 0;
 }
 
-.sync-indicator.synced .sync-icon {
-    color: var(--success);
+.sync-indicator.error,
+.sync-indicator.offline {
+    opacity: 1;
+    transform: scale(1);
+    background: var(--accent-pink, #ff2e63);
+    box-shadow: 0 0 8px rgba(255, 46, 99, 0.5);
+    animation: pulse-dot 2s ease-in-out infinite;
 }
 
-.sync-indicator.error {
-    background: rgba(255,46,99,0.15);
-}
-
-.sync-indicator.error .sync-icon {
-    color: var(--accent-pink);
+@keyframes pulse-dot {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(255, 46, 99, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(255, 46, 99, 0.8);
+    }
 }
 
 /* Mobile touch improvements */
