@@ -256,9 +256,10 @@ export function createEventStore(listType, listId) {
         }));
     }
 
-    async function loadChangelogFromServer() {
+    async function loadChangelogFromServer(options = {}) {
+        const { silent = false } = options;
         try {
-            updateSyncStatus('syncing');
+            if (!silent) updateSyncStatus('syncing');
             
             if (isDateBased) {
                 // For planner: load metadata from base URL, items from dated URL
@@ -301,11 +302,11 @@ export function createEventStore(listType, listId) {
                 extractMetadata(changelogCache);
             }
             
-            updateSyncStatus('synced');
+            if (!silent) updateSyncStatus('synced');
             return changelogCache;
         } catch (error) {
             console.error('Failed to load changelog from server:', error);
-            updateSyncStatus('error');
+            if (!silent) updateSyncStatus('error');
             
             // Fall back to localStorage if server fails
             const saved = localStorage.getItem(localStorageKey);

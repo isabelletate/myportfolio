@@ -108,6 +108,7 @@ let items = [];
 let selectedCategory = 'all';
 let itemFrequencies = new Map(); // Track historical item frequencies
 let autocomplete = null;
+let renderedItemsHash = ''; // Track what's currently rendered to avoid unnecessary DOM updates
 
 const itemList = document.getElementById('itemList');
 const addInput = document.getElementById('addInput');
@@ -115,6 +116,11 @@ const addSubmitBtn = document.getElementById('addSubmitBtn');
 const clearDoneBtn = document.getElementById('clearDoneBtn');
 const categoriesContainer = document.getElementById('categoriesContainer');
 const itemCount = document.getElementById('itemCount');
+
+// Create a hash representing the current render state
+function getRenderHash() {
+    return items.map(i => `${i.id}:${i.checked}`).join('|') + '::' + selectedCategory;
+}
 
 // ============================================
 // INITIALIZATION
@@ -159,8 +165,8 @@ async function init() {
     // Track this list as recently accessed
     addToRecentLists(listId, metadata.name, 'shopping');
     
-    renderCategories();
-    renderItems();
+    renderCategories(true); // Force initial render
+    renderItems(true);
 }
 
 function setupEventListeners() {
@@ -191,7 +197,7 @@ function addItem() {
     };
     
     store.addEvent('added', { id, text, category });
-    items.unshift(item);
+    items.push(item);
     
     addInput.value = '';
     renderCategories();
@@ -262,7 +268,25 @@ async function clearCheckedItems() {
 // RENDERING
 // ============================================
 
-function renderCategories() {
+let renderedCategoriesHash = '';
+
+function getCategoriesHash() {
+    const counts = {};
+    items.forEach(item => {
+        counts[item.category] = (counts[item.category] || 0) + 1;
+    });
+    return Object.entries(counts).sort().join('|') + '::' + selectedCategory;
+}
+
+function renderCategories(force = false) {
+    const currentHash = getCategoriesHash();
+    
+    // Skip render if nothing changed (unless forced)
+    if (!force && currentHash === renderedCategoriesHash) {
+        return;
+    }
+    renderedCategoriesHash = currentHash;
+    
     const counts = { all: items.length };
     items.forEach(item => {
         if (!counts[item.category]) counts[item.category] = 0;
@@ -294,7 +318,15 @@ function renderCategories() {
     });
 }
 
-function renderItems() {
+function renderItems(force = false) {
+    const currentHash = getRenderHash();
+    
+    // Skip render if nothing changed (unless forced)
+    if (!force && currentHash === renderedItemsHash) {
+        return;
+    }
+    renderedItemsHash = currentHash;
+    
     const filteredItems = selectedCategory === 'all' 
         ? items 
         : items.filter(i => i.category === selectedCategory);
@@ -448,19 +480,28 @@ function getFrequencySortedSuggestions() {
 // POLLING
 // ============================================
 
-let lastKnownEventCount = 0;
+let lastItemsHash = '';
+
+function getItemsHash(itemList) {
+    // Create a hash of current items state for comparison
+    return itemList.map(i => `${i.id}:${i.text}:${i.checked}`).join('|');
+}
 
 async function pollForChanges() {
     if (store.getIsSyncing()) return;
     
     try {
         store.setIsSyncing(true);
-        const changelog = await store.loadChangelogFromServer();
+        const changelog = await store.loadChangelogFromServer({ silent: true });
         store.setIsSyncing(false);
         
-        if (changelog.length !== lastKnownEventCount) {
-            lastKnownEventCount = changelog.length;
-            items = replayChangelog(changelog);
+        const newItems = replayChangelog(changelog);
+        const newHash = getItemsHash(newItems);
+        
+        // Only re-render if items actually changed
+        if (newHash !== lastItemsHash) {
+            lastItemsHash = newHash;
+            items = newItems;
             buildItemFrequencies(changelog);
             renderCategories();
             renderItems();
@@ -477,6 +518,6 @@ async function pollForChanges() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await init();
-    lastKnownEventCount = store.loadChangelog().length;
+    lastItemsHash = getItemsHash(items);
     setInterval(pollForChanges, 5000);
 });
