@@ -159,10 +159,8 @@
 
     <div class="confetti-container" id="confetti"></div>
 
-    <script>
-        // Load scripts with cache-busting if this is a reload
-        document.write('<script type="module" src="scripts.js' + (window.__cacheBuster ? '?v=' + window.__cacheBuster : '') + '"><\/script>');
-    </script>
+    <script type="module" src="../cache-buster.js" data-auto-init></script>
+    <script type="module" src="scripts.js"></script>
 </body>
 </html>
 
