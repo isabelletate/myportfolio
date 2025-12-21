@@ -108,7 +108,6 @@ async function init() {
     addToRecentLists(listId, metadata.name, 'tracker');
     
     renderProducts();
-    updateStats();
 }
 
 function showLoading() {
@@ -337,7 +336,6 @@ async function saveProduct() {
     
     closeProductModal();
     renderProducts();
-    updateStats();
 }
 
 function openDeleteModal(productId) {
@@ -364,7 +362,6 @@ async function confirmDelete() {
     products = products.filter(p => p.id !== id);
     
     renderProducts();
-    updateStats();
 }
 
 // ============================================
@@ -793,18 +790,6 @@ function renderProducts() {
     });
 }
 
-function updateStats() {
-    const total = products.length;
-    const inProduction = products.filter(p => p.status === 'in_production').length;
-    const photoSample = products.filter(p => p.status === 'approved_photo_sample').length;
-    const bulkTop = products.filter(p => p.status === 'bulk_top').length;
-    
-    document.getElementById('statTotal').textContent = total;
-    document.getElementById('statInProduction').textContent = inProduction;
-    document.getElementById('statPhotoSample').textContent = photoSample;
-    document.getElementById('statBulkTop').textContent = bulkTop;
-}
-
 // ============================================
 // UTILITIES
 // ============================================
@@ -837,7 +822,6 @@ async function pollForChanges() {
             lastKnownEventCount = changelog.length;
             products = replayChangelog(changelog);
             renderProducts();
-            updateStats();
         }
     } catch (error) {
         setIsSyncing(false);
