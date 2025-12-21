@@ -460,7 +460,7 @@ function renderProtoSummary(product) {
     return `
         <div class="proto-summary" data-proto-product="${product.id}" title="Manage protos">
             <span class="proto-summary-label">${escapeHtml(protoLabel)}</span>
-            <span class="proto-status-tag" style="background: ${statusInfo.color}; color: white; border-color: ${statusInfo.color};">
+            <span class="proto-status-tag" style="background: ${statusInfo.color}15; color: ${statusInfo.color}; border-color: ${statusInfo.color};">
                 ${statusInfo.label}${dateStr ? ` · ${dateStr}` : ''}
             </span>
         </div>
@@ -570,7 +570,7 @@ function renderProtos() {
                     
                     if (isEditing) {
                         return `
-                            <div class="proto-update-row editing" data-update-id="${update.id}" style="background: ${statusInfo.color}; border-color: ${statusInfo.color};">
+                            <div class="proto-update-row editing" data-update-id="${update.id}" style="background: ${statusInfo.color}15; border-color: ${statusInfo.color};">
                                 <select data-field="type" data-update="${update.id}">
                                     ${protoStatusTypes.map(s => 
                                         `<option value="${s.value}" ${update.type === s.value ? 'selected' : ''}>${s.label}</option>`
@@ -578,7 +578,7 @@ function renderProtos() {
                                 </select>
                                 <input type="date" value="${update.date || ''}" data-field="date" data-update="${update.id}">
                                 <input type="text" placeholder="Notes (optional)" value="${escapeHtml(update.notes || '')}" data-field="notes" data-update="${update.id}">
-                                <button type="button" class="proto-update-done" data-done-update="${update.id}" title="Done">
+                                <button type="button" class="proto-update-done" data-done-update="${update.id}" title="Done" style="background: ${statusInfo.color};">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"></polyline>
                                     </svg>
@@ -592,11 +592,11 @@ function renderProtos() {
                         `;
                     } else {
                         return `
-                            <div class="proto-update-row view-mode" data-update-id="${update.id}" data-edit-update="${update.id}" style="background: ${statusInfo.color};">
-                                <span class="update-status">${statusInfo.label}</span>
+                            <div class="proto-update-row view-mode" data-update-id="${update.id}" data-edit-update="${update.id}" style="background: ${statusInfo.color}15; border-color: ${statusInfo.color};">
+                                <span class="update-status" style="color: ${statusInfo.color};">${statusInfo.label}</span>
                                 <span class="update-date">${dateDisplay || '—'}</span>
                                 <span class="update-notes">${escapeHtml(update.notes) || '—'}</span>
-                                <button type="button" class="proto-update-delete view-delete" data-delete-update="${update.id}" data-proto="${proto.id}" title="Remove">
+                                <button type="button" class="proto-update-delete view-delete" data-delete-update="${update.id}" data-proto="${proto.id}" title="Remove" style="color: ${statusInfo.color};">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M18 6L6 18M6 6l12 12"/>
                                     </svg>
