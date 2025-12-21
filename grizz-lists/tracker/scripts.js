@@ -69,7 +69,14 @@ const inputPoBulk = document.getElementById('inputPoBulk');
 const inputPoTop = document.getElementById('inputPoTop');
 const inputStatus = document.getElementById('inputStatus');
 const inputUrgent = document.getElementById('inputUrgent');
+const inputFabric = document.getElementById('inputFabric');
+const inputContent = document.getElementById('inputContent');
+const inputFabricApprovalDate = document.getElementById('inputFabricApprovalDate');
+const inputColorApprovalDate = document.getElementById('inputColorApprovalDate');
+const inputTrimsApprovalDate = document.getElementById('inputTrimsApprovalDate');
 const inputNotes = document.getElementById('inputNotes');
+const materialsSection = document.getElementById('materialsSection');
+const materialsToggle = document.getElementById('materialsToggle');
 const imagePreview = document.getElementById('imagePreview');
 const fileName = document.getElementById('fileName');
 
@@ -149,6 +156,11 @@ function setupEventListeners() {
     // Image file selection
     inputImageFile.addEventListener('change', handleImageSelect);
     
+    // Materials section toggle
+    materialsToggle.addEventListener('click', () => {
+        materialsSection.classList.toggle('open');
+    });
+    
     // Delete modal handlers
     deleteModalClose.addEventListener('click', closeDeleteModal);
     cancelDeleteBtn.addEventListener('click', closeDeleteModal);
@@ -196,15 +208,28 @@ function openProductModal(productId = null) {
             inputPoTop.value = product.poTop || '';
             inputStatus.value = product.status || 'in_production';
             inputUrgent.checked = product.urgent || false;
+            inputFabric.value = product.fabric || '';
+            inputContent.value = product.content || '';
+            inputFabricApprovalDate.value = product.fabricApprovalDate || '';
+            inputColorApprovalDate.value = product.colorApprovalDate || '';
+            inputTrimsApprovalDate.value = product.trimsApprovalDate || '';
             inputNotes.value = product.notes || '';
             inputImageFile.value = '';
             updateImagePreview(product.imageUrl);
+            
+            // Open materials section if any field has data
+            if (product.fabric || product.content || product.fabricApprovalDate || product.colorApprovalDate || product.trimsApprovalDate) {
+                materialsSection.classList.add('open');
+            } else {
+                materialsSection.classList.remove('open');
+            }
         }
     } else {
         modalTitle.textContent = 'Add Product';
         productForm.reset();
         inputStatus.value = 'in_production';
         inputUrgent.checked = false;
+        materialsSection.classList.remove('open');
         updateImagePreview();
     }
     
@@ -321,6 +346,11 @@ async function saveProduct() {
         poTop: inputPoTop.value.trim(),
         status: inputStatus.value,
         urgent: inputUrgent.checked,
+        fabric: inputFabric.value.trim(),
+        content: inputContent.value.trim(),
+        fabricApprovalDate: inputFabricApprovalDate.value,
+        colorApprovalDate: inputColorApprovalDate.value,
+        trimsApprovalDate: inputTrimsApprovalDate.value,
         notes: inputNotes.value.trim()
     };
     

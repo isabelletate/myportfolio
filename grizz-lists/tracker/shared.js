@@ -68,7 +68,12 @@ export function replayChangelog(changelog) {
         status: event.status || 'in_production',
         notes: event.notes || '',
         protos: event.protos ? JSON.parse(event.protos) : [],
-        urgent: event.urgent === 'true' || event.urgent === true
+        urgent: event.urgent === 'true' || event.urgent === true,
+        fabric: event.fabric || '',
+        content: event.content || '',
+        fabricApprovalDate: event.fabricApprovalDate || '',
+        colorApprovalDate: event.colorApprovalDate || '',
+        trimsApprovalDate: event.trimsApprovalDate || ''
     });
     
     const { itemsMap, order, sortedEvents } = replayChangelogBase(changelog, productFactory);
@@ -96,6 +101,11 @@ export function replayChangelog(changelog) {
                     if (event.notes !== undefined) product.notes = event.notes;
                     if (event.protos !== undefined) product.protos = typeof event.protos === 'string' ? JSON.parse(event.protos) : event.protos;
                     if (event.urgent !== undefined) product.urgent = event.urgent === 'true' || event.urgent === true;
+                    if (event.fabric !== undefined) product.fabric = event.fabric;
+                    if (event.content !== undefined) product.content = event.content;
+                    if (event.fabricApprovalDate !== undefined) product.fabricApprovalDate = event.fabricApprovalDate;
+                    if (event.colorApprovalDate !== undefined) product.colorApprovalDate = event.colorApprovalDate;
+                    if (event.trimsApprovalDate !== undefined) product.trimsApprovalDate = event.trimsApprovalDate;
                 }
                 break;
                 
@@ -167,6 +177,7 @@ export const protoStatusTypes = [
     { value: 'comments', label: 'Comments', color: '#fbbf24' },
     { value: 'with_gp', label: 'With GP', color: '#a78bfa' },
     { value: 'fit', label: 'Fit', color: '#f472b6' },
+    { value: 'approved_photo_sample', label: 'Approved as Photo Sample', color: '#22c55e' },
     { value: 'sent_to_pc', label: 'Sent to P&C', color: '#2dd4bf' },
     { value: 'sent_to_mestriner', label: 'Sent to Mestriner', color: '#fb923c' }
 ];
