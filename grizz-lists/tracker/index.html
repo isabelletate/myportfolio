@@ -58,16 +58,16 @@
                 <div class="stat-value" id="statTotal">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Pending</div>
-                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">In Production</div>
+                <div class="stat-value" id="statInProduction">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">In Production</div>
-                <div class="stat-value" id="statProduction">0</div>
+                <div class="stat-label">Photo Sample</div>
+                <div class="stat-value" id="statPhotoSample">0</div>
             </div>
             <div class="stat-card highlight">
-                <div class="stat-label">Received</div>
-                <div class="stat-value" id="statReceived">0</div>
+                <div class="stat-label">BULK/TOP</div>
+                <div class="stat-value" id="statBulkTop">0</div>
             </div>
         </div>
 
@@ -82,12 +82,18 @@
                     <thead>
                         <tr>
                             <th class="product-image-cell">Image</th>
-                            <th class="sortable" data-sort="name">Product</th>
+                            <th>Protos</th>
+                            <th class="sortable" data-sort="styleNumber">Style#</th>
+                            <th class="sortable" data-sort="styleName">Style Name</th>
+                            <th class="sortable" data-sort="description">Description</th>
+                            <th class="sortable" data-sort="color">Color</th>
+                            <th class="sortable" data-sort="sizeScale">Size Scale</th>
                             <th class="sortable" data-sort="season">Season</th>
                             <th class="sortable" data-sort="launchMonth">Launch</th>
                             <th class="sortable" data-sort="vendor">Vendor</th>
                             <th>PO# (Bulk)</th>
                             <th>PO# (TOP)</th>
+                            <th>Units</th>
                             <th class="sortable" data-sort="status">Status</th>
                             <th class="actions-cell">Actions</th>
                         </tr>
@@ -113,19 +119,58 @@
             </div>
             <div class="modal-body">
                 <form id="productForm">
-                    <div class="form-group full-width">
-                        <label class="form-label">Product Name</label>
-                        <input type="text" class="form-input" id="inputName" placeholder="e.g., Winter Collection Jacket" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Style#</label>
+                            <input type="text" class="form-input" id="inputStyleNumber" placeholder="e.g., ST-2024-001">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Style Name</label>
+                            <input type="text" class="form-input" id="inputStyleName" placeholder="e.g., Classic Polo">
+                        </div>
                     </div>
                     
                     <div class="form-group full-width">
-                        <label class="form-label">Image URL</label>
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-input" id="inputDescription" placeholder="e.g., Winter Collection Jacket" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Color</label>
+                            <input type="text" class="form-input" id="inputColor" placeholder="e.g., Navy Blue">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Size Scale</label>
+                            <select class="form-select" id="inputSizeScale">
+                                <option value="">Select Size Scale</option>
+                                <option value="0-14">0-14</option>
+                                <option value="24-31">24-31</option>
+                                <option value="OS">OS</option>
+                                <option value="XS-XL">XS-XL</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label">Units</label>
+                        <input type="text" class="form-input" id="inputUnits" placeholder="e.g., 500">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label">Product Image</label>
                         <div class="image-upload">
                             <div class="image-preview" id="imagePreview">
                                 <span class="image-preview-placeholder">📷</span>
                             </div>
                             <div class="image-upload-input">
-                                <input type="url" class="form-input image-url-input" id="inputImageUrl" placeholder="https://example.com/image.jpg">
+                                <label class="file-upload-btn">
+                                    <input type="file" id="inputImageFile" accept="image/*" style="display: none;">
+                                    <span class="btn btn-secondary">Choose Image</span>
+                                </label>
+                                <span class="file-name" id="fileName"></span>
                             </div>
                         </div>
                     </div>
@@ -135,15 +180,15 @@
                             <label class="form-label">Season</label>
                             <select class="form-select" id="inputSeason">
                                 <option value="">Select Season</option>
-                                <option value="Spring 2024">Spring 2024</option>
-                                <option value="Summer 2024">Summer 2024</option>
-                                <option value="Fall 2024">Fall 2024</option>
-                                <option value="Winter 2024">Winter 2024</option>
-                                <option value="Spring 2025">Spring 2025</option>
-                                <option value="Summer 2025">Summer 2025</option>
-                                <option value="Fall 2025">Fall 2025</option>
-                                <option value="Winter 2025">Winter 2025</option>
-                                <option value="Holiday 2025">Holiday 2025</option>
+                                <option value="Spring 2026">Spring 2026</option>
+                                <option value="Summer 2026">Summer 2026</option>
+                                <option value="Fall 2026">Fall 2026</option>
+                                <option value="Holiday 2026">Holiday 2026</option>
+                                <option value="Winter 2026">Winter 2026</option>
+                                <option value="Spring 2027">Spring 2027</option>
+                                <option value="Summer 2027">Summer 2027</option>
+                                <option value="Fall 2027">Fall 2027</option>
+                                <option value="Holiday 2027">Holiday 2027</option>
                             </select>
                         </div>
                         
@@ -169,7 +214,11 @@
                     
                     <div class="form-group full-width">
                         <label class="form-label">Vendor</label>
-                        <input type="text" class="form-input" id="inputVendor" placeholder="e.g., Acme Manufacturing">
+                        <select class="form-select" id="inputVendor">
+                            <option value="">Select Vendor</option>
+                            <option value="Mestriner">Mestriner</option>
+                            <option value="P&C">P&C</option>
+                        </select>
                     </div>
                     
                     <div class="form-row">
@@ -187,12 +236,10 @@
                     <div class="form-group full-width">
                         <label class="form-label">Status</label>
                         <select class="form-select" id="inputStatus">
-                            <option value="pending">Pending</option>
-                            <option value="ordered">Ordered</option>
                             <option value="in_production">In Production</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="received">Received</option>
-                            <option value="cancelled">Cancelled</option>
+                            <option value="approved_photo_sample">Approved Photo Sample</option>
+                            <option value="bulk_top">BULK/TOP</option>
+                            <option value="dropped">Dropped</option>
                         </select>
                     </div>
                     
@@ -205,6 +252,35 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveBtn">Save Product</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proto Management Modal -->
+    <div class="modal-overlay" id="protoModal">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <h2 class="modal-title">Manage Protos</h2>
+                <button class="modal-close" id="protoModalClose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="proto-product-info" id="protoProductInfo"></div>
+                <div class="proto-list" id="protoList">
+                    <!-- Protos will be rendered here -->
+                </div>
+                <button type="button" class="btn btn-secondary add-proto-btn" id="addProtoBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Add Proto
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="saveProtosBtn">Save Changes</button>
             </div>
         </div>
     </div>

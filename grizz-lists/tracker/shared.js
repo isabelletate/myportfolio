@@ -53,15 +53,21 @@ export function replayChangelog(changelog) {
     // Create product from event
     const productFactory = (event) => ({
         id: event.id,
-        name: event.name || '',
+        styleNumber: event.styleNumber || '',
+        styleName: event.styleName || '',
+        description: event.description || '',
+        color: event.color || '',
+        sizeScale: event.sizeScale || '',
+        units: event.units || '',
         imageUrl: event.imageUrl || '',
         season: event.season || '',
         launchMonth: event.launchMonth || '',
         vendor: event.vendor || '',
         poBulk: event.poBulk || '',
         poTop: event.poTop || '',
-        status: event.status || 'pending',
-        notes: event.notes || ''
+        status: event.status || 'in_production',
+        notes: event.notes || '',
+        protos: event.protos ? JSON.parse(event.protos) : []
     });
     
     const { itemsMap, order, sortedEvents } = replayChangelogBase(changelog, productFactory);
@@ -73,7 +79,12 @@ export function replayChangelog(changelog) {
                 if (itemsMap.has(event.id)) {
                     const product = itemsMap.get(event.id);
                     // Update only provided fields
-                    if (event.name !== undefined) product.name = event.name;
+                    if (event.styleNumber !== undefined) product.styleNumber = event.styleNumber;
+                    if (event.styleName !== undefined) product.styleName = event.styleName;
+                    if (event.description !== undefined) product.description = event.description;
+                    if (event.color !== undefined) product.color = event.color;
+                    if (event.sizeScale !== undefined) product.sizeScale = event.sizeScale;
+                    if (event.units !== undefined) product.units = event.units;
                     if (event.imageUrl !== undefined) product.imageUrl = event.imageUrl;
                     if (event.season !== undefined) product.season = event.season;
                     if (event.launchMonth !== undefined) product.launchMonth = event.launchMonth;
@@ -82,6 +93,7 @@ export function replayChangelog(changelog) {
                     if (event.poTop !== undefined) product.poTop = event.poTop;
                     if (event.status !== undefined) product.status = event.status;
                     if (event.notes !== undefined) product.notes = event.notes;
+                    if (event.protos !== undefined) product.protos = typeof event.protos === 'string' ? JSON.parse(event.protos) : event.protos;
                 }
                 break;
                 
@@ -101,15 +113,20 @@ export function replayChangelog(changelog) {
 // ============================================
 
 export const seasons = [
-    'Spring 2024',
-    'Summer 2024',
-    'Fall 2024',
-    'Winter 2024',
-    'Spring 2025',
-    'Summer 2025',
-    'Fall 2025',
-    'Winter 2025',
-    'Holiday 2025'
+    'Spring 2026',
+    'Summer 2026',
+    'Fall 2026',
+    'Holiday 2026',
+    'Winter 2026',
+    'Spring 2027',
+    'Summer 2027',
+    'Fall 2027',
+    'Holiday 2027'
+];
+
+export const vendors = [
+    'Mestriner',
+    'P&C'
 ];
 
 export const months = [
@@ -128,15 +145,31 @@ export const months = [
 ];
 
 export const statusOptions = [
-    { value: 'pending', label: 'Pending', color: '#94a3b8' },
-    { value: 'ordered', label: 'Ordered', color: '#60a5fa' },
     { value: 'in_production', label: 'In Production', color: '#fbbf24' },
-    { value: 'shipped', label: 'Shipped', color: '#a78bfa' },
-    { value: 'received', label: 'Received', color: '#4ade80' },
-    { value: 'cancelled', label: 'Cancelled', color: '#f87171' }
+    { value: 'approved_photo_sample', label: 'Approved Photo Sample', color: '#60a5fa' },
+    { value: 'bulk_top', label: 'BULK/TOP', color: '#4ade80' },
+    { value: 'dropped', label: 'Dropped', color: '#f87171' }
 ];
 
 export function getStatusInfo(status) {
     return statusOptions.find(s => s.value === status) || statusOptions[0];
+}
+
+// ============================================
+// PROTO (PROTOTYPE) CONSTANTS
+// ============================================
+
+export const protoStatusTypes = [
+    { value: 'sent', label: 'Sent', color: '#60a5fa' },
+    { value: 'received', label: 'Received', color: '#4ade80' },
+    { value: 'comments', label: 'Comments', color: '#fbbf24' },
+    { value: 'with_gp', label: 'With GP', color: '#a78bfa' },
+    { value: 'fit', label: 'Fit', color: '#f472b6' },
+    { value: 'sent_to_pc', label: 'Sent to P&C', color: '#2dd4bf' },
+    { value: 'sent_to_mestriner', label: 'Sent to Mestriner', color: '#fb923c' }
+];
+
+export function getProtoStatusInfo(status) {
+    return protoStatusTypes.find(s => s.value === status) || protoStatusTypes[0];
 }
 

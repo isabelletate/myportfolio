@@ -249,6 +249,11 @@ header {
     overflow: hidden;
 }
 
+#tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .table-header {
     display: flex;
     align-items: center;
@@ -275,6 +280,7 @@ header {
 
 .product-table {
     width: 100%;
+    min-width: 1500px;
     border-collapse: collapse;
 }
 
@@ -404,23 +410,17 @@ header {
     border-radius: 50%;
 }
 
-.status-pending { background: #f1f5f9; color: #64748b; }
-.status-pending .status-dot { background: #94a3b8; }
-
-.status-ordered { background: #eff6ff; color: #2563eb; }
-.status-ordered .status-dot { background: #3b82f6; }
-
 .status-in_production { background: #fffbeb; color: #d97706; }
 .status-in_production .status-dot { background: #f59e0b; }
 
-.status-shipped { background: #f5f3ff; color: #7c3aed; }
-.status-shipped .status-dot { background: #8b5cf6; }
+.status-approved_photo_sample { background: #eff6ff; color: #2563eb; }
+.status-approved_photo_sample .status-dot { background: #3b82f6; }
 
-.status-received { background: #f0fdf4; color: #16a34a; }
-.status-received .status-dot { background: #22c55e; }
+.status-bulk_top { background: #f0fdf4; color: #16a34a; }
+.status-bulk_top .status-dot { background: #22c55e; }
 
-.status-cancelled { background: #fef2f2; color: #dc2626; }
-.status-cancelled .status-dot { background: #ef4444; }
+.status-dropped { background: #fef2f2; color: #dc2626; }
+.status-dropped .status-dot { background: #ef4444; }
 
 /* PO Number */
 .po-number {
@@ -705,8 +705,22 @@ header {
     flex: 1;
 }
 
-.image-url-input {
-    width: 100%;
+.file-upload-btn {
+    cursor: pointer;
+    display: inline-block;
+}
+
+.file-upload-btn:hover .btn {
+    background: var(--card-border);
+    color: var(--text-primary);
+}
+
+.file-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    word-break: break-all;
 }
 
 /* Buttons */
@@ -744,6 +758,244 @@ header {
 .btn-danger:hover {
     background: #dc2626;
     transform: translateY(-1px);
+}
+
+/* ============================================
+   Proto Management
+   ============================================ */
+
+.modal-wide {
+    max-width: 700px;
+}
+
+.proto-product-info {
+    background: var(--bg);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.proto-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.proto-card {
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.proto-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 12px;
+}
+
+.proto-name-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: var(--card-bg);
+}
+
+.proto-name-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.proto-number {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.proto-delete-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.proto-delete-btn:hover {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.proto-delete-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.proto-updates {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.proto-update-row {
+    display: grid;
+    grid-template-columns: 140px 120px 1fr 32px;
+    gap: 8px;
+    align-items: center;
+}
+
+.proto-update-row select,
+.proto-update-row input {
+    padding: 6px 10px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    background: var(--card-bg);
+}
+
+.proto-update-row select:focus,
+.proto-update-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.proto-update-delete {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.proto-update-delete:hover {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.proto-update-delete svg {
+    width: 14px;
+    height: 14px;
+}
+
+.add-update-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: transparent;
+    border: 1px dashed var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-top: 8px;
+}
+
+.add-update-btn:hover {
+    background: var(--accent-light);
+}
+
+.add-update-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.add-proto-btn {
+    width: 100%;
+    justify-content: center;
+    border-style: dashed;
+}
+
+.proto-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.proto-badge:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.proto-badge.empty {
+    background: var(--bg);
+    color: var(--text-muted);
+    border: 1px dashed var(--card-border);
+}
+
+.proto-badge.empty:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+}
+
+.proto-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.proto-summary:hover {
+    background: var(--accent-light);
+}
+
+.proto-summary-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.proto-status-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.proto-status-none {
+    background: var(--bg);
+    color: var(--text-muted);
+    border-color: var(--card-border);
 }
 
 /* ============================================
