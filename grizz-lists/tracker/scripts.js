@@ -38,6 +38,7 @@ let pollInterval = null;
 let pendingImageFile = null;
 let editingProtoProductId = null;
 let editingProtos = [];
+let editingUpdateId = null; // Track which update row is in edit mode
 
 // ============================================
 // DOM ELEMENTS
@@ -459,7 +460,7 @@ function renderProtoSummary(product) {
     return `
         <div class="proto-summary" data-proto-product="${product.id}" title="Manage protos">
             <span class="proto-summary-label">${escapeHtml(protoLabel)}</span>
-            <span class="proto-status-tag" style="background: ${statusInfo.color}20; color: ${statusInfo.color}; border-color: ${statusInfo.color}40;">
+            <span class="proto-status-tag" style="background: ${statusInfo.color}; color: white; border-color: ${statusInfo.color};">
                 ${statusInfo.label}${dateStr ? ` · ${dateStr}` : ''}
             </span>
         </div>
@@ -482,6 +483,12 @@ function closeProtoModal() {
     protoModal.classList.remove('active');
     editingProtoProductId = null;
     editingProtos = [];
+    editingUpdateId = null;
+}
+
+function setEditingUpdate(updateId) {
+    editingUpdateId = updateId;
+    renderProtos();
 }
 
 function addProto() {
@@ -507,12 +514,14 @@ function addProtoUpdate(protoId) {
     const proto = editingProtos.find(p => p.id === protoId);
     if (!proto) return;
     
+    const newUpdateId = Date.now();
     proto.updates.push({
-        id: Date.now(),
+        id: newUpdateId,
         type: 'sent',
         date: new Date().toISOString().split('T')[0],
         notes: ''
     });
+    editingUpdateId = newUpdateId; // Automatically enter edit mode for new update
     renderProtos();
 }
 
@@ -554,22 +563,48 @@ function renderProtos() {
                 </button>
             </div>
             <div class="proto-updates">
-                ${proto.updates.map(update => `
-                    <div class="proto-update-row" data-update-id="${update.id}">
-                        <select data-field="type" data-update="${update.id}">
-                            ${protoStatusTypes.map(s => 
-                                `<option value="${s.value}" ${update.type === s.value ? 'selected' : ''}>${s.label}</option>`
-                            ).join('')}
-                        </select>
-                        <input type="date" value="${update.date || ''}" data-field="date" data-update="${update.id}">
-                        <input type="text" placeholder="Notes (optional)" value="${escapeHtml(update.notes || '')}" data-field="notes" data-update="${update.id}">
-                        <button type="button" class="proto-update-delete" data-delete-update="${update.id}" data-proto="${proto.id}" title="Remove">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 6L6 18M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                `).join('')}
+                ${proto.updates.map(update => {
+                    const statusInfo = getProtoStatusInfo(update.type);
+                    const isEditing = editingUpdateId === update.id;
+                    const dateDisplay = update.date ? formatProtoDate(update.date) : '';
+                    
+                    if (isEditing) {
+                        return `
+                            <div class="proto-update-row editing" data-update-id="${update.id}" style="background: ${statusInfo.color}; border-color: ${statusInfo.color};">
+                                <select data-field="type" data-update="${update.id}">
+                                    ${protoStatusTypes.map(s => 
+                                        `<option value="${s.value}" ${update.type === s.value ? 'selected' : ''}>${s.label}</option>`
+                                    ).join('')}
+                                </select>
+                                <input type="date" value="${update.date || ''}" data-field="date" data-update="${update.id}">
+                                <input type="text" placeholder="Notes (optional)" value="${escapeHtml(update.notes || '')}" data-field="notes" data-update="${update.id}">
+                                <button type="button" class="proto-update-done" data-done-update="${update.id}" title="Done">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </button>
+                                <button type="button" class="proto-update-cancel" data-cancel-update="${update.id}" title="Cancel">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 6L6 18M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="proto-update-row view-mode" data-update-id="${update.id}" data-edit-update="${update.id}" style="background: ${statusInfo.color};">
+                                <span class="update-status">${statusInfo.label}</span>
+                                <span class="update-date">${dateDisplay || '—'}</span>
+                                <span class="update-notes">${escapeHtml(update.notes) || '—'}</span>
+                                <button type="button" class="proto-update-delete view-delete" data-delete-update="${update.id}" data-proto="${proto.id}" title="Remove">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 6L6 18M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }).join('')}
             </div>
             <button type="button" class="add-update-btn" data-add-update="${proto.id}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -590,7 +625,34 @@ function renderProtos() {
     });
     
     protoList.querySelectorAll('.proto-update-delete').forEach(btn => {
-        btn.addEventListener('click', () => removeProtoUpdate(parseInt(btn.dataset.proto), parseInt(btn.dataset.deleteUpdate)));
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeProtoUpdate(parseInt(btn.dataset.proto), parseInt(btn.dataset.deleteUpdate));
+        });
+    });
+    
+    // Click on view-mode row to enter edit mode
+    protoList.querySelectorAll('.proto-update-row.view-mode').forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('.proto-update-delete')) return;
+            setEditingUpdate(parseInt(row.dataset.editUpdate));
+        });
+    });
+    
+    // Done button to exit edit mode
+    protoList.querySelectorAll('.proto-update-done').forEach(btn => {
+        btn.addEventListener('click', () => {
+            editingUpdateId = null;
+            renderProtos();
+        });
+    });
+    
+    // Cancel button to exit edit mode (same as done, just exits)
+    protoList.querySelectorAll('.proto-update-cancel').forEach(btn => {
+        btn.addEventListener('click', () => {
+            editingUpdateId = null;
+            renderProtos();
+        });
     });
     
     // Input change handlers

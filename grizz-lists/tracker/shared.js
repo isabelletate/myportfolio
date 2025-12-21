@@ -172,14 +172,14 @@ export function getStatusInfo(status) {
 // ============================================
 
 export const protoStatusTypes = [
-    { value: 'sent', label: 'Sent', color: '#60a5fa' },
-    { value: 'received', label: 'Received', color: '#4ade80' },
-    { value: 'comments', label: 'Comments', color: '#fbbf24' },
-    { value: 'with_gp', label: 'With GP', color: '#a78bfa' },
-    { value: 'fit', label: 'Fit', color: '#f472b6' },
-    { value: 'approved_photo_sample', label: 'Approved as Photo Sample', color: '#22c55e' },
-    { value: 'sent_to_pc', label: 'Sent to P&C', color: '#2dd4bf' },
-    { value: 'sent_to_mestriner', label: 'Sent to Mestriner', color: '#fb923c' }
+    { value: 'sent', label: 'Sent', color: '#2563eb' },
+    { value: 'received', label: 'Received', color: '#16a34a' },
+    { value: 'comments', label: 'Comments', color: '#d97706' },
+    { value: 'with_gp', label: 'With GP', color: '#7c3aed' },
+    { value: 'fit', label: 'Fit', color: '#db2777' },
+    { value: 'approved_photo_sample', label: 'Approved as Photo Sample', color: '#059669' },
+    { value: 'sent_to_pc', label: 'Sent to P&C', color: '#0891b2' },
+    { value: 'sent_to_mestriner', label: 'Sent to Mestriner', color: '#ea580c' }
 ];
 
 export function getProtoStatusInfo(status) {

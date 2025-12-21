@@ -1025,6 +1025,76 @@ header {
     grid-template-columns: 140px 120px 1fr 32px;
     gap: 8px;
     align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+}
+
+.proto-update-row.view-mode {
+    cursor: pointer;
+    grid-template-columns: 140px 80px 1fr 32px;
+    color: white;
+}
+
+.proto-update-row.view-mode:hover {
+    filter: brightness(0.9);
+}
+
+.proto-update-row.editing {
+    grid-template-columns: 140px 120px 1fr 32px 32px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.proto-update-row .update-status {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: white;
+}
+
+.proto-update-row .update-date {
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.proto-update-row .update-notes {
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.9);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.proto-update-delete.view-delete {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.proto-update-delete.view-delete:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.proto-update-cancel {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.proto-update-cancel:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.proto-update-cancel svg {
+    width: 14px;
+    height: 14px;
 }
 
 .proto-update-row select,
@@ -1040,6 +1110,29 @@ header {
 .proto-update-row input:focus {
     outline: none;
     border-color: var(--accent);
+}
+
+.proto-update-done {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: var(--success);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.proto-update-done:hover {
+    background: #16a34a;
+}
+
+.proto-update-done svg {
+    width: 14px;
+    height: 14px;
 }
 
 .proto-update-delete {
