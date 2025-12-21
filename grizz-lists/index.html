@@ -333,6 +333,19 @@
             background: linear-gradient(135deg, var(--accent-teal), var(--accent-green));
         }
 
+        /* Tracker Card Styling */
+        .list-card.tracker::before {
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
+        }
+
+        .list-card.tracker:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .list-card.tracker .card-icon {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+        }
+
         .card-icon {
             width: 48px;
             height: 48px;
@@ -421,6 +434,57 @@
             stroke: var(--text-muted);
             stroke-width: 2;
             fill: none;
+        }
+
+        /* Hero Image on Card */
+        .card-hero {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            border-radius: 14px;
+            z-index: 0;
+        }
+
+        .card-hero img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.35;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .list-card.has-hero:hover .card-hero img {
+            opacity: 0.45;
+            transform: scale(1.05);
+        }
+
+        .list-card.has-hero .card-icon,
+        .list-card.has-hero .card-content,
+        .list-card.has-hero .card-actions,
+        .list-card.has-hero .card-arrow {
+            position: relative;
+            z-index: 1;
+        }
+
+        .list-card.has-hero .card-title {
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .list-card.has-hero .card-meta {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .list-card.has-hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 100%);
+            border-radius: 14px;
+            z-index: 0;
+            pointer-events: none;
         }
 
         /* Empty State */
@@ -572,13 +636,13 @@
 
         /* Type Selector */
         .type-selector {
-            display: flex;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
         }
 
         .type-option {
-            flex: 1;
-            padding: 16px;
+            padding: 14px 8px;
             border-radius: 14px;
             border: 2px solid rgba(255, 255, 255, 0.1);
             background: rgba(0, 0, 0, 0.2);
@@ -599,6 +663,11 @@
         .type-option.selected.shopping {
             border-color: var(--accent-teal);
             background: rgba(0, 217, 192, 0.1);
+        }
+
+        .type-option.selected.tracker {
+            border-color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.1);
         }
 
         .type-option-icon {
@@ -797,6 +866,10 @@
                         <div class="type-option-icon">📋</div>
                         <div class="type-option-name">Planner</div>
                     </div>
+                    <div class="type-option" data-type="tracker">
+                        <div class="type-option-icon">📦</div>
+                        <div class="type-option-name">Tracker</div>
+                    </div>
                 </div>
             </div>
             
@@ -841,7 +914,7 @@
 
     <script type="module" src="./cache-buster.v1.js" data-auto-init></script>
     <script type="module">
-        import { createListManager, hasUserEmail, getUserEmail, setUserEmail, getRecentLists, removeFromRecentLists } from './shared.js';
+        import { createListManager, hasUserEmail, getUserEmail, setUserEmail, getRecentLists, removeFromRecentLists, getHeroImageUrl } from './shared.js';
 
         const listManager = createListManager();
         
@@ -889,10 +962,13 @@
             });
 
             typeOptions.forEach(option => {
-                option.addEventListener('click', () => {
-                    typeOptions.forEach(o => o.classList.remove('selected'));
-                    option.classList.add('selected');
-                    selectedType = option.dataset.type;
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const clickedOption = e.currentTarget;
+                    const type = clickedOption.dataset.type;
+                    typeOptions.forEach(o => o.classList.remove('selected', 'shopping', 'planner', 'tracker'));
+                    clickedOption.classList.add('selected', type);
+                    selectedType = type;
                 });
             });
 
@@ -1037,14 +1113,25 @@
         }
 
         function renderListCard(list, index) {
-            const icon = list.type === 'shopping' ? '🛒' : '📋';
-            const typeName = list.type === 'shopping' ? 'Shopping List' : 'Daily Planner';
-            const href = list.type === 'shopping' 
-                ? `shopping/index.html?list=${list.id}`
-                : `planner/index.html?list=${list.id}`;
+            const icons = { shopping: '🛒', planner: '📋', tracker: '📦' };
+            const typeNames = { shopping: 'Shopping List', planner: 'Daily Planner', tracker: 'Product Tracker' };
+            const icon = icons[list.type] || '📋';
+            const typeName = typeNames[list.type] || 'List';
+            const paths = { shopping: 'shopping', planner: 'planner', tracker: 'tracker' };
+            const href = `${paths[list.type] || 'shopping'}/index.html?list=${list.id}`;
+            
+            // Get hero image URL if available
+            const heroImageUrl = list.heroImage ? getHeroImageUrl(list.id, list.heroImage) : null;
+            const hasHeroClass = heroImageUrl ? ' has-hero' : '';
+            
+            // Hero image HTML (only for cards with images)
+            const heroImageHtml = heroImageUrl 
+                ? `<div class="card-hero"><img src="${heroImageUrl}" alt="" loading="lazy"></div>`
+                : '';
             
             return `
-                <a href="${href}" class="list-card ${list.type}" data-id="${list.id}" style="animation-delay: ${index * 0.05}s">
+                <a href="${href}" class="list-card ${list.type}${hasHeroClass}" data-id="${list.id}" style="animation-delay: ${index * 0.05}s">
+                    ${heroImageHtml}
                     <div class="card-icon">${icon}</div>
                     <div class="card-content">
                         <h3 class="card-title">${escapeHtml(list.name)}</h3>
@@ -1090,8 +1177,9 @@
             submitCreate.disabled = true;
             
             // Reset type selection
-            typeOptions.forEach(o => o.classList.remove('selected'));
-            document.querySelector('[data-type="shopping"]').classList.add('selected');
+            typeOptions.forEach(o => o.classList.remove('selected', 'shopping', 'planner', 'tracker'));
+            const shoppingOption = document.querySelector('[data-type="shopping"]');
+            shoppingOption.classList.add('selected', 'shopping');
             selectedType = 'shopping';
         }
 
@@ -1105,10 +1193,13 @@
 
             closeCreateModal();
             
-            await listManager.createList(name, selectedType);
+            const newList = await listManager.createList(name, selectedType);
             
-            // Reload lists (will include the new list from API)
-            await loadLists();
+            // Navigate directly to the new list instead of reloading
+            // This avoids race conditions with eventual consistency
+            const paths = { shopping: 'shopping', planner: 'planner', tracker: 'tracker' };
+            const path = paths[selectedType] || 'shopping';
+            window.location.href = `${path}/index.html?list=${newList.id}`;
         }
 
         function openDeleteModal(id, name) {

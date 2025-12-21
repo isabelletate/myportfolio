@@ -88,7 +88,7 @@ export function getRecentLists() {
     }
 }
 
-export function addToRecentLists(listId, name, type) {
+export function addToRecentLists(listId, name, type, heroImage = null) {
     const lists = getRecentLists();
     const now = new Date().toISOString();
     
@@ -100,13 +100,15 @@ export function addToRecentLists(listId, name, type) {
         lists[existingIndex].lastAccessed = now;
         if (name) lists[existingIndex].name = name;
         if (type) lists[existingIndex].type = type;
+        if (heroImage !== null) lists[existingIndex].heroImage = heroImage;
     } else {
         // Add new entry
         lists.push({
             id: listId,
             name: name || 'Unnamed List',
             type: type || 'shopping',
-            lastAccessed: now
+            lastAccessed: now,
+            heroImage: heroImage
         });
     }
     
@@ -233,10 +235,17 @@ export function createEventStore(listType, listId) {
                 listMetadata = {
                     name: event.name || 'My List',
                     type: event.type || listType,
-                    owner: event.owner || getUserEmail()
+                    owner: event.owner || getUserEmail(),
+                    heroImage: event.heroImage || null
                 };
             } else if (event.op === 'list_renamed') {
                 listMetadata.name = event.name;
+            } else if (event.op === 'hero_image' && event.images) {
+                // Extract hero image from upload event
+                const images = typeof event.images === 'string' ? JSON.parse(event.images) : event.images;
+                if (images && images.length > 0) {
+                    listMetadata.heroImage = images[0].path || images[0].url;
+                }
             }
         }
         
@@ -595,7 +604,7 @@ export function createListManager() {
             }));
             
             // Extract metadata from list events
-            let metadata = { id: listId, name: 'Unnamed List', type: 'shopping', createdAt: null };
+            let metadata = { id: listId, name: 'Unnamed List', type: 'shopping', createdAt: null, heroImage: null };
             const sortedEvents = [...events].sort((a, b) => (a.ts || '').localeCompare(b.ts || ''));
             
             for (const event of sortedEvents) {
@@ -604,10 +613,17 @@ export function createListManager() {
                         id: listId,
                         name: event.name || 'Unnamed List',
                         type: event.type || 'shopping',
-                        createdAt: event.ts
+                        createdAt: event.ts,
+                        heroImage: null
                     };
                 } else if (event.op === 'list_renamed') {
                     metadata.name = event.name;
+                } else if (event.op === 'hero_image' && event.images) {
+                    // Extract hero image from upload event
+                    const images = typeof event.images === 'string' ? JSON.parse(event.images) : event.images;
+                    if (images && images.length > 0) {
+                        metadata.heroImage = images[0].path || images[0].url;
+                    }
                 }
             }
             
@@ -615,7 +631,7 @@ export function createListManager() {
             return metadata;
         } catch (error) {
             console.error(`Failed to load metadata for list ${listId}:`, error);
-            return { id: listId, name: 'Unnamed List', type: 'shopping', createdAt: null };
+            return { id: listId, name: 'Unnamed List', type: 'shopping', createdAt: null, heroImage: null };
         }
     }
 
@@ -728,5 +744,54 @@ export function createListManager() {
         loadListMetadata,
         getCache: () => userListsCache
     };
+}
+
+// ============================================
+// IMAGE UPLOAD
+// Uploads images to the sheet-logger worker
+// Images stored at: ${API_BASE}/lists/${listId}/images/${filename}
+// ============================================
+
+export async function uploadHeroImage(listId, file) {
+    const uploadUrl = `${API_BASE}/lists/${listId}`;
+    
+    try {
+        updateSyncStatus('syncing');
+        
+        const formData = new FormData();
+        formData.append('op', 'hero_image');
+        formData.append('hero', file);
+        
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        updateSyncStatus('synced');
+        
+        // Return the image info from the response
+        if (result.images && result.images.length > 0) {
+            return result.images[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('Failed to upload hero image:', error);
+        updateSyncStatus('error');
+        return null;
+    }
+}
+
+export function getHeroImageUrl(listId, imagePath) {
+    if (!imagePath) return null;
+    // If it's already a full URL, return as-is
+    if (imagePath.startsWith('http')) return imagePath;
+    // Otherwise construct from API base
+    const baseUrl = API_BASE.replace('/grizz.biz/grizz-lists', '');
+    return `${baseUrl}${imagePath}`;
 }
 

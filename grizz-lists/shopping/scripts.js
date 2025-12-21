@@ -6,7 +6,9 @@ import {
     createEventStore, 
     replayChangelogBase,
     getListIdFromUrl,
-    addToRecentLists
+    addToRecentLists,
+    uploadHeroImage,
+    getHeroImageUrl
 } from '../shared.js';
 import { createAutocomplete } from '../autocomplete.js';
 
@@ -117,6 +119,14 @@ const clearDoneBtn = document.getElementById('clearDoneBtn');
 const categoriesContainer = document.getElementById('categoriesContainer');
 const itemCount = document.getElementById('itemCount');
 
+// Hero image elements
+const heroImageSection = document.getElementById('heroImageSection');
+const heroImageContainer = document.getElementById('heroImageContainer');
+const heroImagePlaceholder = document.getElementById('heroImagePlaceholder');
+const heroImage = document.getElementById('heroImage');
+const heroImageChange = document.getElementById('heroImageChange');
+const heroImageInput = document.getElementById('heroImageInput');
+
 // Create a hash representing the current render state
 function getRenderHash() {
     return items.map(i => `${i.id}:${i.checked}`).join('|') + '::' + selectedCategory;
@@ -162,8 +172,11 @@ async function init() {
         document.title = `${metadata.name} 🛒 - Grizz Lists`;
     }
     
-    // Track this list as recently accessed
-    addToRecentLists(listId, metadata.name, 'shopping');
+    // Display hero image if available
+    displayHeroImage(metadata.heroImage);
+    
+    // Track this list as recently accessed (include hero image)
+    addToRecentLists(listId, metadata.name, 'shopping', metadata.heroImage);
     
     renderCategories(true); // Force initial render
     renderItems(true);
@@ -176,6 +189,19 @@ function setupEventListeners() {
     });
     
     clearDoneBtn.addEventListener('click', clearCheckedItems);
+    
+    // Hero image upload listeners
+    heroImagePlaceholder.addEventListener('click', () => heroImageInput.click());
+    heroImageChange.addEventListener('click', (e) => {
+        e.stopPropagation();
+        heroImageInput.click();
+    });
+    heroImageInput.addEventListener('change', handleHeroImageUpload);
+    
+    // Drag and drop support for hero image
+    heroImageContainer.addEventListener('dragover', handleDragOver);
+    heroImageContainer.addEventListener('dragleave', handleDragLeave);
+    heroImageContainer.addEventListener('drop', handleDrop);
 }
 
 // ============================================
@@ -434,6 +460,95 @@ function updateItemCount() {
     } else {
         itemCount.textContent = `${remaining} of ${total} items remaining`;
     }
+}
+
+// ============================================
+// HERO IMAGE
+// ============================================
+
+function displayHeroImage(imagePath) {
+    if (!imagePath) {
+        // Show placeholder
+        heroImagePlaceholder.style.display = 'flex';
+        heroImage.style.display = 'none';
+        heroImageChange.style.display = 'none';
+        heroImageSection.classList.remove('has-image');
+        return;
+    }
+    
+    const imageUrl = getHeroImageUrl(listId, imagePath);
+    heroImage.src = imageUrl;
+    heroImage.style.display = 'block';
+    heroImagePlaceholder.style.display = 'none';
+    heroImageChange.style.display = 'flex';
+    heroImageSection.classList.add('has-image');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    heroImageContainer.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    heroImageContainer.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    heroImageContainer.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        // Check if it's an image
+        if (file.type.startsWith('image/')) {
+            processHeroImageFile(file);
+        }
+    }
+}
+
+async function handleHeroImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    processHeroImageFile(file);
+}
+
+async function processHeroImageFile(file) {
+    if (!file) return;
+    
+    // Show loading state
+    heroImagePlaceholder.innerHTML = `
+        <div class="loading-spinner" style="width: 24px; height: 24px; margin: 0;"></div>
+        <span>Uploading...</span>
+    `;
+    
+    const result = await uploadHeroImage(listId, file);
+    
+    if (result) {
+        const imagePath = result.path || result.url;
+        displayHeroImage(imagePath);
+        
+        // Update recent lists cache so hero image shows on overview
+        const metadata = store.getMetadata();
+        addToRecentLists(listId, metadata.name, 'shopping', imagePath);
+    } else {
+        // Restore placeholder on error
+        heroImagePlaceholder.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>Add cover photo</span>
+        `;
+    }
+    
+    // Clear input so same file can be selected again
+    heroImageInput.value = '';
 }
 
 // ============================================

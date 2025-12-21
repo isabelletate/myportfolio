@@ -184,6 +184,112 @@ header {
     margin-top: 8px;
 }
 
+/* Hero Image Section */
+.hero-image-section {
+    margin-bottom: 20px;
+    animation: slideUp 0.5s ease-out 0.05s both;
+}
+
+.hero-image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-card);
+    border: 2px dashed rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+}
+
+.hero-image-section.has-image .hero-image-container {
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.hero-image-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-muted);
+}
+
+.hero-image-placeholder:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-light);
+}
+
+/* Drag and drop state */
+.hero-image-container.drag-over {
+    border-color: var(--accent-teal);
+    background: rgba(0, 217, 192, 0.1);
+}
+
+.hero-image-container.drag-over .hero-image-placeholder {
+    color: var(--accent-teal);
+}
+
+.hero-image-container.drag-over .hero-image-placeholder svg {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.hero-image-placeholder svg {
+    width: 48px;
+    height: 48px;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+}
+
+.hero-image-placeholder span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hero-image-change {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.hero-image-container:hover .hero-image-change {
+    opacity: 1;
+}
+
+.hero-image-change:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.05);
+}
+
+.hero-image-change svg {
+    width: 20px;
+    height: 20px;
+    color: white;
+}
+
 /* Category pills */
 .categories-container {
     display: flex;

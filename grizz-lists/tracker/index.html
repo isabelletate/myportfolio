@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Product Tracker</title>
+    
+    <!-- PWA / iOS Home Screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f8fafc">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../icon-180.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <meta property="og:title" content="Product Tracker">
+    <meta property="og:description" content="Track product launches, PO numbers, and vendor information.">
+    <meta property="og:image" content="https://www.grizz.biz/grizz-lists/og-image.jpeg">
+    <meta property="og:image:width" content="1200">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <a href="../index.html" class="back-link" title="Back to Lists">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <h1 class="page-title">
+                        <span class="page-title-icon">📦</span>
+                        <span id="listTitle">Product Tracker</span>
+                    </h1>
+                    <p class="page-subtitle" id="pageSubtitle">Track product launches and PO status</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="sync-indicator" id="syncIndicator" title="Sync status"></div>
+                <button class="btn-primary" id="addProductBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Add Product
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Total Products</div>
+                <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending</div>
+                <div class="stat-value" id="statPending">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">In Production</div>
+                <div class="stat-value" id="statProduction">0</div>
+            </div>
+            <div class="stat-card highlight">
+                <div class="stat-label">Received</div>
+                <div class="stat-value" id="statReceived">0</div>
+            </div>
+        </div>
+
+        <!-- Product Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <span class="table-title">Products</span>
+                <span class="table-count" id="tableCount">0 products</span>
+            </div>
+            <div id="tableWrapper">
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th class="product-image-cell">Image</th>
+                            <th class="sortable" data-sort="name">Product</th>
+                            <th class="sortable" data-sort="season">Season</th>
+                            <th class="sortable" data-sort="launchMonth">Launch</th>
+                            <th class="sortable" data-sort="vendor">Vendor</th>
+                            <th>PO# (Bulk)</th>
+                            <th>PO# (TOP)</th>
+                            <th class="sortable" data-sort="status">Status</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTableBody">
+                        <!-- Products loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Product Modal -->
+    <div class="modal-overlay" id="productModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add Product</h2>
+                <button class="modal-close" id="modalClose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <div class="form-group full-width">
+                        <label class="form-label">Product Name</label>
+                        <input type="text" class="form-input" id="inputName" placeholder="e.g., Winter Collection Jacket" required>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label">Image URL</label>
+                        <div class="image-upload">
+                            <div class="image-preview" id="imagePreview">
+                                <span class="image-preview-placeholder">📷</span>
+                            </div>
+                            <div class="image-upload-input">
+                                <input type="url" class="form-input image-url-input" id="inputImageUrl" placeholder="https://example.com/image.jpg">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Season</label>
+                            <select class="form-select" id="inputSeason">
+                                <option value="">Select Season</option>
+                                <option value="Spring 2024">Spring 2024</option>
+                                <option value="Summer 2024">Summer 2024</option>
+                                <option value="Fall 2024">Fall 2024</option>
+                                <option value="Winter 2024">Winter 2024</option>
+                                <option value="Spring 2025">Spring 2025</option>
+                                <option value="Summer 2025">Summer 2025</option>
+                                <option value="Fall 2025">Fall 2025</option>
+                                <option value="Winter 2025">Winter 2025</option>
+                                <option value="Holiday 2025">Holiday 2025</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Launch Month</label>
+                            <select class="form-select" id="inputLaunchMonth">
+                                <option value="">Select Month</option>
+                                <option value="January">January</option>
+                                <option value="February">February</option>
+                                <option value="March">March</option>
+                                <option value="April">April</option>
+                                <option value="May">May</option>
+                                <option value="June">June</option>
+                                <option value="July">July</option>
+                                <option value="August">August</option>
+                                <option value="September">September</option>
+                                <option value="October">October</option>
+                                <option value="November">November</option>
+                                <option value="December">December</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label">Vendor</label>
+                        <input type="text" class="form-input" id="inputVendor" placeholder="e.g., Acme Manufacturing">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">PO# (Bulk)</label>
+                            <input type="text" class="form-input" id="inputPoBulk" placeholder="e.g., PO-2024-001">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">PO# (TOP)</label>
+                            <input type="text" class="form-input" id="inputPoTop" placeholder="e.g., TOP-2024-001">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="inputStatus">
+                            <option value="pending">Pending</option>
+                            <option value="ordered">Ordered</option>
+                            <option value="in_production">In Production</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="received">Received</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="inputNotes" placeholder="Additional notes about this product..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveBtn">Save Product</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Delete Product?</h2>
+                <button class="modal-close" id="deleteModalClose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <p style="margin-bottom: 8px; color: var(--text-secondary);">Are you sure you want to delete</p>
+                <p id="deleteProductName" style="font-weight: 600; color: var(--text-primary);"></p>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../cache-buster.v1.js" data-auto-init></script>
+    <script type="module" src="scripts.js"></script>
+</body>
+</html>
+
