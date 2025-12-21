@@ -18,7 +18,7 @@
     
     <meta property="og:title" content="Product Tracker">
     <meta property="og:description" content="Track product launches, PO numbers, and vendor information.">
-    <meta property="og:image" content="https://www.grizz.biz/grizz-lists/og-image.jpeg">
+    <meta property="og:image" content="https://www.grizz.biz/grizz-lists/tracker/og-image.jpeg">
     <meta property="og:image:width" content="1200">
     
     <link rel="stylesheet" href="styles.css">
@@ -213,14 +213,24 @@
                         </div>
                     </div>
                     
-                    <div class="form-group full-width">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" id="inputStatus">
-                            <option value="in_production">In Production</option>
-                            <option value="approved_photo_sample">Approved Photo Sample</option>
-                            <option value="bulk_top">BULK/TOP</option>
-                            <option value="dropped">Dropped</option>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="inputStatus">
+                                <option value="in_production">In Production</option>
+                                <option value="approved_photo_sample">Approved Photo Sample</option>
+                                <option value="bulk_top">BULK/TOP</option>
+                                <option value="dropped">Dropped</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">&nbsp;</label>
+                            <label class="checkbox-label urgent-checkbox">
+                                <input type="checkbox" id="inputUrgent">
+                                <span class="checkbox-text">🚨 Urgent</span>
+                            </label>
+                        </div>
                     </div>
                     
                     <div class="form-group full-width">

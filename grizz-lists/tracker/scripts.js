@@ -68,6 +68,7 @@ const inputVendor = document.getElementById('inputVendor');
 const inputPoBulk = document.getElementById('inputPoBulk');
 const inputPoTop = document.getElementById('inputPoTop');
 const inputStatus = document.getElementById('inputStatus');
+const inputUrgent = document.getElementById('inputUrgent');
 const inputNotes = document.getElementById('inputNotes');
 const imagePreview = document.getElementById('imagePreview');
 const fileName = document.getElementById('fileName');
@@ -194,6 +195,7 @@ function openProductModal(productId = null) {
             inputPoBulk.value = product.poBulk || '';
             inputPoTop.value = product.poTop || '';
             inputStatus.value = product.status || 'in_production';
+            inputUrgent.checked = product.urgent || false;
             inputNotes.value = product.notes || '';
             inputImageFile.value = '';
             updateImagePreview(product.imageUrl);
@@ -202,6 +204,7 @@ function openProductModal(productId = null) {
         modalTitle.textContent = 'Add Product';
         productForm.reset();
         inputStatus.value = 'in_production';
+        inputUrgent.checked = false;
         updateImagePreview();
     }
     
@@ -317,6 +320,7 @@ async function saveProduct() {
         poBulk: inputPoBulk.value.trim(),
         poTop: inputPoTop.value.trim(),
         status: inputStatus.value,
+        urgent: inputUrgent.checked,
         notes: inputNotes.value.trim()
     };
     
@@ -368,6 +372,28 @@ async function confirmDelete() {
 // PROTO MANAGEMENT
 // ============================================
 
+function formatProtoDate(dateStr) {
+    if (!dateStr) return '';
+    
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    
+    const now = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    if (date < sixMonthsAgo) {
+        // Include year for dates older than 6 months
+        return `${month}/${day}/${date.getFullYear()}`;
+    } else {
+        // Just M/D for recent dates
+        return `${month}/${day}`;
+    }
+}
+
 function renderProtoSummary(product) {
     const protos = product.protos || [];
     
@@ -398,12 +424,13 @@ function renderProtoSummary(product) {
     }
     
     const statusInfo = getProtoStatusInfo(lastUpdate.type);
+    const dateStr = formatProtoDate(lastUpdate.date);
     
     return `
         <div class="proto-summary" data-proto-product="${product.id}" title="Manage protos">
             <span class="proto-summary-label">${escapeHtml(protoLabel)}</span>
             <span class="proto-status-tag" style="background: ${statusInfo.color}20; color: ${statusInfo.color}; border-color: ${statusInfo.color}40;">
-                ${statusInfo.label}
+                ${statusInfo.label}${dateStr ? ` · ${dateStr}` : ''}
             </span>
         </div>
     `;
@@ -708,7 +735,7 @@ function renderProducts() {
         const statusInfo = getStatusInfo(product.status);
         
         return `
-            <tr data-id="${product.id}">
+            <tr data-id="${product.id}" class="${product.urgent ? 'urgent' : ''}">
                 <td class="product-image-cell">
                     ${product.imageUrl 
                         ? `<img src="${escapeHtml(getProductImageUrl(product.imageUrl))}" alt="${escapeHtml(product.description)}" class="product-image" onerror="this.outerHTML='<div class=\\'product-image-placeholder\\'>📷</div>'">`

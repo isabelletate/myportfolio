@@ -67,7 +67,8 @@ export function replayChangelog(changelog) {
         poTop: event.poTop || '',
         status: event.status || 'in_production',
         notes: event.notes || '',
-        protos: event.protos ? JSON.parse(event.protos) : []
+        protos: event.protos ? JSON.parse(event.protos) : [],
+        urgent: event.urgent === 'true' || event.urgent === true
     });
     
     const { itemsMap, order, sortedEvents } = replayChangelogBase(changelog, productFactory);
@@ -94,6 +95,7 @@ export function replayChangelog(changelog) {
                     if (event.status !== undefined) product.status = event.status;
                     if (event.notes !== undefined) product.notes = event.notes;
                     if (event.protos !== undefined) product.protos = typeof event.protos === 'string' ? JSON.parse(event.protos) : event.protos;
+                    if (event.urgent !== undefined) product.urgent = event.urgent === 'true' || event.urgent === true;
                 }
                 break;
                 

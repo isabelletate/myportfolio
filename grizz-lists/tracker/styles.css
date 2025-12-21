@@ -348,6 +348,72 @@ header {
     background: var(--accent-light);
 }
 
+/* Urgent rows */
+.product-table tbody tr.urgent {
+    background: #991b1b;
+    color: white;
+}
+
+.product-table tbody tr.urgent:hover {
+    background: #7f1d1d;
+}
+
+.product-table tbody tr.urgent .product-name,
+.product-table tbody tr.urgent .product-notes,
+.product-table tbody tr.urgent .po-empty,
+.product-table tbody tr.urgent td {
+    color: white;
+}
+
+.product-table tbody tr.urgent .po-number {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.product-table tbody tr.urgent .status-badge {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.product-table tbody tr.urgent .status-dot {
+    background: white !important;
+}
+
+.product-table tbody tr.urgent .proto-summary-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.product-table tbody tr.urgent .proto-status-tag {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.product-table tbody tr.urgent .proto-badge.empty {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.product-table tbody tr.urgent .proto-summary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.product-table tbody tr.urgent .proto-badge.empty:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.product-table tbody tr.urgent .action-btn {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.product-table tbody tr.urgent .action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
 .product-table tbody tr:last-child td {
     border-bottom: none;
 }
@@ -654,6 +720,46 @@ header {
 .form-input::placeholder,
 .form-textarea::placeholder {
     color: var(--text-muted);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 10px 16px;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    transition: all 0.15s ease;
+    height: 44px;
+}
+
+.checkbox-label:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--danger);
+    cursor: pointer;
+}
+
+.checkbox-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.urgent-checkbox:has(input:checked) {
+    background: var(--danger-light);
+    border-color: var(--danger);
+}
+
+.urgent-checkbox:has(input:checked) .checkbox-text {
+    color: var(--danger);
 }
 
 .form-select {
