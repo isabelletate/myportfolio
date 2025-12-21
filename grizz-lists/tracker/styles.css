@@ -1353,19 +1353,33 @@ header {
         max-height: none;
     }
     
-    .proto-update-row {
+    /* View mode on mobile - simple row layout */
+    .proto-update-row.view-mode {
+        grid-template-columns: 1fr auto auto;
+        gap: 8px;
+    }
+    
+    .proto-update-row.view-mode .update-notes {
+        display: none;
+    }
+    
+    /* Editing mode on mobile */
+    .proto-update-row.editing {
         grid-template-columns: 1fr 1fr;
         gap: 6px;
     }
     
-    .proto-update-row input[type="text"] {
+    .proto-update-row.editing select {
         grid-column: 1 / -1;
     }
     
-    .proto-update-row .proto-update-delete {
-        grid-column: 2;
-        justify-self: end;
-        margin-top: -32px;
+    .proto-update-row.editing input[type="text"] {
+        grid-column: 1 / -1;
+    }
+    
+    .proto-update-row.editing .proto-update-done,
+    .proto-update-row.editing .proto-update-cancel {
+        justify-self: stretch;
     }
 }
 
