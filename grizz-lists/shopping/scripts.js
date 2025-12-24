@@ -8,7 +8,8 @@ import {
     getListIdFromUrl,
     addToRecentLists,
     uploadHeroImage,
-    getHeroImageUrl
+    getHeroImageUrl,
+    createPoller
 } from '../shared.js';
 import { createAutocomplete } from '../autocomplete.js';
 
@@ -634,5 +635,5 @@ async function pollForChanges() {
 document.addEventListener('DOMContentLoaded', async () => {
     await init();
     lastItemsHash = getItemsHash(items);
-    setInterval(pollForChanges, 5000);
+    createPoller(pollForChanges, 5000);
 });

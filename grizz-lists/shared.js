@@ -795,3 +795,65 @@ export function getHeroImageUrl(listId, imagePath) {
     return `${baseUrl}${imagePath}`;
 }
 
+// ============================================
+// SHARED POLLING WITH FOCUS/BLUR HANDLING
+// ============================================
+
+export function createPoller(pollFn, intervalMs = 5000) {
+    let pollInterval = null;
+    let isWindowFocused = !document.hidden;
+    
+    function startPolling() {
+        if (pollInterval) return; // Already polling
+        pollInterval = setInterval(pollFn, intervalMs);
+    }
+    
+    function stopPolling() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    }
+    
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            // Window blurred - stop polling
+            isWindowFocused = false;
+            stopPolling();
+        } else {
+            // Window focused - poll immediately and resume
+            isWindowFocused = true;
+            pollFn(); // Immediate poll to catch up
+            startPolling();
+        }
+    }
+    
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also handle window focus/blur for broader compatibility
+    window.addEventListener('focus', () => {
+        if (!isWindowFocused) {
+            isWindowFocused = true;
+            pollFn();
+            startPolling();
+        }
+    });
+    
+    window.addEventListener('blur', () => {
+        isWindowFocused = false;
+        stopPolling();
+    });
+    
+    // Start polling if window is currently focused
+    if (isWindowFocused) {
+        startPolling();
+    }
+    
+    return {
+        start: startPolling,
+        stop: stopPolling,
+        isPolling: () => pollInterval !== null
+    };
+}
+

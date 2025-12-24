@@ -18,7 +18,8 @@ import {
     getChangelogCache,
     getMetadata,
     listId,
-    addToRecentLists
+    addToRecentLists,
+    createPoller
 } from './shared.js';
 
 // If no list ID, redirect to main page
@@ -94,7 +95,6 @@ let draggedItem = null;
 let displayedScore = 0;
 let isDragging = false;
 let lastKnownEventCount = 0;
-let pollInterval = null;
 
 // Touch drag state
 let touchStartY = 0;
@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await init();
     
     lastKnownEventCount = loadChangelog().length;
-    pollInterval = setInterval(pollForChanges, 5000);
+    createPoller(pollForChanges, 5000);
     
     if (window.__loadState) {
         window.__loadState.js = true;

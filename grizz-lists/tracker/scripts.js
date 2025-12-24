@@ -18,7 +18,7 @@ import {
     getProtoStatusInfo
 } from './shared.js';
 
-import { API_BASE } from '../shared.js';
+import { API_BASE, createPoller } from '../shared.js';
 
 // If no list ID, redirect to main page
 if (!listId) {
@@ -34,7 +34,6 @@ let editingProductId = null;
 let productToDelete = null;
 let currentSort = { field: null, direction: 'asc' };
 let lastKnownEventCount = 0;
-let pollInterval = null;
 let pendingImageFile = null;
 let editingProtoProductId = null;
 let editingProtos = [];
@@ -132,6 +131,14 @@ async function loadProducts() {
     const changelog = await loadChangelogFromServer();
     products = replayChangelog(changelog);
     lastKnownEventCount = changelog.length;
+}
+
+async function syncAndRender() {
+    // Resync from server before rendering to ensure consistency
+    const changelog = await loadChangelogFromServer({ silent: true });
+    products = replayChangelog(changelog);
+    lastKnownEventCount = changelog.length;
+    renderProducts();
 }
 
 function setupEventListeners() {
@@ -358,19 +365,14 @@ async function saveProduct() {
     if (editingProductId) {
         // Update existing product
         await addEvent('updated', { id: editingProductId, ...productData });
-        const productIndex = products.findIndex(p => p.id === editingProductId);
-        if (productIndex !== -1) {
-            products[productIndex] = { ...products[productIndex], ...productData };
-        }
     } else {
         // Add new product
         const id = Date.now();
         await addEvent('added', { id, ...productData });
-        products.push({ id, ...productData });
     }
     
     closeProductModal();
-    renderProducts();
+    await syncAndRender();
 }
 
 function openDeleteModal(productId) {
@@ -394,9 +396,7 @@ async function confirmDelete() {
     closeDeleteModal();
     
     await addEvent('removed', { id });
-    products = products.filter(p => p.id !== id);
-    
-    renderProducts();
+    await syncAndRender();
 }
 
 // ============================================
@@ -693,14 +693,8 @@ async function saveProtos() {
             protos: JSON.stringify(editingProtos)
         });
         
-        // Update local state
-        const product = products.find(p => p.id === editingProtoProductId);
-        if (product) {
-            product.protos = editingProtos;
-        }
-        
         closeProtoModal();
-        renderProducts();
+        await syncAndRender();
     } catch (error) {
         console.error('Failed to save protos:', error);
     } finally {
@@ -955,7 +949,7 @@ async function pollForChanges() {
 document.addEventListener('DOMContentLoaded', async () => {
     await init();
     
-    // Start polling for changes
-    pollInterval = setInterval(pollForChanges, 5000);
+    // Start polling with focus/blur handling
+    createPoller(pollForChanges, 5000);
 });
 

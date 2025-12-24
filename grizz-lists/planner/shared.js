@@ -9,10 +9,11 @@ import {
     getTodayDateKey,
     updateSyncStatus,
     getListIdFromUrl,
-    addToRecentLists
+    addToRecentLists,
+    createPoller
 } from '../shared.js';
 
-export { addToRecentLists };
+export { addToRecentLists, createPoller };
 
 // ============================================
 // LIST CONFIGURATION
