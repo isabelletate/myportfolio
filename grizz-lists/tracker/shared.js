@@ -62,7 +62,7 @@ export function replayChangelog(changelog) {
         units: event.units || '',
         imageUrl: event.imageUrl || '',
         season: event.season || '',
-        launchMonth: event.launchMonth || '',
+        launchDate: event.launchDate || '',
         vendor: event.vendor || '',
         poBulk: event.poBulk || '',
         poTop: event.poTop || '',
@@ -74,7 +74,15 @@ export function replayChangelog(changelog) {
         content: event.content || '',
         fabricApprovalDate: event.fabricApprovalDate || '',
         colorApprovalDate: event.colorApprovalDate || '',
-        trimsApprovalDate: event.trimsApprovalDate || ''
+        trimsApprovalDate: event.trimsApprovalDate || '',
+        // New date fields
+        tpReleaseDate: event.tpReleaseDate || '',
+        photoSampleDueDate: event.photoSampleDueDate || '',
+        approvalDueDateFabProd: event.approvalDueDateFabProd || '',
+        topDate: event.topDate || '',
+        passedToRetailDate: event.passedToRetailDate || '',
+        cancelDate: event.cancelDate || '',
+        ownDocUpdate: event.ownDocUpdate || ''
     });
     
     const { itemsMap, order, sortedEvents } = replayChangelogBase(changelog, productFactory);
@@ -94,7 +102,7 @@ export function replayChangelog(changelog) {
                     if (event.units !== undefined) product.units = event.units;
                     if (event.imageUrl !== undefined) product.imageUrl = event.imageUrl;
                     if (event.season !== undefined) product.season = event.season;
-                    if (event.launchMonth !== undefined) product.launchMonth = event.launchMonth;
+                    if (event.launchDate !== undefined) product.launchDate = event.launchDate;
                     if (event.vendor !== undefined) product.vendor = event.vendor;
                     if (event.poBulk !== undefined) product.poBulk = event.poBulk;
                     if (event.poTop !== undefined) product.poTop = event.poTop;
@@ -107,6 +115,14 @@ export function replayChangelog(changelog) {
                     if (event.fabricApprovalDate !== undefined) product.fabricApprovalDate = event.fabricApprovalDate;
                     if (event.colorApprovalDate !== undefined) product.colorApprovalDate = event.colorApprovalDate;
                     if (event.trimsApprovalDate !== undefined) product.trimsApprovalDate = event.trimsApprovalDate;
+                    // New date fields
+                    if (event.tpReleaseDate !== undefined) product.tpReleaseDate = event.tpReleaseDate;
+                    if (event.photoSampleDueDate !== undefined) product.photoSampleDueDate = event.photoSampleDueDate;
+                    if (event.approvalDueDateFabProd !== undefined) product.approvalDueDateFabProd = event.approvalDueDateFabProd;
+                    if (event.topDate !== undefined) product.topDate = event.topDate;
+                    if (event.passedToRetailDate !== undefined) product.passedToRetailDate = event.passedToRetailDate;
+                    if (event.cancelDate !== undefined) product.cancelDate = event.cancelDate;
+                    if (event.ownDocUpdate !== undefined) product.ownDocUpdate = event.ownDocUpdate;
                 }
                 break;
                 

@@ -1014,6 +1014,63 @@ header {
     height: 16px;
 }
 
+/* Proto Photo Sample */
+.proto-photo-sample {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    margin-top: 12px;
+}
+
+.photo-sample-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.photo-sample-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.photo-sample-date-wrapper {
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.photo-sample-date-wrapper.visible {
+    display: flex;
+}
+
+.photo-sample-date-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.photo-sample-date {
+    padding: 6px 10px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    background: var(--bg);
+}
+
+.photo-sample-date:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
 .proto-updates {
     display: flex;
     flex-direction: column;

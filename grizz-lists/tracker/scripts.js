@@ -63,7 +63,7 @@ const inputSizeScale = document.getElementById('inputSizeScale');
 const inputUnits = document.getElementById('inputUnits');
 const inputImageFile = document.getElementById('inputImageFile');
 const inputSeason = document.getElementById('inputSeason');
-const inputLaunchMonth = document.getElementById('inputLaunchMonth');
+const inputLaunchDate = document.getElementById('inputLaunchDate');
 const inputVendor = document.getElementById('inputVendor');
 const inputPoBulk = document.getElementById('inputPoBulk');
 const inputPoTop = document.getElementById('inputPoTop');
@@ -79,6 +79,16 @@ const materialsSection = document.getElementById('materialsSection');
 const materialsToggle = document.getElementById('materialsToggle');
 const imagePreview = document.getElementById('imagePreview');
 const fileName = document.getElementById('fileName');
+// New date fields
+const inputTpReleaseDate = document.getElementById('inputTpReleaseDate');
+const inputPhotoSampleDueDate = document.getElementById('inputPhotoSampleDueDate');
+const inputApprovalDueDateFabProd = document.getElementById('inputApprovalDueDateFabProd');
+const inputTopDate = document.getElementById('inputTopDate');
+const inputPassedToRetailDate = document.getElementById('inputPassedToRetailDate');
+const inputCancelDate = document.getElementById('inputCancelDate');
+const inputOwnDocUpdate = document.getElementById('inputOwnDocUpdate');
+const datesSection = document.getElementById('datesSection');
+const datesToggle = document.getElementById('datesToggle');
 
 // Delete modal elements
 const deleteModalClose = document.getElementById('deleteModalClose');
@@ -169,6 +179,11 @@ function setupEventListeners() {
         materialsSection.classList.toggle('open');
     });
     
+    // Dates section toggle
+    datesToggle.addEventListener('click', () => {
+        datesSection.classList.toggle('open');
+    });
+    
     // Delete modal handlers
     deleteModalClose.addEventListener('click', closeDeleteModal);
     cancelDeleteBtn.addEventListener('click', closeDeleteModal);
@@ -210,7 +225,7 @@ function openProductModal(productId = null) {
             inputSizeScale.value = product.sizeScale || '';
             inputUnits.value = product.units || '';
             inputSeason.value = product.season || '';
-            inputLaunchMonth.value = product.launchMonth || '';
+            inputLaunchDate.value = product.launchDate || '';
             inputVendor.value = product.vendor || '';
             inputPoBulk.value = product.poBulk || '';
             inputPoTop.value = product.poTop || '';
@@ -224,12 +239,27 @@ function openProductModal(productId = null) {
             inputNotes.value = product.notes || '';
             inputImageFile.value = '';
             updateImagePreview(product.imageUrl);
+            // New date fields
+            inputTpReleaseDate.value = product.tpReleaseDate || '';
+            inputPhotoSampleDueDate.value = product.photoSampleDueDate || '';
+            inputApprovalDueDateFabProd.value = product.approvalDueDateFabProd || '';
+            inputTopDate.value = product.topDate || '';
+            inputPassedToRetailDate.value = product.passedToRetailDate || '';
+            inputCancelDate.value = product.cancelDate || '';
+            inputOwnDocUpdate.value = product.ownDocUpdate || '';
             
             // Open materials section if any field has data
             if (product.fabric || product.content || product.fabricApprovalDate || product.colorApprovalDate || product.trimsApprovalDate) {
                 materialsSection.classList.add('open');
             } else {
                 materialsSection.classList.remove('open');
+            }
+            
+            // Open dates section if any field has data
+            if (product.tpReleaseDate || product.photoSampleDueDate || product.approvalDueDateFabProd || product.topDate || product.passedToRetailDate || product.cancelDate || product.ownDocUpdate) {
+                datesSection.classList.add('open');
+            } else {
+                datesSection.classList.remove('open');
             }
         }
     } else {
@@ -238,6 +268,7 @@ function openProductModal(productId = null) {
         inputStatus.value = 'in_production';
         inputUrgent.checked = false;
         materialsSection.classList.remove('open');
+        datesSection.classList.remove('open');
         updateImagePreview();
     }
     
@@ -348,7 +379,7 @@ async function saveProduct() {
         units: inputUnits.value.trim(),
         imageUrl,
         season: inputSeason.value,
-        launchMonth: inputLaunchMonth.value,
+        launchDate: inputLaunchDate.value,
         vendor: inputVendor.value,
         poBulk: inputPoBulk.value.trim(),
         poTop: inputPoTop.value.trim(),
@@ -359,7 +390,15 @@ async function saveProduct() {
         fabricApprovalDate: inputFabricApprovalDate.value,
         colorApprovalDate: inputColorApprovalDate.value,
         trimsApprovalDate: inputTrimsApprovalDate.value,
-        notes: inputNotes.value.trim()
+        notes: inputNotes.value.trim(),
+        // New date fields
+        tpReleaseDate: inputTpReleaseDate.value,
+        photoSampleDueDate: inputPhotoSampleDueDate.value,
+        approvalDueDateFabProd: inputApprovalDueDateFabProd.value,
+        topDate: inputTopDate.value,
+        passedToRetailDate: inputPassedToRetailDate.value,
+        cancelDate: inputCancelDate.value,
+        ownDocUpdate: inputOwnDocUpdate.value
     };
     
     if (editingProductId) {
@@ -612,6 +651,16 @@ function renderProtos() {
                 </svg>
                 Add Status Update
             </button>
+            <div class="proto-photo-sample">
+                <label class="photo-sample-checkbox">
+                    <input type="checkbox" class="photo-sample-check" data-proto="${proto.id}" ${proto.isPhotoSample ? 'checked' : ''}>
+                    <span class="checkbox-text">📸 Photo Sample</span>
+                </label>
+                <div class="photo-sample-date-wrapper ${proto.isPhotoSample ? 'visible' : ''}">
+                    <label class="photo-sample-date-label">Passed:</label>
+                    <input type="date" class="photo-sample-date" data-proto="${proto.id}" value="${proto.passedPhotoSampleDate || ''}">
+                </div>
+            </div>
         </div>
     `).join('');
     
@@ -662,6 +711,32 @@ function renderProtos() {
             const protoId = parseInt(card.dataset.protoId);
             const proto = editingProtos.find(p => p.id === protoId);
             if (proto) proto.name = e.target.value;
+        });
+    });
+    
+    // Photo sample checkbox handlers
+    protoList.querySelectorAll('.photo-sample-check').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const protoId = parseInt(e.target.dataset.proto);
+            const proto = editingProtos.find(p => p.id === protoId);
+            if (proto) {
+                proto.isPhotoSample = e.target.checked;
+                if (!e.target.checked) {
+                    proto.passedPhotoSampleDate = '';
+                }
+                renderProtos();
+            }
+        });
+    });
+    
+    // Photo sample date handlers
+    protoList.querySelectorAll('.photo-sample-date').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const protoId = parseInt(e.target.dataset.proto);
+            const proto = editingProtos.find(p => p.id === protoId);
+            if (proto) {
+                proto.passedPhotoSampleDate = e.target.value;
+            }
         });
     });
     
@@ -793,7 +868,7 @@ function renderProducts() {
                         <th class="sortable" data-sort="color">Color</th>
                         <th class="sortable" data-sort="sizeScale">Size Scale</th>
                         <th class="sortable" data-sort="season">Season</th>
-                        <th class="sortable" data-sort="launchMonth">Launch</th>
+                        <th class="sortable" data-sort="launchDate">Launch</th>
                         <th class="sortable" data-sort="vendor">Vendor</th>
                         <th>PO# (Bulk)</th>
                         <th>PO# (TOP)</th>
@@ -840,7 +915,7 @@ function renderProducts() {
                 <td>${escapeHtml(product.color) || '<span class="po-empty">—</span>'}</td>
                 <td>${escapeHtml(product.sizeScale) || '<span class="po-empty">—</span>'}</td>
                 <td>${escapeHtml(product.season) || '<span class="po-empty">—</span>'}</td>
-                <td>${escapeHtml(product.launchMonth) || '<span class="po-empty">—</span>'}</td>
+                <td>${formatLaunchMonth(product.launchDate) || '<span class="po-empty">—</span>'}</td>
                 <td>${escapeHtml(product.vendor) || '<span class="po-empty">—</span>'}</td>
                 <td>${product.poBulk ? `<span class="po-number">${escapeHtml(product.poBulk)}</span>` : '<span class="po-empty">—</span>'}</td>
                 <td>${product.poTop ? `<span class="po-number">${escapeHtml(product.poTop)}</span>` : '<span class="po-empty">—</span>'}</td>
@@ -917,6 +992,22 @@ function escapeHtml(text) {
 function truncate(text, maxLength) {
     if (!text || text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+}
+
+function formatLaunchMonth(launchDate) {
+    if (!launchDate) return '';
+    const date = new Date(launchDate);
+    if (isNaN(date.getTime())) return '';
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[date.getMonth()];
+}
+
+function formatDateShort(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
 }
 
 // ============================================

@@ -69,7 +69,7 @@
                             <th class="sortable" data-sort="color">Color</th>
                             <th class="sortable" data-sort="sizeScale">Size Scale</th>
                             <th class="sortable" data-sort="season">Season</th>
-                            <th class="sortable" data-sort="launchMonth">Launch</th>
+                            <th class="sortable" data-sort="launchDate">Launch</th>
                             <th class="sortable" data-sort="vendor">Vendor</th>
                             <th>PO# (Bulk)</th>
                             <th>PO# (TOP)</th>
@@ -173,22 +173,8 @@
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Launch Month</label>
-                            <select class="form-select" id="inputLaunchMonth">
-                                <option value="">Select Month</option>
-                                <option value="January">January</option>
-                                <option value="February">February</option>
-                                <option value="March">March</option>
-                                <option value="April">April</option>
-                                <option value="May">May</option>
-                                <option value="June">June</option>
-                                <option value="July">July</option>
-                                <option value="August">August</option>
-                                <option value="September">September</option>
-                                <option value="October">October</option>
-                                <option value="November">November</option>
-                                <option value="December">December</option>
-                            </select>
+                            <label class="form-label">Launch Date</label>
+                            <input type="date" class="form-input" id="inputLaunchDate">
                         </div>
                     </div>
                     
@@ -265,6 +251,52 @@
                             <div class="form-group full-width">
                                 <label class="form-label">Trims Approval Date</label>
                                 <input type="date" class="form-input" id="inputTrimsApprovalDate">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Collapsible Key Dates Section -->
+                    <div class="collapsible-section" id="datesSection">
+                        <button type="button" class="collapsible-header" id="datesToggle">
+                            <span class="collapsible-title">Key Dates</span>
+                            <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="collapsible-content" id="datesContent">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">TP Release Date</label>
+                                    <input type="date" class="form-input" id="inputTpReleaseDate">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Photo Sample Due Date</label>
+                                    <input type="date" class="form-input" id="inputPhotoSampleDueDate">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Approval Due Date (Fab. Prod.)</label>
+                                    <input type="date" class="form-input" id="inputApprovalDueDateFabProd">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">TOP Date</label>
+                                    <input type="date" class="form-input" id="inputTopDate">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Passed to Retail Date</label>
+                                    <input type="date" class="form-input" id="inputPassedToRetailDate">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Cancel Date (XF Date)</label>
+                                    <input type="date" class="form-input" id="inputCancelDate">
+                                </div>
+                            </div>
+                            <div class="form-group full-width">
+                                <label class="form-label">Own Doc Update</label>
+                                <input type="date" class="form-input" id="inputOwnDocUpdate">
                             </div>
                         </div>
                     </div>
