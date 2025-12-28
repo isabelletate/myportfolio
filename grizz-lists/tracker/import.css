@@ -87,15 +87,6 @@
     flex-direction: column;
 }
 
-.import-preview-item {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--card-border);
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 12px;
-    align-items: start;
-}
-
 .import-preview-item:last-child {
     border-bottom: none;
 }
@@ -177,6 +168,69 @@
 .import-preview-status.warning {
     background: #fef3c7;
     color: #92400e;
+}
+
+/* Select All checkbox */
+.import-select-all {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-right: auto;
+}
+
+.import-select-all input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* Item checkbox */
+.import-item-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.import-item-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Update grid to include checkbox */
+.import-preview-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--card-border);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: start;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.import-preview-item:hover {
+    background-color: var(--bg);
+}
+
+.import-preview-item.deselected {
+    opacity: 0.5;
+    background-color: transparent;
+}
+
+.import-preview-item.deselected .import-preview-title,
+.import-preview-item.deselected .import-preview-subtitle {
+    text-decoration: line-through;
+    text-decoration-color: var(--text-secondary);
 }
 
 .import-modal-footer {

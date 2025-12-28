@@ -113,6 +113,36 @@ let importModule = null;
 const moreMenu = document.getElementById('moreMenu');
 const moreMenuTrigger = document.getElementById('moreMenuTrigger');
 
+// Table search
+const tableSearchInput = document.getElementById('tableSearchInput');
+const tableSearchClear = document.getElementById('tableSearchClear');
+let searchTerm = '';
+
+// Selection
+const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+const selectionBar = document.getElementById('selectionBar');
+const selectionCount = document.getElementById('selectionCount');
+const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+const bulkSetDateBtn = document.getElementById('bulkSetDateBtn');
+let selectedProductIds = new Set();
+
+// Bulk Delete Modal
+const bulkDeleteModal = document.getElementById('bulkDeleteModal');
+const bulkDeleteModalClose = document.getElementById('bulkDeleteModalClose');
+const bulkDeleteCount = document.getElementById('bulkDeleteCount');
+const cancelBulkDeleteBtn = document.getElementById('cancelBulkDeleteBtn');
+const confirmBulkDeleteBtn = document.getElementById('confirmBulkDeleteBtn');
+
+// Bulk Date Modal
+const bulkDateModal = document.getElementById('bulkDateModal');
+const bulkDateModalClose = document.getElementById('bulkDateModalClose');
+const bulkDateInfo = document.getElementById('bulkDateInfo');
+const bulkDateField = document.getElementById('bulkDateField');
+const bulkDateValue = document.getElementById('bulkDateValue');
+const cancelBulkDateBtn = document.getElementById('cancelBulkDateBtn');
+const applyBulkDateBtn = document.getElementById('applyBulkDateBtn');
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -261,6 +291,306 @@ function setupEventListeners() {
         }
         importModule.openImportModal();
     });
+    
+    // Table search
+    tableSearchInput.addEventListener('input', (e) => {
+        searchTerm = e.target.value.trim().toLowerCase();
+        tableSearchClear.classList.toggle('hidden', !searchTerm);
+        applySearch();
+    });
+    
+    tableSearchClear.addEventListener('click', () => {
+        searchTerm = '';
+        tableSearchInput.value = '';
+        tableSearchClear.classList.add('hidden');
+        applySearch();
+        tableSearchInput.focus();
+    });
+    
+    // Clear search on Escape
+    tableSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            searchTerm = '';
+            tableSearchInput.value = '';
+            tableSearchClear.classList.add('hidden');
+            applySearch();
+            tableSearchInput.blur();
+        }
+    });
+    
+    // Select all checkbox
+    selectAllCheckbox.addEventListener('change', (e) => {
+        const visibleIds = getVisibleProductIds();
+        if (e.target.checked) {
+            visibleIds.forEach(id => selectedProductIds.add(id));
+        } else {
+            visibleIds.forEach(id => selectedProductIds.delete(id));
+        }
+        updateSelectionUI();
+    });
+    
+    // Clear selection button
+    clearSelectionBtn.addEventListener('click', () => {
+        clearSelection();
+    });
+    
+    // Bulk delete button
+    bulkDeleteBtn.addEventListener('click', openBulkDeleteModal);
+    bulkDeleteModalClose.addEventListener('click', closeBulkDeleteModal);
+    cancelBulkDeleteBtn.addEventListener('click', closeBulkDeleteModal);
+    confirmBulkDeleteBtn.addEventListener('click', confirmBulkDelete);
+    bulkDeleteModal.addEventListener('click', (e) => {
+        if (e.target === bulkDeleteModal) closeBulkDeleteModal();
+    });
+    
+    // Bulk set date button
+    bulkSetDateBtn.addEventListener('click', openBulkDateModal);
+    bulkDateModalClose.addEventListener('click', closeBulkDateModal);
+    cancelBulkDateBtn.addEventListener('click', closeBulkDateModal);
+    applyBulkDateBtn.addEventListener('click', applyBulkDate);
+    bulkDateModal.addEventListener('click', (e) => {
+        if (e.target === bulkDateModal) closeBulkDateModal();
+    });
+}
+
+// ============================================
+// BULK ACTIONS
+// ============================================
+
+function openBulkDeleteModal() {
+    const count = selectedProductIds.size;
+    bulkDeleteCount.textContent = `${count} product${count !== 1 ? 's' : ''}`;
+    bulkDeleteModal.classList.add('active');
+}
+
+function closeBulkDeleteModal() {
+    bulkDeleteModal.classList.remove('active');
+}
+
+async function confirmBulkDelete() {
+    const idsToDelete = Array.from(selectedProductIds);
+    console.log('Bulk deleting products:', idsToDelete);
+    
+    // Delete each product
+    for (const productId of idsToDelete) {
+        console.log('Deleting product:', productId);
+        await addEvent('removed', { id: productId });
+    }
+    
+    closeBulkDeleteModal();
+    clearSelection();
+    await syncAndRender();
+    console.log('Bulk delete complete');
+}
+
+function openBulkDateModal() {
+    const count = selectedProductIds.size;
+    bulkDateInfo.textContent = `Setting date for ${count} product${count !== 1 ? 's' : ''}`;
+    bulkDateField.value = '';
+    bulkDateValue.value = '';
+    bulkDateModal.classList.add('active');
+}
+
+function closeBulkDateModal() {
+    bulkDateModal.classList.remove('active');
+}
+
+async function applyBulkDate() {
+    const field = bulkDateField.value;
+    const dateValue = bulkDateValue.value;
+    
+    if (!field) {
+        alert('Please select a date field.');
+        return;
+    }
+    
+    if (!dateValue) {
+        alert('Please select a date.');
+        return;
+    }
+    
+    const idsToUpdate = Array.from(selectedProductIds);
+    console.log('Bulk setting date:', field, '=', dateValue, 'for products:', idsToUpdate);
+    
+    // Update each product
+    for (const productId of idsToUpdate) {
+        console.log('Updating product:', productId);
+        await addEvent('updated', { id: productId, [field]: dateValue });
+    }
+    
+    closeBulkDateModal();
+    clearSelection();
+    await syncAndRender();
+    console.log('Bulk date update complete');
+}
+
+// ============================================
+// SELECTION
+// ============================================
+
+function getVisibleProductIds() {
+    const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
+    if (!tbody) return [];
+    
+    const ids = [];
+    tbody.querySelectorAll('tr:not(.search-hidden)').forEach(row => {
+        if (row.dataset.id) {
+            ids.push(row.dataset.id);
+        }
+    });
+    return ids;
+}
+
+function toggleProductSelection(productId, isSelected) {
+    if (isSelected) {
+        selectedProductIds.add(productId);
+    } else {
+        selectedProductIds.delete(productId);
+    }
+    updateSelectionUI();
+}
+
+function clearSelection() {
+    selectedProductIds.clear();
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
+    if (!tbody) return;
+    
+    // Update row visual state and checkboxes
+    tbody.querySelectorAll('tr').forEach(row => {
+        const productId = row.dataset.id;
+        const isSelected = selectedProductIds.has(productId);
+        row.classList.toggle('selected', isSelected);
+        
+        const checkbox = row.querySelector('.row-checkbox');
+        if (checkbox) {
+            checkbox.checked = isSelected;
+        }
+    });
+    
+    // Update select all checkbox state
+    const visibleIds = getVisibleProductIds();
+    const visibleSelectedCount = visibleIds.filter(id => selectedProductIds.has(id)).length;
+    
+    if (visibleSelectedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (visibleSelectedCount === visibleIds.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+    
+    // Update selection bar
+    const totalSelected = selectedProductIds.size;
+    if (totalSelected > 0) {
+        selectionBar.classList.add('visible');
+        selectionCount.textContent = `${totalSelected} selected`;
+    } else {
+        selectionBar.classList.remove('visible');
+    }
+}
+
+// ============================================
+// TABLE SEARCH
+// ============================================
+
+function applySearch() {
+    const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
+    if (!tbody) return;
+    
+    const rows = tbody.querySelectorAll('tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        // Remove existing highlights
+        row.querySelectorAll('.search-match').forEach(el => {
+            el.outerHTML = el.textContent;
+        });
+        
+        if (!searchTerm) {
+            row.classList.remove('search-hidden');
+            visibleCount++;
+            return;
+        }
+        
+        // Get searchable text from all cells (skip image and actions)
+        const cells = row.querySelectorAll('td');
+        let foundMatch = false;
+        let firstMatchHighlighted = false;
+        
+        cells.forEach((cell, index) => {
+            // Skip checkbox cell (first), image cell (second), and actions cell (last)
+            if (index === 0 || index === 1 || index === cells.length - 1) return;
+            
+            const textNodes = getTextNodes(cell);
+            
+            textNodes.forEach(node => {
+                const text = node.textContent;
+                const lowerText = text.toLowerCase();
+                const matchIndex = lowerText.indexOf(searchTerm);
+                
+                if (matchIndex !== -1) {
+                    foundMatch = true;
+                    
+                    // Only highlight the first match per row
+                    if (!firstMatchHighlighted) {
+                        firstMatchHighlighted = true;
+                        const before = text.substring(0, matchIndex);
+                        const match = text.substring(matchIndex, matchIndex + searchTerm.length);
+                        const after = text.substring(matchIndex + searchTerm.length);
+                        
+                        const span = document.createElement('span');
+                        span.innerHTML = escapeHtml(before) + 
+                            '<mark class="search-match">' + escapeHtml(match) + '</mark>' + 
+                            escapeHtml(after);
+                        node.parentNode.replaceChild(span, node);
+                    }
+                }
+            });
+        });
+        
+        if (foundMatch) {
+            row.classList.remove('search-hidden');
+            visibleCount++;
+        } else {
+            row.classList.add('search-hidden');
+        }
+    });
+    
+    // Update count
+    const tableCount = document.getElementById('tableCount');
+    if (searchTerm) {
+        tableCount.textContent = `${visibleCount} of ${products.length} products`;
+    } else {
+        tableCount.textContent = `${products.length} product${products.length !== 1 ? 's' : ''}`;
+    }
+    
+    // Update select all checkbox state based on visible items
+    updateSelectionUI();
+}
+
+function getTextNodes(element) {
+    const textNodes = [];
+    const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+    );
+    
+    let node;
+    while (node = walker.nextNode()) {
+        if (node.textContent.trim()) {
+            textNodes.push(node);
+        }
+    }
+    return textNodes;
 }
 
 // ============================================
@@ -930,6 +1260,12 @@ function renderProducts() {
             <table class="product-table">
                 <thead>
                     <tr>
+                        <th class="checkbox-cell">
+                            <label class="table-checkbox">
+                                <input type="checkbox" id="selectAllCheckbox">
+                                <span class="table-checkbox-mark"></span>
+                            </label>
+                        </th>
                         <th class="product-image-cell">Image</th>
                         <th class="description-cell">Description</th>
                         <th class="protos-cell">Protos</th>
@@ -966,7 +1302,13 @@ function renderProducts() {
         const statusInfo = getStatusInfo(product.status);
         
         return `
-            <tr data-id="${product.id}" class="${product.urgent ? 'urgent' : ''}">
+            <tr data-id="${product.id}" class="${product.urgent ? 'urgent' : ''}${selectedProductIds.has(product.id) ? ' selected' : ''}">
+                <td class="checkbox-cell">
+                    <label class="table-checkbox" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="row-checkbox" data-id="${product.id}" ${selectedProductIds.has(product.id) ? 'checked' : ''}>
+                        <span class="table-checkbox-mark"></span>
+                    </label>
+                </td>
                 <td class="product-image-cell">
                     ${product.imageUrl 
                         ? `<img src="${escapeHtml(getProductImageUrl(product.imageUrl))}" alt="${escapeHtml(product.description)}" class="product-image" onerror="this.outerHTML='<div class=\\'product-image-placeholder\\'>📷</div>'">`
@@ -1020,7 +1362,7 @@ function renderProducts() {
         row.addEventListener('click', (e) => {
             // Don't trigger if clicking on action buttons
             if (e.target.closest('.action-btn')) return;
-            const productId = parseFloat(row.dataset.id);
+            const productId = row.dataset.id;
             openProductModal(productId);
         });
     });
@@ -1028,15 +1370,14 @@ function renderProducts() {
     tbody.querySelectorAll('.action-btn.edit').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            openProductModal(parseFloat(btn.dataset.editId));
+            openProductModal(btn.dataset.editId);
         });
     });
     
     tbody.querySelectorAll('.action-btn.delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            // Use parseFloat to preserve decimal IDs from older imports
-            const deleteId = parseFloat(btn.dataset.deleteId);
+            const deleteId = btn.dataset.deleteId;
             openDeleteModal(deleteId);
         });
     });
@@ -1045,9 +1386,39 @@ function renderProducts() {
     tbody.querySelectorAll('.proto-badge, .proto-summary').forEach(el => {
         el.addEventListener('click', (e) => {
             e.stopPropagation();
-            openProtoModal(parseFloat(el.dataset.protoProduct));
+            openProtoModal(el.dataset.protoProduct);
         });
     });
+    
+    // Row checkbox handlers
+    tbody.querySelectorAll('.row-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const productId = checkbox.dataset.id;
+            toggleProductSelection(productId, e.target.checked);
+        });
+    });
+    
+    // Re-attach select all checkbox handler (in case table was rebuilt)
+    const newSelectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (newSelectAllCheckbox && newSelectAllCheckbox !== selectAllCheckbox) {
+        newSelectAllCheckbox.addEventListener('change', (e) => {
+            const visibleIds = getVisibleProductIds();
+            if (e.target.checked) {
+                visibleIds.forEach(id => selectedProductIds.add(id));
+            } else {
+                visibleIds.forEach(id => selectedProductIds.delete(id));
+            }
+            updateSelectionUI();
+        });
+    }
+    
+    // Reapply search if there's an active search term
+    if (searchTerm) {
+        applySearch();
+    }
+    
+    // Update selection UI to reflect current state
+    updateSelectionUI();
 }
 
 // ============================================

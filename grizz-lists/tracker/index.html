@@ -81,13 +81,125 @@
         <!-- Product Table -->
         <div class="table-container">
             <div class="table-header">
-                <span class="table-title">Products</span>
-                <span class="table-count" id="tableCount">0 products</span>
+                <div class="table-header-left">
+                    <span class="table-title">Products</span>
+                    <span class="table-count" id="tableCount">0 products</span>
+                </div>
+                <div class="table-search">
+                    <svg class="table-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" class="table-search-input" id="tableSearchInput" placeholder="Quick search...">
+                    <button class="table-search-clear hidden" id="tableSearchClear" title="Clear search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="selection-bar" id="selectionBar">
+                <span class="selection-count" id="selectionCount">0 selected</span>
+                <div class="selection-actions">
+                    <button class="selection-btn" id="bulkSetDateBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Set Date...
+                    </button>
+                    <button class="selection-btn danger" id="bulkDeleteBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Delete
+                    </button>
+                    <button class="selection-btn" id="clearSelectionBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bulk Set Date Modal -->
+            <div class="modal-overlay" id="bulkDateModal">
+                <div class="modal" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Set Date for Selected Products</h2>
+                        <button class="modal-close" id="bulkDateModalClose">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="bulk-date-info" id="bulkDateInfo">Setting date for 0 products</p>
+                        <div class="form-group">
+                            <label class="form-label">Date Field</label>
+                            <select class="form-select" id="bulkDateField">
+                                <option value="">Select a date field...</option>
+                                <option value="launchDate">Launch Date</option>
+                                <option value="fabricApprovalDate">Fabric Approval Date</option>
+                                <option value="colorApprovalDate">Color Approval Date</option>
+                                <option value="trimsApprovalDate">Trims Approval Date</option>
+                                <option value="tpReleaseDate">TP Release Date</option>
+                                <option value="photoSampleDueDate">Photo Sample Due Date</option>
+                                <option value="approvalDueDateFabProd">Approval Due Date (Fab. Prod.)</option>
+                                <option value="topDate">TOP Date</option>
+                                <option value="passedToRetailDate">Passed to Retail Date</option>
+                                <option value="cancelDate">Cancel Date (XF Date)</option>
+                                <option value="ownDocUpdate">Own Doc Update</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-input" id="bulkDateValue">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancelBulkDateBtn">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="applyBulkDateBtn">Apply Date</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bulk Delete Confirmation Modal -->
+            <div class="modal-overlay" id="bulkDeleteModal">
+                <div class="modal" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Delete Selected Products?</h2>
+                        <button class="modal-close" id="bulkDeleteModalClose">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p style="margin-bottom: 8px; color: var(--text-secondary);">Are you sure you want to delete</p>
+                        <p id="bulkDeleteCount" style="font-weight: 600; color: var(--text-primary); font-size: 1.25rem;"></p>
+                        <p style="margin-top: 12px; color: var(--danger); font-size: 0.875rem;">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content: center;">
+                        <button type="button" class="btn btn-secondary" id="cancelBulkDeleteBtn">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmBulkDeleteBtn">Delete All</button>
+                    </div>
+                </div>
             </div>
             <div id="tableWrapper">
                 <table class="product-table">
                     <thead>
                         <tr>
+                            <th class="checkbox-cell">
+                                <label class="table-checkbox">
+                                    <input type="checkbox" id="selectAllCheckbox">
+                                    <span class="table-checkbox-mark"></span>
+                                </label>
+                            </th>
                             <th class="product-image-cell">Image</th>
                             <th class="description-cell">Description</th>
                             <th class="protos-cell">Protos</th>
@@ -126,211 +238,217 @@
             </div>
             <div class="modal-body">
                 <form id="productForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Style#</label>
-                            <input type="text" class="form-input" id="inputStyleNumber" placeholder="e.g., ST-2024-001">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Style Name</label>
-                            <input type="text" class="form-input" id="inputStyleName" placeholder="e.g., Classic Polo">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label class="form-label">Description</label>
-                        <input type="text" class="form-input" id="inputDescription" placeholder="e.g., Winter Collection Jacket" required>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Color</label>
-                            <input type="text" class="form-input" id="inputColor" placeholder="e.g., Navy Blue">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Size Scale</label>
-                            <select class="form-select" id="inputSizeScale">
-                                <option value="">Select Size Scale</option>
-                                <option value="0-14">0-14</option>
-                                <option value="24-31">24-31</option>
-                                <option value="OS">OS</option>
-                                <option value="XS-XL">XS-XL</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label class="form-label">Units</label>
-                        <input type="text" class="form-input" id="inputUnits" placeholder="e.g., 500">
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label class="form-label">Product Image</label>
-                        <div class="image-upload">
-                            <div class="image-preview" id="imagePreview">
-                                <span class="image-preview-placeholder">📷</span>
-                            </div>
-                            <div class="image-upload-input">
-                                <label class="file-upload-btn">
-                                    <input type="file" id="inputImageFile" accept="image/*" style="display: none;">
-                                    <span class="btn btn-secondary">Choose Image</span>
-                                </label>
-                                <span class="file-name" id="fileName"></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Season</label>
-                            <select class="form-select" id="inputSeason">
-                                <option value="">Select Season</option>
-                                <option value="Spring 2026">Spring 2026</option>
-                                <option value="Summer 2026">Summer 2026</option>
-                                <option value="Fall 2026">Fall 2026</option>
-                                <option value="Holiday 2026">Holiday 2026</option>
-                                <option value="Winter 2026">Winter 2026</option>
-                                <option value="Spring 2027">Spring 2027</option>
-                                <option value="Summer 2027">Summer 2027</option>
-                                <option value="Fall 2027">Fall 2027</option>
-                                <option value="Holiday 2027">Holiday 2027</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Launch Date</label>
-                            <input type="date" class="form-input" id="inputLaunchDate">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label class="form-label">Vendor</label>
-                        <select class="form-select" id="inputVendor">
-                            <option value="">Select Vendor</option>
-                            <option value="Mestriner">Mestriner</option>
-                            <option value="P&C">P&C</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">PO# (Bulk)</label>
-                            <input type="text" class="form-input" id="inputPoBulk" placeholder="e.g., PO-2024-001">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">PO# (TOP)</label>
-                            <input type="text" class="form-input" id="inputPoTop" placeholder="e.g., TOP-2024-001">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" id="inputStatus">
-                                <option value="in_production">In Production</option>
-                                <option value="approved_photo_sample">Approved Photo Sample</option>
-                                <option value="bulk_top">BULK/TOP</option>
-                                <option value="dropped">Dropped</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">&nbsp;</label>
-                            <label class="checkbox-label urgent-checkbox">
-                                <input type="checkbox" id="inputUrgent">
-                                <span class="checkbox-text">🚨 Urgent</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Collapsible Material Details Section -->
-                    <div class="collapsible-section" id="materialsSection">
-                        <button type="button" class="collapsible-header" id="materialsToggle">
-                            <span class="collapsible-title">Material Details</span>
-                            <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </button>
-                        <div class="collapsible-content" id="materialsContent">
+                    <div class="form-columns">
+                        <div class="form-column form-column-primary">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Fabric</label>
-                                    <input type="text" class="form-input" id="inputFabric" placeholder="e.g., 100% Cotton">
+                                    <label class="form-label">Style#</label>
+                                    <input type="text" class="form-input" id="inputStyleNumber" placeholder="e.g., ST-2024-001">
                                 </div>
+                                
                                 <div class="form-group">
-                                    <label class="form-label">Content</label>
-                                    <input type="text" class="form-input" id="inputContent" placeholder="e.g., Jersey Knit">
+                                    <label class="form-label">Style Name</label>
+                                    <input type="text" class="form-input" id="inputStyleName" placeholder="e.g., Classic Polo">
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Fabric Approval Date</label>
-                                    <input type="date" class="form-input" id="inputFabricApprovalDate">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Color Approval Date</label>
-                                    <input type="date" class="form-input" id="inputColorApprovalDate">
-                                </div>
-                            </div>
+                            
                             <div class="form-group full-width">
-                                <label class="form-label">Trims Approval Date</label>
-                                <input type="date" class="form-input" id="inputTrimsApprovalDate">
+                                <label class="form-label">Description</label>
+                                <input type="text" class="form-input" id="inputDescription" placeholder="e.g., Winter Collection Jacket" required>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Collapsible Key Dates Section -->
-                    <div class="collapsible-section" id="datesSection">
-                        <button type="button" class="collapsible-header" id="datesToggle">
-                            <span class="collapsible-title">Key Dates</span>
-                            <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </button>
-                        <div class="collapsible-content" id="datesContent">
+                            
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">TP Release Date</label>
-                                    <input type="date" class="form-input" id="inputTpReleaseDate">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" class="form-input" id="inputColor" placeholder="e.g., Navy Blue">
                                 </div>
+                                
                                 <div class="form-group">
-                                    <label class="form-label">Photo Sample Due Date</label>
-                                    <input type="date" class="form-input" id="inputPhotoSampleDueDate">
+                                    <label class="form-label">Size Scale</label>
+                                    <select class="form-select" id="inputSizeScale">
+                                        <option value="">Select Size Scale</option>
+                                        <option value="0-14">0-14</option>
+                                        <option value="24-31">24-31</option>
+                                        <option value="OS">OS</option>
+                                        <option value="XS-XL">XS-XL</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Approval Due Date (Fab. Prod.)</label>
-                                    <input type="date" class="form-input" id="inputApprovalDueDateFabProd">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">TOP Date</label>
-                                    <input type="date" class="form-input" id="inputTopDate">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Passed to Retail Date</label>
-                                    <input type="date" class="form-input" id="inputPassedToRetailDate">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Cancel Date (XF Date)</label>
-                                    <input type="date" class="form-input" id="inputCancelDate">
-                                </div>
-                            </div>
+                            
                             <div class="form-group full-width">
-                                <label class="form-label">Own Doc Update</label>
-                                <input type="date" class="form-input" id="inputOwnDocUpdate">
+                                <label class="form-label">Units</label>
+                                <input type="text" class="form-input" id="inputUnits" placeholder="e.g., 500">
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label class="form-label">Product Image</label>
+                                <div class="image-upload">
+                                    <div class="image-preview" id="imagePreview">
+                                        <span class="image-preview-placeholder">📷</span>
+                                    </div>
+                                    <div class="image-upload-input">
+                                        <label class="file-upload-btn">
+                                            <input type="file" id="inputImageFile" accept="image/*" style="display: none;">
+                                            <span class="btn btn-secondary">Choose Image</span>
+                                        </label>
+                                        <span class="file-name" id="fileName"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Season</label>
+                                    <select class="form-select" id="inputSeason">
+                                        <option value="">Select Season</option>
+                                        <option value="Spring 2026">Spring 2026</option>
+                                        <option value="Summer 2026">Summer 2026</option>
+                                        <option value="Fall 2026">Fall 2026</option>
+                                        <option value="Holiday 2026">Holiday 2026</option>
+                                        <option value="Winter 2026">Winter 2026</option>
+                                        <option value="Spring 2027">Spring 2027</option>
+                                        <option value="Summer 2027">Summer 2027</option>
+                                        <option value="Fall 2027">Fall 2027</option>
+                                        <option value="Holiday 2027">Holiday 2027</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Launch Date</label>
+                                    <input type="date" class="form-input" id="inputLaunchDate">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label class="form-label">Vendor</label>
+                                <select class="form-select" id="inputVendor">
+                                    <option value="">Select Vendor</option>
+                                    <option value="Mestriner">Mestriner</option>
+                                    <option value="P&C">P&C</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">PO# (Bulk)</label>
+                                    <input type="text" class="form-input" id="inputPoBulk" placeholder="e.g., PO-2024-001">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">PO# (TOP)</label>
+                                    <input type="text" class="form-input" id="inputPoTop" placeholder="e.g., TOP-2024-001">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="inputStatus">
+                                        <option value="in_production">In Production</option>
+                                        <option value="approved_photo_sample">Approved Photo Sample</option>
+                                        <option value="bulk_top">BULK/TOP</option>
+                                        <option value="dropped">Dropped</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">&nbsp;</label>
+                                    <label class="checkbox-label urgent-checkbox">
+                                        <input type="checkbox" id="inputUrgent">
+                                        <span class="checkbox-text">🚨 Urgent</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="inputNotes" placeholder="Additional notes about this product..."></textarea>
+                        
+                        <div class="form-column form-column-secondary">
+                            <!-- Collapsible Material Details Section -->
+                            <div class="collapsible-section" id="materialsSection">
+                                <button type="button" class="collapsible-header" id="materialsToggle">
+                                    <span class="collapsible-title">Material Details</span>
+                                    <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                                <div class="collapsible-content" id="materialsContent">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Fabric</label>
+                                            <input type="text" class="form-input" id="inputFabric" placeholder="e.g., 100% Cotton">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Content</label>
+                                            <input type="text" class="form-input" id="inputContent" placeholder="e.g., Jersey Knit">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Fabric Approval Date</label>
+                                            <input type="date" class="form-input" id="inputFabricApprovalDate">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Color Approval Date</label>
+                                            <input type="date" class="form-input" id="inputColorApprovalDate">
+                                        </div>
+                                    </div>
+                                    <div class="form-group full-width">
+                                        <label class="form-label">Trims Approval Date</label>
+                                        <input type="date" class="form-input" id="inputTrimsApprovalDate">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Collapsible Key Dates Section -->
+                            <div class="collapsible-section" id="datesSection">
+                                <button type="button" class="collapsible-header" id="datesToggle">
+                                    <span class="collapsible-title">Key Dates</span>
+                                    <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                                <div class="collapsible-content" id="datesContent">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">TP Release Date</label>
+                                            <input type="date" class="form-input" id="inputTpReleaseDate">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Photo Sample Due Date</label>
+                                            <input type="date" class="form-input" id="inputPhotoSampleDueDate">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Approval Due Date (Fab. Prod.)</label>
+                                            <input type="date" class="form-input" id="inputApprovalDueDateFabProd">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">TOP Date</label>
+                                            <input type="date" class="form-input" id="inputTopDate">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Passed to Retail Date</label>
+                                            <input type="date" class="form-input" id="inputPassedToRetailDate">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Cancel Date (XF Date)</label>
+                                            <input type="date" class="form-input" id="inputCancelDate">
+                                        </div>
+                                    </div>
+                                    <div class="form-group full-width">
+                                        <label class="form-label">Own Doc Update</label>
+                                        <input type="date" class="form-input" id="inputOwnDocUpdate">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-textarea" id="inputNotes" placeholder="Additional notes about this product..."></textarea>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>

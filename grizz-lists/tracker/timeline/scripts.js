@@ -263,9 +263,8 @@ async function loadProducts() {
         // Check if there's a product ID in the URL hash
         const hash = window.location.hash.slice(1);
         if (hash) {
-            const productId = parseFloat(hash);
-            if (products.find(p => p.id === productId)) {
-                selectProduct(productId);
+            if (products.find(p => p.id === hash)) {
+                selectProduct(hash);
             }
         }
     } catch (err) {
@@ -289,9 +288,8 @@ searchInput.addEventListener('input', (e) => {
 window.addEventListener('hashchange', () => {
     const hash = window.location.hash.slice(1);
     if (hash) {
-        const productId = parseFloat(hash);
-        if (productId !== selectedProductId && products.find(p => p.id === productId)) {
-            selectProduct(productId);
+        if (hash !== selectedProductId && products.find(p => p.id === hash)) {
+            selectProduct(hash);
         }
     }
 });

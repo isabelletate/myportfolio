@@ -53,8 +53,9 @@ export { getTodayDateKey, updateSyncStatus, generateId };
 
 export function replayChangelog(changelog) {
     // Create product from event
+    // Always convert ID to string for consistent comparison with dataset.id
     const productFactory = (event) => ({
-        id: event.id,
+        id: String(event.id),
         styleNumber: event.styleNumber || '',
         styleName: event.styleName || '',
         description: event.description || '',

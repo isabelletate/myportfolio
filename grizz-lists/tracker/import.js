@@ -91,12 +91,23 @@ function showImportPreviewStep() {
 // TSV PARSING
 // ============================================
 
+// Normalize smart/curly quotes to straight quotes
+function normalizeQuotes(text) {
+    return text
+        .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')  // Various double quotes
+        .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'"); // Various single quotes
+}
+
 // Parse TSV with support for quoted fields containing newlines
 function parseTSV(text) {
+    // Pre-process: normalize smart quotes
+    text = normalizeQuotes(text);
+    
     const rows = [];
     let currentRow = [];
     let currentField = '';
     let inQuotes = false;
+    let fieldStart = true; // Track if we're at the start of a new field
     
     for (let i = 0; i < text.length; i++) {
         const char = text[i];
@@ -114,13 +125,14 @@ function parseTSV(text) {
                 currentField += char;
             }
         } else {
-            if (char === '"') {
-                // Start of quoted field
+            if (char === '"' && fieldStart) {
+                // Start of quoted field - only if we're at field start
                 inQuotes = true;
             } else if (char === '\t') {
                 // Field separator
                 currentRow.push(currentField.trim());
                 currentField = '';
+                fieldStart = true; // Next char starts a new field
             } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
                 // Row separator
                 if (char === '\r') i++; // Skip \n in \r\n
@@ -130,8 +142,13 @@ function parseTSV(text) {
                 }
                 currentRow = [];
                 currentField = '';
+                fieldStart = true; // Next char starts a new field
             } else {
                 currentField += char;
+                // After any non-whitespace character, we're no longer at field start
+                if (char !== ' ' && char !== '\t') {
+                    fieldStart = false;
+                }
             }
         }
     }
@@ -329,9 +346,6 @@ function parseImportData() {
         return;
     }
     
-    // Reset ID counter for this parse session
-    idCounter = 0;
-    
     const rows = parseTSV(rawData);
     console.log('[Parse] Parsed rows:', rows.length);
     
@@ -487,18 +501,84 @@ function parseImportData() {
 // PREVIEW RENDERING
 // ============================================
 
-function renderImportPreview() {
-    // Summary
+function updateImportSummary() {
     const totalProducts = parsedImportData.length;
+    const selectedCount = parsedImportData.filter(p => p.selected).length;
     const productsWithWarnings = parsedImportData.filter(p => p.warnings.length > 0).length;
-    const totalProtos = parsedImportData.reduce((sum, p) => sum + p.product.protos.length, 0);
+    const selectedProtos = parsedImportData
+        .filter(p => p.selected)
+        .reduce((sum, p) => sum + p.product.protos.length, 0);
     
+    // Update select all checkbox state
+    const selectAllCheckbox = document.getElementById('importSelectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = selectedCount === totalProducts;
+        selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalProducts;
+    }
+    
+    // Update summary counts
+    const selectedCountEl = document.getElementById('importSelectedCount');
+    const protosCountEl = document.getElementById('importProtosCount');
+    if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+    if (protosCountEl) protosCountEl.textContent = selectedProtos;
+    
+    // Update import button state
+    confirmImportBtn.disabled = selectedCount === 0;
+    
+    // Update individual item visual states
+    parsedImportData.forEach((item, index) => {
+        const itemEl = document.querySelector(`.import-preview-item[data-index="${index}"]`);
+        if (itemEl) {
+            itemEl.classList.toggle('deselected', !item.selected);
+        }
+    });
+}
+
+function toggleSelectAll(checked) {
+    parsedImportData.forEach(item => item.selected = checked);
+    
+    // Update all checkboxes
+    document.querySelectorAll('.import-item-checkbox').forEach(cb => {
+        cb.checked = checked;
+    });
+    
+    updateImportSummary();
+}
+
+function toggleItemSelection(index) {
+    parsedImportData[index].selected = !parsedImportData[index].selected;
+    
+    // Update the checkbox
+    const checkbox = document.querySelector(`.import-item-checkbox[data-index="${index}"]`);
+    if (checkbox) checkbox.checked = parsedImportData[index].selected;
+    
+    updateImportSummary();
+}
+
+function renderImportPreview() {
+    // Mark all as selected by default
+    parsedImportData.forEach(item => {
+        if (item.selected === undefined) item.selected = true;
+    });
+    
+    const totalProducts = parsedImportData.length;
+    const selectedCount = parsedImportData.filter(p => p.selected).length;
+    const productsWithWarnings = parsedImportData.filter(p => p.warnings.length > 0).length;
+    const selectedProtos = parsedImportData
+        .filter(p => p.selected)
+        .reduce((sum, p) => sum + p.product.protos.length, 0);
+    
+    // Summary with select all checkbox
     importSummary.innerHTML = `
+        <label class="import-select-all">
+            <input type="checkbox" id="importSelectAll" ${selectedCount === totalProducts ? 'checked' : ''}>
+            <span>Select All</span>
+        </label>
         <div class="import-summary-stat success">
-            <span class="count">${totalProducts}</span> products to import
+            <span class="count" id="importSelectedCount">${selectedCount}</span> / ${totalProducts} selected
         </div>
         <div class="import-summary-stat">
-            <span class="count">${totalProtos}</span> protos
+            <span class="count" id="importProtosCount">${selectedProtos}</span> protos
         </div>
         ${productsWithWarnings > 0 ? `
             <div class="import-summary-stat warning">
@@ -507,15 +587,25 @@ function renderImportPreview() {
         ` : ''}
     `;
     
-    // Preview list
-    importPreviewList.innerHTML = parsedImportData.map(({ product, warnings }) => `
-        <div class="import-preview-item">
+    // Add select all event listener
+    document.getElementById('importSelectAll').addEventListener('change', (e) => {
+        toggleSelectAll(e.target.checked);
+    });
+    
+    // Preview list with checkboxes
+    importPreviewList.innerHTML = parsedImportData.map(({ product, warnings, selected }, index) => `
+        <div class="import-preview-item ${!selected ? 'deselected' : ''}" data-index="${index}">
+            <label class="import-item-checkbox-wrapper">
+                <input type="checkbox" class="import-item-checkbox" data-index="${index}" ${selected ? 'checked' : ''}>
+            </label>
             <div class="import-preview-main">
                 <div class="import-preview-title">${escapeHtmlFn(product.description || product.styleName || 'Untitled')}</div>
                 <div class="import-preview-subtitle">
                     ${product.styleNumber ? `#${escapeHtmlFn(product.styleNumber)}` : ''}
                     ${product.color ? ` · ${escapeHtmlFn(product.color)}` : ''}
                     ${product.vendor ? ` · ${escapeHtmlFn(product.vendor)}` : ''}
+                    ${product.poBulk ? ` · Bulk: ${escapeHtmlFn(product.poBulk)}` : ''}
+                    ${product.poTop ? ` · TOP: ${escapeHtmlFn(product.poTop)}` : ''}
                 </div>
                 <div class="import-preview-meta">
                     ${product.season ? `<span class="import-preview-tag">${escapeHtmlFn(product.season)}</span>` : ''}
@@ -535,6 +625,26 @@ function renderImportPreview() {
             </div>
         </div>
     `).join('');
+    
+    // Add checkbox event listeners
+    document.querySelectorAll('.import-item-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            toggleItemSelection(index);
+        });
+    });
+    
+    // Also allow clicking the row (but not the checkbox itself) to toggle
+    document.querySelectorAll('.import-preview-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Don't toggle if clicking on checkbox or its label
+            if (e.target.closest('.import-item-checkbox-wrapper')) return;
+            const index = parseInt(item.dataset.index);
+            const checkbox = item.querySelector('.import-item-checkbox');
+            checkbox.checked = !checkbox.checked;
+            toggleItemSelection(index);
+        });
+    });
 }
 
 // ============================================
@@ -542,11 +652,14 @@ function renderImportPreview() {
 // ============================================
 
 async function confirmImport() {
-    console.log('[Import] Starting import, parsedImportData.length:', parsedImportData.length);
-    console.log('[Import] parsedImportData:', JSON.parse(JSON.stringify(parsedImportData)));
+    // Filter to only selected items
+    const selectedItems = parsedImportData.filter(item => item.selected);
     
-    if (parsedImportData.length === 0) {
-        console.log('[Import] No data to import, returning');
+    console.log('[Import] Starting import, selected items:', selectedItems.length);
+    console.log('[Import] selectedItems:', JSON.parse(JSON.stringify(selectedItems)));
+    
+    if (selectedItems.length === 0) {
+        console.log('[Import] No items selected, returning');
         return;
     }
     
@@ -554,9 +667,9 @@ async function confirmImport() {
     confirmImportBtn.textContent = 'Importing...';
     
     try {
-        for (let i = 0; i < parsedImportData.length; i++) {
-            const { product } = parsedImportData[i];
-            console.log(`[Import] Processing product ${i + 1}/${parsedImportData.length}:`, product.description || product.styleName);
+        for (let i = 0; i < selectedItems.length; i++) {
+            const { product } = selectedItems[i];
+            console.log(`[Import] Processing product ${i + 1}/${selectedItems.length}:`, product.description || product.styleName);
             
             // Prepare product data with stringified protos
             const productData = {
