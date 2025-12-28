@@ -194,6 +194,37 @@ header {
     height: 18px;
 }
 
+/* Header secondary button (Import) */
+header .btn-secondary,
+.header-actions .btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--card-border);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+header .btn-secondary:hover,
+.header-actions .btn-secondary:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+header .btn-secondary svg,
+.header-actions .btn-secondary svg {
+    width: 18px;
+    height: 18px;
+}
+
 /* ============================================
    Stats Cards
    ============================================ */
@@ -983,6 +1014,26 @@ header {
     border-color: var(--accent);
 }
 
+.proto-notes-row {
+    margin-bottom: 12px;
+}
+
+.proto-notes-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+}
+
+.proto-notes-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
 .proto-number {
     font-weight: 600;
     color: var(--accent);
@@ -1466,6 +1517,7 @@ header {
     }
     
     header .btn-primary,
+    header .btn-secondary,
     .action-btn,
     .modal-overlay {
         display: none !important;

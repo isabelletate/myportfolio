@@ -42,6 +42,14 @@
             </div>
             <div class="header-actions">
                 <div class="sync-indicator" id="syncIndicator" title="Sync status"></div>
+                <button class="btn-secondary" id="importBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Import
+                </button>
                 <button class="btn-primary" id="addProductBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 5v14M5 12h14"/>
@@ -339,6 +347,54 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" id="saveProtosBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal modal-xlarge">
+            <div class="modal-header">
+                <h2 class="modal-title" id="importModalTitle">Import Products</h2>
+                <button class="modal-close" id="importModalClose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body import-modal-body">
+                <!-- Step 1: Paste Data -->
+                <div class="import-step" id="importStepPaste">
+                    <p class="import-instructions">Paste your spreadsheet data below (copy directly from Excel or Google Sheets, including headers):</p>
+                    <textarea class="import-textarea" id="importTextarea" placeholder="Paste spreadsheet data here..."></textarea>
+                    <button class="btn btn-primary" id="parseImportBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                            <polyline points="9 11 12 14 22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        Preview Import
+                    </button>
+                </div>
+                
+                <!-- Step 2: Preview -->
+                <div class="import-step hidden" id="importStepPreview">
+                    <div class="import-summary" id="importSummary"></div>
+                    <div class="import-preview-container">
+                        <div class="import-preview-list" id="importPreviewList"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer import-modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelImportBtn">Cancel</button>
+                <button type="button" class="btn btn-secondary hidden" id="backImportBtn">← Back</button>
+                <button type="button" class="btn btn-primary hidden" id="confirmImportBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Import Products
+                </button>
             </div>
         </div>
     </div>

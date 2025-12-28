@@ -104,6 +104,10 @@ const protoList = document.getElementById('protoList');
 const addProtoBtn = document.getElementById('addProtoBtn');
 const saveProtosBtn = document.getElementById('saveProtosBtn');
 
+// Import module (loaded dynamically)
+const importBtn = document.getElementById('importBtn');
+let importModule = null;
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -203,6 +207,34 @@ function setupEventListeners() {
     // Sortable columns
     document.querySelectorAll('.sortable').forEach(th => {
         th.addEventListener('click', () => handleSort(th.dataset.sort));
+    });
+    
+    // Import button - dynamically loads import module
+    importBtn.addEventListener('click', async () => {
+        if (!importModule) {
+            importBtn.disabled = true;
+            importBtn.textContent = 'Loading...';
+            try {
+                importModule = await import('./import.js');
+                importModule.initImport({
+                    addEvent,
+                    syncAndRender: syncAndRender,
+                    escapeHtml,
+                    formatDateShort
+                });
+            } finally {
+                importBtn.disabled = false;
+                importBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Import
+                `;
+            }
+        }
+        importModule.openImportModal();
     });
 }
 
@@ -539,6 +571,7 @@ function addProto() {
     editingProtos.push({
         id: Date.now(),
         name: '',
+        notes: '',
         updates: []
     });
     renderProtos();
@@ -600,6 +633,10 @@ function renderProtos() {
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                 </button>
+            </div>
+            <div class="proto-notes-row">
+                <input type="text" class="proto-notes-input" placeholder="Notes (e.g., color, fabric variant...)" 
+                       value="${escapeHtml(proto.notes || '')}" data-field="notes" data-proto-id="${proto.id}">
             </div>
             <div class="proto-updates">
                 ${proto.updates.map(update => {
@@ -708,9 +745,17 @@ function renderProtos() {
     protoList.querySelectorAll('.proto-name-input').forEach(input => {
         input.addEventListener('input', (e) => {
             const card = e.target.closest('.proto-card');
-            const protoId = parseInt(card.dataset.protoId);
+            const protoId = parseFloat(card.dataset.protoId);
             const proto = editingProtos.find(p => p.id === protoId);
             if (proto) proto.name = e.target.value;
+        });
+    });
+    
+    protoList.querySelectorAll('.proto-notes-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const protoId = parseFloat(e.target.dataset.protoId);
+            const proto = editingProtos.find(p => p.id === protoId);
+            if (proto) proto.notes = e.target.value;
         });
     });
     
@@ -950,7 +995,7 @@ function renderProducts() {
         row.addEventListener('click', (e) => {
             // Don't trigger if clicking on action buttons
             if (e.target.closest('.action-btn')) return;
-            const productId = parseInt(row.dataset.id);
+            const productId = parseFloat(row.dataset.id);
             openProductModal(productId);
         });
     });
@@ -958,14 +1003,16 @@ function renderProducts() {
     tbody.querySelectorAll('.action-btn.edit').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            openProductModal(parseInt(btn.dataset.editId));
+            openProductModal(parseFloat(btn.dataset.editId));
         });
     });
     
     tbody.querySelectorAll('.action-btn.delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            openDeleteModal(parseInt(btn.dataset.deleteId));
+            // Use parseFloat to preserve decimal IDs from older imports
+            const deleteId = parseFloat(btn.dataset.deleteId);
+            openDeleteModal(deleteId);
         });
     });
     
@@ -973,7 +1020,7 @@ function renderProducts() {
     tbody.querySelectorAll('.proto-badge, .proto-summary').forEach(el => {
         el.addEventListener('click', (e) => {
             e.stopPropagation();
-            openProtoModal(parseInt(el.dataset.protoProduct));
+            openProtoModal(parseFloat(el.dataset.protoProduct));
         });
     });
 }
