@@ -887,31 +887,41 @@ let currentEventStoreGetCache = null;
 // Lazy-loaded event log module
 let eventLogModule = null;
 
-// Register keystroke listener immediately when shared.js loads
-document.addEventListener('keydown', async (e) => {
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        
-        // Dynamically import event-log.js on first use
-        if (!eventLogModule) {
-            // Determine the correct path based on current location
-            const isInSubfolder = window.location.pathname.includes('/shopping/') || 
-                                  window.location.pathname.includes('/planner/') || 
-                                  window.location.pathname.includes('/tracker/');
-            const modulePath = isInSubfolder ? '../event-log.js' : './event-log.js';
-            eventLogModule = await import(modulePath);
+// Register keystroke listener when DOM is ready
+function initEventLogKeyListener() {
+    document.addEventListener('keydown', async (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
+            e.preventDefault();
+            
+            // Dynamically import event-log.js on first use
+            if (!eventLogModule) {
+                try {
+                    const moduleUrl = new URL('./event-log.js', import.meta.url).href;
+                    eventLogModule = await import(moduleUrl);
+                } catch (err) {
+                    console.error('Failed to load event-log.js:', err);
+                    return;
+                }
+            }
+            
+            if (eventLogModule.isOpen()) {
+                eventLogModule.closeEventLog();
+            } else if (currentEventStoreGetCache) {
+                eventLogModule.openEventLog(currentEventStoreGetCache);
+            }
         }
         
-        if (eventLogModule.isOpen()) {
+        // Close on Escape
+        if (e.key === 'Escape' && eventLogModule?.isOpen()) {
             eventLogModule.closeEventLog();
-        } else if (currentEventStoreGetCache) {
-            eventLogModule.openEventLog(currentEventStoreGetCache);
         }
-    }
-    
-    // Close on Escape (only if module is loaded and modal is open)
-    if (e.key === 'Escape' && eventLogModule?.isOpen()) {
-        eventLogModule.closeEventLog();
-    }
-});
+    });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEventLogKeyListener);
+} else {
+    initEventLogKeyListener();
+}
 
