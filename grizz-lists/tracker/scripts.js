@@ -579,12 +579,12 @@ function addProto() {
 }
 
 function removeProto(protoId) {
-    editingProtos = editingProtos.filter(p => p.id !== protoId);
+    editingProtos = editingProtos.filter(p => p.id != protoId);
     renderProtos();
 }
 
 function addProtoUpdate(protoId) {
-    const proto = editingProtos.find(p => p.id === protoId);
+    const proto = editingProtos.find(p => p.id == protoId);
     if (!proto) return;
     
     const newUpdateId = generateId();
@@ -599,10 +599,10 @@ function addProtoUpdate(protoId) {
 }
 
 function removeProtoUpdate(protoId, updateId) {
-    const proto = editingProtos.find(p => p.id === protoId);
+    const proto = editingProtos.find(p => p.id == protoId);
     if (!proto) return;
     
-    proto.updates = proto.updates.filter(u => u.id !== updateId);
+    proto.updates = proto.updates.filter(u => u.id != updateId);
     renderProtos();
 }
 
@@ -704,17 +704,17 @@ function renderProtos() {
     
     // Attach event listeners
     protoList.querySelectorAll('.proto-delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => removeProto(parseInt(btn.dataset.deleteProto)));
+        btn.addEventListener('click', () => removeProto(btn.dataset.deleteProto));
     });
     
     protoList.querySelectorAll('.add-update-btn').forEach(btn => {
-        btn.addEventListener('click', () => addProtoUpdate(parseInt(btn.dataset.addUpdate)));
+        btn.addEventListener('click', () => addProtoUpdate(btn.dataset.addUpdate));
     });
     
     protoList.querySelectorAll('.proto-update-delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            removeProtoUpdate(parseInt(btn.dataset.proto), parseInt(btn.dataset.deleteUpdate));
+            removeProtoUpdate(btn.dataset.proto, btn.dataset.deleteUpdate);
         });
     });
     
@@ -722,7 +722,7 @@ function renderProtos() {
     protoList.querySelectorAll('.proto-update-row.view-mode').forEach(row => {
         row.addEventListener('click', (e) => {
             if (e.target.closest('.proto-update-delete')) return;
-            setEditingUpdate(parseInt(row.dataset.editUpdate));
+            setEditingUpdate(row.dataset.editUpdate);
         });
     });
     
@@ -746,16 +746,16 @@ function renderProtos() {
     protoList.querySelectorAll('.proto-name-input').forEach(input => {
         input.addEventListener('input', (e) => {
             const card = e.target.closest('.proto-card');
-            const protoId = parseFloat(card.dataset.protoId);
-            const proto = editingProtos.find(p => p.id === protoId);
+            const protoId = card.dataset.protoId;
+            const proto = editingProtos.find(p => p.id == protoId);
             if (proto) proto.name = e.target.value;
         });
     });
     
     protoList.querySelectorAll('.proto-notes-input').forEach(input => {
         input.addEventListener('input', (e) => {
-            const protoId = parseFloat(e.target.dataset.protoId);
-            const proto = editingProtos.find(p => p.id === protoId);
+            const protoId = e.target.dataset.protoId;
+            const proto = editingProtos.find(p => p.id == protoId);
             if (proto) proto.notes = e.target.value;
         });
     });
@@ -763,8 +763,8 @@ function renderProtos() {
     // Photo sample checkbox handlers
     protoList.querySelectorAll('.photo-sample-check').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
-            const protoId = parseInt(e.target.dataset.proto);
-            const proto = editingProtos.find(p => p.id === protoId);
+            const protoId = e.target.dataset.proto;
+            const proto = editingProtos.find(p => p.id == protoId);
             if (proto) {
                 proto.isPhotoSample = e.target.checked;
                 if (!e.target.checked) {
@@ -778,8 +778,8 @@ function renderProtos() {
     // Photo sample date handlers
     protoList.querySelectorAll('.photo-sample-date').forEach(input => {
         input.addEventListener('change', (e) => {
-            const protoId = parseInt(e.target.dataset.proto);
-            const proto = editingProtos.find(p => p.id === protoId);
+            const protoId = e.target.dataset.proto;
+            const proto = editingProtos.find(p => p.id == protoId);
             if (proto) {
                 proto.passedPhotoSampleDate = e.target.value;
             }
@@ -788,15 +788,15 @@ function renderProtos() {
     
     protoList.querySelectorAll('.proto-update-row select, .proto-update-row input').forEach(input => {
         input.addEventListener('change', (e) => {
-            const updateId = parseInt(e.target.dataset.update);
+            const updateId = e.target.dataset.update;
             const field = e.target.dataset.field;
             const card = e.target.closest('.proto-card');
-            const protoId = parseInt(card.dataset.protoId);
+            const protoId = card.dataset.protoId;
             
-            const proto = editingProtos.find(p => p.id === protoId);
+            const proto = editingProtos.find(p => p.id == protoId);
             if (!proto) return;
             
-            const update = proto.updates.find(u => u.id === updateId);
+            const update = proto.updates.find(u => u.id == updateId);
             if (update) update[field] = e.target.value;
         });
     });

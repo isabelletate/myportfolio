@@ -233,7 +233,7 @@ function addItem() {
 }
 
 function toggleItem(id) {
-    const item = items.find(i => i.id === id);
+    const item = items.find(i => i.id == id);
     if (!item) return;
     
     const wasChecked = item.checked;
@@ -264,7 +264,7 @@ function deleteItem(id) {
         el.classList.add('removing');
         setTimeout(() => {
             store.addEvent('removed', { id });
-            items = items.filter(i => i.id !== id);
+            items = items.filter(i => i.id != id);
             renderCategories();
             renderItems();
         }, 300);
@@ -415,7 +415,7 @@ function renderItems(force = false) {
     itemList.innerHTML = html;
     
     itemList.querySelectorAll('.item').forEach(el => {
-        const id = parseInt(el.dataset.id);
+        const id = el.dataset.id;
         el.addEventListener('click', (e) => {
             if (!e.target.closest('.item-delete')) {
                 toggleItem(id);

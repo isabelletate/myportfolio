@@ -702,7 +702,7 @@ function handleTouchEnd() {
 
 async function updateTaskOrder() {
     const newOrder = [...document.querySelectorAll('.task-item')].map(el => 
-        parseInt(el.dataset.id)
+        el.dataset.id
     ).filter(Boolean);
     
     tasks = newOrder.map(id => tasks.find(t => t.id === id)).filter(Boolean);
