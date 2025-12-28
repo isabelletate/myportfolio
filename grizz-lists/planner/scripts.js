@@ -705,7 +705,7 @@ async function updateTaskOrder() {
         el.dataset.id
     ).filter(Boolean);
     
-    tasks = newOrder.map(id => tasks.find(t => t.id === id)).filter(Boolean);
+    tasks = newOrder.map(id => tasks.find(t => String(t.id) === String(id))).filter(Boolean);
     updateStartTimes();
     
     await addEvent('reorder', { order: newOrder });

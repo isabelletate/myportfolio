@@ -128,7 +128,7 @@ function renderProductList(filter = '') {
     }
     
     productList.innerHTML = filtered.map(product => `
-        <div class="product-item ${selectedProductId === product.id ? 'selected' : ''}" data-id="${product.id}">
+        <div class="product-item ${String(selectedProductId) === String(product.id) ? 'selected' : ''}" data-id="${product.id}">
             <div class="product-item-image">
                 ${product.imageUrl 
                     ? `<img src="${escapeHtml(getProductImageUrl(product.imageUrl))}" alt="" onerror="this.parentElement.innerHTML='📦'">`
@@ -145,14 +145,14 @@ function renderProductList(filter = '') {
     // Attach click handlers
     productList.querySelectorAll('.product-item').forEach(item => {
         item.addEventListener('click', () => {
-            selectProduct(parseFloat(item.dataset.id));
+            selectProduct(item.dataset.id);
         });
     });
 }
 
 function selectProduct(productId) {
     selectedProductId = productId;
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => String(p.id) === String(productId));
     
     if (!product) {
         timelineEmpty.classList.remove('hidden');
@@ -162,7 +162,7 @@ function selectProduct(productId) {
     
     // Update sidebar selection
     productList.querySelectorAll('.product-item').forEach(item => {
-        item.classList.toggle('selected', parseFloat(item.dataset.id) === productId);
+        item.classList.toggle('selected', item.dataset.id === String(productId));
     });
     
     // Update header
@@ -263,7 +263,7 @@ async function loadProducts() {
         // Check if there's a product ID in the URL hash
         const hash = window.location.hash.slice(1);
         if (hash) {
-            if (products.find(p => p.id === hash)) {
+            if (products.find(p => String(p.id) === hash)) {
                 selectProduct(hash);
             }
         }
@@ -288,7 +288,7 @@ searchInput.addEventListener('input', (e) => {
 window.addEventListener('hashchange', () => {
     const hash = window.location.hash.slice(1);
     if (hash) {
-        if (hash !== selectedProductId && products.find(p => p.id === hash)) {
+        if (hash !== String(selectedProductId) && products.find(p => String(p.id) === hash)) {
             selectProduct(hash);
         }
     }

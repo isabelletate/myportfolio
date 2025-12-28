@@ -602,7 +602,7 @@ function openProductModal(productId = null) {
     pendingImageFile = null;
     
     if (productId) {
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => String(p.id) === String(productId));
         if (product) {
             modalTitle.textContent = 'Edit Product';
             inputStyleNumber.value = product.styleNumber || '';
@@ -753,7 +753,7 @@ async function saveProduct() {
         saveBtn.textContent = 'Save Product';
     } else if (editingProductId) {
         // Keep existing image URL when editing
-        const existingProduct = products.find(p => p.id === editingProductId);
+        const existingProduct = products.find(p => String(p.id) === String(editingProductId));
         imageUrl = existingProduct?.imageUrl || '';
     }
     
@@ -802,7 +802,7 @@ async function saveProduct() {
 }
 
 function openDeleteModal(productId) {
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => String(p.id) === String(productId));
     if (!product) return;
     
     productToDelete = productId;
@@ -894,7 +894,7 @@ function renderProtoSummary(product) {
 }
 
 function openProtoModal(productId) {
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => String(p.id) === String(productId));
     if (!product) return;
     
     editingProtoProductId = productId;
