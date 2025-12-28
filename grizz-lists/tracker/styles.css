@@ -226,6 +226,97 @@ header .btn-secondary svg,
 }
 
 /* ============================================
+   More Menu (Waffle)
+   ============================================ */
+
+.more-menu {
+    position: relative;
+}
+
+.more-menu-trigger {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.more-menu-trigger:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+.more-menu-trigger svg {
+    width: 20px;
+    height: 20px;
+}
+
+.more-menu.open .more-menu-trigger {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.more-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 180px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+    z-index: 100;
+}
+
+.more-menu.open .more-menu-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.more-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.more-menu-item:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.more-menu-item svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* ============================================
    Stats Cards
    ============================================ */
 
@@ -477,6 +568,18 @@ header .btn-secondary svg,
     font-size: 1.5rem;
 }
 
+/* Description Column - wider to accommodate product info */
+.description-cell {
+    min-width: 200px;
+    max-width: 280px;
+}
+
+/* Protos Column - constrained width */
+.protos-cell {
+    width: 180px;
+    min-width: 180px;
+}
+
 /* Product Name */
 .product-name {
     font-weight: 600;
@@ -487,6 +590,11 @@ header .btn-secondary svg,
     font-size: 0.8125rem;
     color: var(--text-muted);
     margin-top: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* Status Badge */
@@ -1359,7 +1467,8 @@ header .btn-secondary svg,
     font-weight: 600;
     border-radius: 4px;
     border: 1px solid;
-    white-space: nowrap;
+    max-width: 140px;
+    line-height: 1.3;
 }
 
 .proto-status-none {

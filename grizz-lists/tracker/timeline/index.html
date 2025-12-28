@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Product Timeline</title>
+    
+    <!-- PWA / iOS Home Screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="../../manifest.json">
+    <link rel="apple-touch-icon" href="../../icon-180.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <a href="../index.html" class="back-link" title="Back to Tracker">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <h1 class="page-title">
+                        <span class="page-title-icon">📅</span>
+                        <span>Product Timeline</span>
+                    </h1>
+                    <p class="page-subtitle">Visualize key dates for your products</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- Product Selector -->
+            <aside class="product-sidebar">
+                <div class="sidebar-header">
+                    <h2 class="sidebar-title">Products</h2>
+                    <span class="product-count" id="productCount">0 products</span>
+                </div>
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search products...">
+                </div>
+                <div class="product-list" id="productList">
+                    <!-- Products loaded here -->
+                </div>
+            </aside>
+
+            <!-- Timeline View -->
+            <main class="timeline-main">
+                <div class="timeline-empty" id="timelineEmpty">
+                    <div class="empty-icon">📅</div>
+                    <h3 class="empty-title">Select a Product</h3>
+                    <p class="empty-text">Choose a product from the list to view its timeline</p>
+                </div>
+                
+                <div class="timeline-content hidden" id="timelineContent">
+                    <div class="timeline-header">
+                        <div class="selected-product" id="selectedProduct">
+                            <div class="selected-product-image" id="selectedProductImage"></div>
+                            <div class="selected-product-info">
+                                <h2 class="selected-product-name" id="selectedProductName"></h2>
+                                <p class="selected-product-meta" id="selectedProductMeta"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-wrapper">
+                        <div class="timeline" id="timeline">
+                            <!-- Timeline events rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="../../cache-buster.v1.js" data-auto-init></script>
+    <script type="module" src="scripts.js"></script>
+</body>
+</html>
+

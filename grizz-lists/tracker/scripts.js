@@ -109,6 +109,10 @@ const saveProtosBtn = document.getElementById('saveProtosBtn');
 const importBtn = document.getElementById('importBtn');
 let importModule = null;
 
+// More menu (waffle dropdown)
+const moreMenu = document.getElementById('moreMenu');
+const moreMenuTrigger = document.getElementById('moreMenuTrigger');
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -210,11 +214,31 @@ function setupEventListeners() {
         th.addEventListener('click', () => handleSort(th.dataset.sort));
     });
     
+    // More menu toggle
+    moreMenuTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        moreMenu.classList.toggle('open');
+    });
+    
+    // Close more menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!moreMenu.contains(e.target)) {
+            moreMenu.classList.remove('open');
+        }
+    });
+    
+    // Close more menu when clicking a menu item
+    moreMenu.querySelectorAll('.more-menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+            moreMenu.classList.remove('open');
+        });
+    });
+    
     // Import button - dynamically loads import module
     importBtn.addEventListener('click', async () => {
         if (!importModule) {
             importBtn.disabled = true;
-            importBtn.textContent = 'Loading...';
+            importBtn.innerHTML = '<span>Loading...</span>';
             try {
                 importModule = await import('./import.js');
                 importModule.initImport({
@@ -231,7 +255,7 @@ function setupEventListeners() {
                         <polyline points="17 8 12 3 7 8"/>
                         <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    Import
+                    <span>Import</span>
                 `;
             }
         }
@@ -907,10 +931,10 @@ function renderProducts() {
                 <thead>
                     <tr>
                         <th class="product-image-cell">Image</th>
-                        <th>Protos</th>
+                        <th class="description-cell">Description</th>
+                        <th class="protos-cell">Protos</th>
                         <th class="sortable" data-sort="styleNumber">Style#</th>
                         <th class="sortable" data-sort="styleName">Style Name</th>
-                        <th class="sortable" data-sort="description">Description</th>
                         <th class="sortable" data-sort="color">Color</th>
                         <th class="sortable" data-sort="sizeScale">Size Scale</th>
                         <th class="sortable" data-sort="season">Season</th>
@@ -949,15 +973,15 @@ function renderProducts() {
                         : '<div class="product-image-placeholder">📷</div>'
                     }
                 </td>
-                <td>
+                <td class="description-cell">
+                    <div class="product-name">${escapeHtml(product.description)}</div>
+                    ${product.notes ? `<div class="product-notes">${escapeHtml(truncate(product.notes, 50))}</div>` : ''}
+                </td>
+                <td class="protos-cell">
                     ${renderProtoSummary(product)}
                 </td>
                 <td>${escapeHtml(product.styleNumber) || '<span class="po-empty">—</span>'}</td>
                 <td>${escapeHtml(product.styleName) || '<span class="po-empty">—</span>'}</td>
-                <td>
-                    <div class="product-name">${escapeHtml(product.description)}</div>
-                    ${product.notes ? `<div class="product-notes">${escapeHtml(truncate(product.notes, 50))}</div>` : ''}
-                </td>
                 <td>${escapeHtml(product.color) || '<span class="po-empty">—</span>'}</td>
                 <td>${escapeHtml(product.sizeScale) || '<span class="po-empty">—</span>'}</td>
                 <td>${escapeHtml(product.season) || '<span class="po-empty">—</span>'}</td>
@@ -1087,6 +1111,12 @@ async function pollForChanges() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await init();
+    
+    // Update timeline link to include list ID
+    const timelineBtn = document.getElementById('timelineBtn');
+    if (timelineBtn && listId) {
+        timelineBtn.href = `timeline/index.html?list=${listId}`;
+    }
     
     // Start polling with focus/blur handling
     createPoller(pollForChanges, 5000);
