@@ -9,7 +9,8 @@ import {
     addToRecentLists,
     uploadHeroImage,
     getHeroImageUrl,
-    createPoller
+    createPoller,
+    generateId
 } from '../shared.js';
 import { createAutocomplete } from '../autocomplete.js';
 
@@ -214,7 +215,7 @@ function addItem() {
     if (!text) return;
     
     const category = detectCategory(text);
-    const id = Date.now();
+    const id = generateId();
     
     const item = {
         id,

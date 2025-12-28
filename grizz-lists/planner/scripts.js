@@ -19,7 +19,8 @@ import {
     getMetadata,
     listId,
     addToRecentLists,
-    createPoller
+    createPoller,
+    generateId
 } from './shared.js';
 
 // If no list ID, redirect to main page
@@ -218,7 +219,7 @@ function addTask() {
     const text = taskInput.value.trim();
     if (!text) return;
 
-    const id = Date.now();
+    const id = generateId();
     const color = colors[Math.floor(Math.random() * colors.length)];
     const time = selectedTime;
     const enjoyment = selectedEnjoyment;

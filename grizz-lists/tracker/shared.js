@@ -10,7 +10,8 @@ import {
     updateSyncStatus,
     getListIdFromUrl,
     addToRecentLists,
-    createPoller
+    createPoller,
+    generateId
 } from '../shared.js';
 
 export { addToRecentLists, createPoller };
@@ -44,7 +45,7 @@ export const getMetadata = store.getMetadata;
 export const renameList = store.renameList;
 
 // Re-export utilities from parent
-export { getTodayDateKey, updateSyncStatus };
+export { getTodayDateKey, updateSyncStatus, generateId };
 
 // ============================================
 // TRACKER-SPECIFIC REPLAY

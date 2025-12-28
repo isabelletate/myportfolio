@@ -10,7 +10,8 @@ import {
     updateSyncStatus,
     getListIdFromUrl,
     addToRecentLists,
-    createPoller
+    createPoller,
+    generateId
 } from '../shared.js';
 
 export { addToRecentLists, createPoller };
@@ -44,7 +45,7 @@ export const getMetadata = store.getMetadata;
 export const renameList = store.renameList;
 
 // Re-export utilities from parent
-export { getTodayDateKey, updateSyncStatus };
+export { getTodayDateKey, updateSyncStatus, generateId };
 
 // ============================================
 // PLANNER-SPECIFIC REPLAY
@@ -179,20 +180,19 @@ export const defaultTasks = [
 
 // Initialize default tasks as events
 export async function initializeDefaultTasks() {
-    const baseTime = Date.now();
     const cache = store.getCache();
     
     for (let i = 0; i < defaultTasks.length; i++) {
         const t = defaultTasks[i];
         const event = {
             op: 'added',
-            id: baseTime + i,
+            id: generateId(),
             text: t.text,
             time: t.time,
             color: colors[i % colors.length]
         };
         
-        const tempTs = new Date(baseTime + i).toISOString();
+        const tempTs = new Date().toISOString();
         cache.push({ ...event, ts: tempTs });
         
         await store.postEvent(event);

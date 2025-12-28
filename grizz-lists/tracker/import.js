@@ -3,6 +3,8 @@
 // Dynamically loaded when import button is clicked
 // ============================================
 
+import { generateId } from '../shared.js';
+
 // Load CSS
 const link = document.createElement('link');
 link.rel = 'stylesheet';
@@ -223,11 +225,9 @@ function parseImportDate(dateStr) {
 // PROTO PARSING
 // ============================================
 
-// Counter for generating unique IDs within a parsing session
-let idCounter = 0;
-
+// Generate unique IDs using shared base62 generator
 function generateUniqueId() {
-    return Date.now() * 1000 + (idCounter++);
+    return generateId();
 }
 
 function parseProtoData(protoStr, protoNumber) {
@@ -554,10 +554,6 @@ async function confirmImport() {
     confirmImportBtn.textContent = 'Importing...';
     
     try {
-        // Use base timestamp + index to guarantee unique IDs
-        const baseId = Date.now();
-        console.log('[Import] Base ID:', baseId);
-        
         for (let i = 0; i < parsedImportData.length; i++) {
             const { product } = parsedImportData[i];
             console.log(`[Import] Processing product ${i + 1}/${parsedImportData.length}:`, product.description || product.styleName);
@@ -569,7 +565,7 @@ async function confirmImport() {
             };
             delete productData.id;
             
-            const newId = baseId + i;
+            const newId = generateId();
             console.log(`[Import] Assigning ID ${newId} to product:`, product.description);
             
             // Unique ID: base timestamp + index ensures no collisions within this import batch

@@ -15,7 +15,8 @@ import {
     statusOptions,
     getStatusInfo,
     protoStatusTypes,
-    getProtoStatusInfo
+    getProtoStatusInfo,
+    generateId
 } from './shared.js';
 
 import { API_BASE, createPoller } from '../shared.js';
@@ -438,7 +439,7 @@ async function saveProduct() {
         await addEvent('updated', { id: editingProductId, ...productData });
     } else {
         // Add new product
-        const id = Date.now();
+        const id = generateId();
         await addEvent('added', { id, ...productData });
     }
     
@@ -569,7 +570,7 @@ function addProto() {
     }
     
     editingProtos.push({
-        id: Date.now(),
+        id: generateId(),
         name: '',
         notes: '',
         updates: []
@@ -586,7 +587,7 @@ function addProtoUpdate(protoId) {
     const proto = editingProtos.find(p => p.id === protoId);
     if (!proto) return;
     
-    const newUpdateId = Date.now();
+    const newUpdateId = generateId();
     proto.updates.push({
         id: newUpdateId,
         type: 'sent',

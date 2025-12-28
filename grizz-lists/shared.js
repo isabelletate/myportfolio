@@ -39,6 +39,22 @@ const ANONYMOUS_ANIMALS = [
     'Zebra'
 ];
 
+// ============================================
+// ID GENERATION
+// 6-character base62 IDs (0-9, a-z, A-Z)
+// 62^6 = ~56 billion possible IDs
+// ============================================
+
+const BASE62_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+export function generateId() {
+    let id = '';
+    for (let i = 0; i < 6; i++) {
+        id += BASE62_CHARS[Math.floor(Math.random() * 62)];
+    }
+    return id;
+}
+
 export function getUserEmail() {
     return localStorage.getItem(USER_EMAIL_KEY);
 }
@@ -424,6 +440,9 @@ export function createEventStore(listType, listId) {
         return addEvent('list_renamed', { name: newName });
     }
 
+    // Register this store's cache getter for the event log viewer
+    currentEventStoreGetCache = getCache;
+    
     return {
         loadChangelogFromServer,
         loadChangelog,
@@ -663,7 +682,7 @@ export function createListManager() {
 
     // Create a new list
     async function createList(name, type) {
-        const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        const id = generateId();
         const tempTs = new Date().toISOString();
         
         // 1. Add list reference to user's list
@@ -856,4 +875,43 @@ export function createPoller(pollFn, intervalMs = 5000) {
         isPolling: () => pollInterval !== null
     };
 }
+
+// ============================================
+// EVENT LOG VIEWER (Hidden Debug Tool)
+// Dynamically loaded when Ctrl+Shift+E is pressed
+// ============================================
+
+// Track the current store's getCache function (set by createEventStore)
+let currentEventStoreGetCache = null;
+
+// Lazy-loaded event log module
+let eventLogModule = null;
+
+// Register keystroke listener immediately when shared.js loads
+document.addEventListener('keydown', async (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        
+        // Dynamically import event-log.js on first use
+        if (!eventLogModule) {
+            // Determine the correct path based on current location
+            const isInSubfolder = window.location.pathname.includes('/shopping/') || 
+                                  window.location.pathname.includes('/planner/') || 
+                                  window.location.pathname.includes('/tracker/');
+            const modulePath = isInSubfolder ? '../event-log.js' : './event-log.js';
+            eventLogModule = await import(modulePath);
+        }
+        
+        if (eventLogModule.isOpen()) {
+            eventLogModule.closeEventLog();
+        } else if (currentEventStoreGetCache) {
+            eventLogModule.openEventLog(currentEventStoreGetCache);
+        }
+    }
+    
+    // Close on Escape (only if module is loaded and modal is open)
+    if (e.key === 'Escape' && eventLogModule?.isOpen()) {
+        eventLogModule.closeEventLog();
+    }
+});
 
