@@ -803,17 +803,18 @@ async function saveProduct() {
         ownDocUpdate: inputOwnDocUpdate.value
     };
     
-    if (editingProductId) {
-        // Update existing product
-        await addEvent('updated', { id: editingProductId, ...productData });
-    } else {
-        // Add new product
-        const id = generateId();
-        await addEvent('added', { id, ...productData });
-    }
+    const localEvent = editingProductId
+        ? await addEvent('updated', { id: editingProductId, ...productData })
+        : await addEvent('added', { id: generateId(), ...productData });
     
     closeProductModal();
-    await syncAndRender();
+    
+    // Wait for POST to complete, then fetch fresh data and render
+    await localEvent._postPromise;
+    const changelog = await loadChangelogFromServer({ silent: true });
+    products = replayChangelog(changelog);
+    lastKnownEventCount = changelog.length;
+    renderProducts();
 }
 
 function openDeleteModal(productId) {
