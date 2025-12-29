@@ -430,12 +430,12 @@ function renderItems(force = false) {
         
         // Drag and drop handlers for unchecked items
         if (!el.classList.contains('checked')) {
-            el.addEventListener('dragstart', handleDragStart);
-            el.addEventListener('dragend', handleDragEnd);
-            el.addEventListener('dragover', handleDragOver);
-            el.addEventListener('dragenter', handleDragEnter);
-            el.addEventListener('dragleave', handleDragLeave);
-            el.addEventListener('drop', handleDrop);
+            el.addEventListener('dragstart', handleItemDragStart);
+            el.addEventListener('dragend', handleItemDragEnd);
+            el.addEventListener('dragover', handleItemDragOver);
+            el.addEventListener('dragenter', handleItemDragEnter);
+            el.addEventListener('dragleave', handleItemDragLeave);
+            el.addEventListener('drop', handleItemDrop);
         }
     });
 }
@@ -444,7 +444,7 @@ function renderItems(force = false) {
 // DRAG AND DROP REORDERING
 // ============================================
 
-function handleDragStart(e) {
+function handleItemDragStart(e) {
     const item = e.target.closest('.item');
     if (!item || item.classList.contains('checked')) return;
     
@@ -461,7 +461,7 @@ function handleDragStart(e) {
     });
 }
 
-function handleDragEnd(e) {
+function handleItemDragEnd(e) {
     const item = e.target.closest('.item');
     if (item) {
         item.classList.remove('dragging', 'drag-ghost');
@@ -475,7 +475,7 @@ function handleDragEnd(e) {
     draggedItemId = null;
 }
 
-function handleDragOver(e) {
+function handleItemDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
@@ -492,7 +492,7 @@ function handleDragOver(e) {
     item.classList.add(isAbove ? 'drag-over-above' : 'drag-over-below');
 }
 
-function handleDragEnter(e) {
+function handleItemDragEnter(e) {
     e.preventDefault();
     const item = e.target.closest('.item');
     if (!item || item.classList.contains('checked') || item.dataset.id === draggedItemId) return;
@@ -500,7 +500,7 @@ function handleDragEnter(e) {
     item.classList.add('drag-over');
 }
 
-function handleDragLeave(e) {
+function handleItemDragLeave(e) {
     const item = e.target.closest('.item');
     if (!item) return;
     
@@ -511,7 +511,7 @@ function handleDragLeave(e) {
     }
 }
 
-function handleDrop(e) {
+function handleItemDrop(e) {
     e.preventDefault();
     
     const targetItem = e.target.closest('.item');
