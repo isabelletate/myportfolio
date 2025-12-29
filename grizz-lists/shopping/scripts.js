@@ -113,6 +113,7 @@ let selectedCategory = 'all';
 let itemFrequencies = new Map(); // Track historical item frequencies
 let autocomplete = null;
 let renderedItemsHash = ''; // Track what's currently rendered to avoid unnecessary DOM updates
+let draggedItemId = null; // Track the currently dragged item
 
 const itemList = document.getElementById('itemList');
 const addInput = document.getElementById('addInput');
@@ -417,7 +418,7 @@ function renderItems(force = false) {
     itemList.querySelectorAll('.item').forEach(el => {
         const id = el.dataset.id;
         el.addEventListener('click', (e) => {
-            if (!e.target.closest('.item-delete')) {
+            if (!e.target.closest('.item-delete') && !e.target.closest('.item-drag-handle')) {
                 toggleItem(id);
             }
         });
@@ -426,12 +427,160 @@ function renderItems(force = false) {
             e.stopPropagation();
             deleteItem(id);
         });
+        
+        // Drag and drop handlers for unchecked items
+        if (!el.classList.contains('checked')) {
+            el.addEventListener('dragstart', handleDragStart);
+            el.addEventListener('dragend', handleDragEnd);
+            el.addEventListener('dragover', handleDragOver);
+            el.addEventListener('dragenter', handleDragEnter);
+            el.addEventListener('dragleave', handleDragLeave);
+            el.addEventListener('drop', handleDrop);
+        }
     });
 }
 
+// ============================================
+// DRAG AND DROP REORDERING
+// ============================================
+
+function handleDragStart(e) {
+    const item = e.target.closest('.item');
+    if (!item || item.classList.contains('checked')) return;
+    
+    draggedItemId = item.dataset.id;
+    item.classList.add('dragging');
+    
+    // Set drag data
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedItemId);
+    
+    // Add slight delay to let the drag image render properly
+    requestAnimationFrame(() => {
+        item.classList.add('drag-ghost');
+    });
+}
+
+function handleDragEnd(e) {
+    const item = e.target.closest('.item');
+    if (item) {
+        item.classList.remove('dragging', 'drag-ghost');
+    }
+    
+    // Remove all drag-over states
+    itemList.querySelectorAll('.item').forEach(el => {
+        el.classList.remove('drag-over', 'drag-over-above', 'drag-over-below');
+    });
+    
+    draggedItemId = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const item = e.target.closest('.item');
+    if (!item || item.classList.contains('checked') || item.dataset.id === draggedItemId) return;
+    
+    // Determine if we're in the top or bottom half
+    const rect = item.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const isAbove = e.clientY < midY;
+    
+    // Update visual indicator
+    item.classList.remove('drag-over-above', 'drag-over-below');
+    item.classList.add(isAbove ? 'drag-over-above' : 'drag-over-below');
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    const item = e.target.closest('.item');
+    if (!item || item.classList.contains('checked') || item.dataset.id === draggedItemId) return;
+    
+    item.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    const item = e.target.closest('.item');
+    if (!item) return;
+    
+    // Only remove if we're actually leaving the item (not entering a child)
+    const relatedTarget = e.relatedTarget;
+    if (!item.contains(relatedTarget)) {
+        item.classList.remove('drag-over', 'drag-over-above', 'drag-over-below');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    
+    const targetItem = e.target.closest('.item');
+    if (!targetItem || targetItem.classList.contains('checked')) return;
+    
+    const targetId = targetItem.dataset.id;
+    if (targetId === draggedItemId || !draggedItemId) return;
+    
+    // Determine insert position
+    const rect = targetItem.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const insertBefore = e.clientY < midY;
+    
+    // Reorder items in our local array
+    reorderItem(draggedItemId, targetId, insertBefore);
+    
+    // Clean up
+    targetItem.classList.remove('drag-over', 'drag-over-above', 'drag-over-below');
+}
+
+function reorderItem(draggedId, targetId, insertBefore) {
+    // Find indices
+    const draggedIndex = items.findIndex(i => String(i.id) === String(draggedId));
+    const targetIndex = items.findIndex(i => String(i.id) === String(targetId));
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+    
+    // Remove the dragged item
+    const [draggedItem] = items.splice(draggedIndex, 1);
+    
+    // Find new target index (may have shifted after removal)
+    let newTargetIndex = items.findIndex(i => String(i.id) === String(targetId));
+    
+    // Insert at the correct position
+    if (insertBefore) {
+        items.splice(newTargetIndex, 0, draggedItem);
+    } else {
+        items.splice(newTargetIndex + 1, 0, draggedItem);
+    }
+    
+    // Save the new order to the server
+    saveItemOrder();
+    
+    // Re-render
+    renderItems(true);
+}
+
+function saveItemOrder() {
+    // Save the complete order of all items
+    const allIds = items.map(i => i.id);
+    store.addEvent('reorder', { order: allIds });
+}
+
 function createItemHTML(item, index) {
+    const dragHandle = !item.checked ? `
+            <div class="item-drag-handle" draggable="true">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="9" cy="6" r="1.5"/>
+                    <circle cx="15" cy="6" r="1.5"/>
+                    <circle cx="9" cy="12" r="1.5"/>
+                    <circle cx="15" cy="12" r="1.5"/>
+                    <circle cx="9" cy="18" r="1.5"/>
+                    <circle cx="15" cy="18" r="1.5"/>
+                </svg>
+            </div>` : '';
+    
     return `
-        <div class="item${item.checked ? ' checked' : ''}" data-id="${item.id}" style="animation-delay: ${index * 0.03}s">
+        <div class="item${item.checked ? ' checked' : ''}" data-id="${item.id}" style="animation-delay: ${index * 0.03}s"${!item.checked ? ' draggable="true"' : ''}>
+            ${dragHandle}
             <div class="item-checkbox">
                 <svg viewBox="0 0 24 24" fill="none">
                     <polyline points="20 6 9 17 4 12"></polyline>

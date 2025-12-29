@@ -443,6 +443,95 @@ header {
     flex-shrink: 0;
 }
 
+/* Drag Handle */
+.item-drag-handle {
+    width: 20px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    opacity: 0.3;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-left: -4px;
+    margin-right: 4px;
+    touch-action: none;
+}
+
+.item-drag-handle svg {
+    width: 14px;
+    height: 14px;
+}
+
+.item:hover .item-drag-handle {
+    opacity: 0.7;
+}
+
+.item-drag-handle:hover {
+    opacity: 1;
+    color: var(--accent-teal);
+    cursor: grab;
+}
+
+.item-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Drag States */
+.item.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+}
+
+.item.drag-ghost {
+    opacity: 0.4;
+}
+
+.item.drag-over-above {
+    position: relative;
+}
+
+.item.drag-over-above::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent-teal);
+    border-radius: 2px;
+    animation: dropIndicator 0.2s ease;
+}
+
+.item.drag-over-below {
+    position: relative;
+}
+
+.item.drag-over-below::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent-teal);
+    border-radius: 2px;
+    animation: dropIndicator 0.2s ease;
+}
+
+@keyframes dropIndicator {
+    from {
+        opacity: 0;
+        transform: scaleX(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
 /* Delete button */
 .item-delete {
     width: 28px;
@@ -661,6 +750,10 @@ header {
 @media (hover: none) and (pointer: coarse) {
     .item-delete {
         opacity: 0.6;
+    }
+    
+    .item-drag-handle {
+        opacity: 0.5;
     }
 }
 

@@ -10,6 +10,7 @@ import {
     getIsSyncing,
     setIsSyncing,
     getMetadata,
+    getChangelogCache,
     listId,
     addToRecentLists,
     statusOptions,
@@ -183,11 +184,25 @@ async function loadProducts() {
 }
 
 async function syncAndRender() {
-    // Resync from server before rendering to ensure consistency
-    const changelog = await loadChangelogFromServer({ silent: true });
-    products = replayChangelog(changelog);
-    lastKnownEventCount = changelog.length;
+    // Optimistic: render immediately from local cache
+    const localChangelog = getChangelogCache();
+    products = replayChangelog(localChangelog);
     renderProducts();
+    
+    // Then sync with server in background (for consistency)
+    try {
+        const serverChangelog = await loadChangelogFromServer({ silent: true });
+        if (serverChangelog.length !== localChangelog.length) {
+            // Server has different data, re-render
+            products = replayChangelog(serverChangelog);
+            lastKnownEventCount = serverChangelog.length;
+            renderProducts();
+        } else {
+            lastKnownEventCount = serverChangelog.length;
+        }
+    } catch (err) {
+        console.warn('Background sync failed:', err);
+    }
 }
 
 function setupEventListeners() {
