@@ -1,1 +1,532 @@
-/* below the fold CSS goes here */
+/* Portfolio Animations & Styles for Isabelle Tate */
+
+/* Custom color palette - elegant fashion-forward colors */
+:root {
+  --accent-color: #c9a87c;
+  --accent-dark: #a88b5e;
+  --accent-light: #f5efe6;
+  --dark-bg: #1a1a1a;
+  --gradient-start: #2c2c2c;
+  --gradient-end: #1a1a1a;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fade-in animation for sections */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Apply animations to sections */
+main .section {
+  animation: fadeInUp 0.8s ease-out forwards;
+  animation-delay: calc(var(--section-index, 0) * 0.1s);
+}
+
+main .section:nth-child(1) { --section-index: 0; }
+main .section:nth-child(2) { --section-index: 1; }
+main .section:nth-child(3) { --section-index: 2; }
+main .section:nth-child(4) { --section-index: 3; }
+main .section:nth-child(5) { --section-index: 4; }
+main .section:nth-child(6) { --section-index: 5; }
+main .section:nth-child(7) { --section-index: 6; }
+
+/* Hero Introduction Section */
+main .section.hero-intro {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  color: #fff;
+  text-align: center;
+  padding: 120px 32px 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+main .section.hero-intro::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 70%, rgba(201, 168, 124, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 70% 30%, rgba(201, 168, 124, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+main .section.hero-intro h1 {
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.25em;
+  animation: fadeIn 1s ease-out;
+  background: linear-gradient(90deg, #fff 0%, var(--accent-color) 50%, #fff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+main .section.hero-intro h2 {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  margin-top: 0;
+  margin-bottom: 1.5em;
+  animation: fadeIn 1.2s ease-out 0.3s both;
+}
+
+main .section.hero-intro p {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  opacity: 0.9;
+  animation: fadeInUp 1s ease-out 0.5s both;
+}
+
+main .section.hero-intro em {
+  font-style: normal;
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+}
+
+main .section.hero-intro a.button {
+  background: var(--accent-color);
+  color: var(--dark-bg);
+  border: none;
+  padding: 14px 40px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+  margin: 8px;
+}
+
+main .section.hero-intro a.button:hover {
+  background: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(201, 168, 124, 0.3);
+}
+
+main .section.hero-intro a.button.secondary {
+  background: transparent;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+}
+
+main .section.hero-intro a.button.secondary:hover {
+  background: var(--accent-color);
+  color: var(--dark-bg);
+}
+
+/* About Section */
+main .section.about-section {
+  background: var(--accent-light);
+  padding: 80px 32px;
+}
+
+main .section.about-section h2 {
+  text-align: center;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dark-bg);
+  position: relative;
+  padding-bottom: 20px;
+}
+
+main .section.about-section h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: var(--accent-color);
+}
+
+main .section.about-section p {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  line-height: 1.9;
+  color: #444;
+}
+
+main .section.about-section strong {
+  color: var(--dark-bg);
+  font-weight: 600;
+}
+
+/* Experience Section */
+main .section.experience-section {
+  background: #fff;
+  padding: 80px 32px;
+}
+
+main .section.experience-section h2 {
+  text-align: center;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5em;
+}
+
+main .section.experience-section > div > p {
+  text-align: center;
+  color: #666;
+  margin-bottom: 3em;
+}
+
+main .section.experience-section .cards > ul {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+main .section.experience-section .cards > ul > li {
+  background: #fafafa;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+main .section.experience-section .cards > ul > li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent-color);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+main .section.experience-section .cards > ul > li:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+main .section.experience-section .cards > ul > li:hover::before {
+  transform: scaleY(1);
+}
+
+main .section.experience-section .cards .cards-card-body {
+  padding: 28px;
+}
+
+main .section.experience-section .cards .cards-card-body p:first-child {
+  font-size: 1.1rem;
+  margin-bottom: 0.25em;
+}
+
+main .section.experience-section .cards .cards-card-body p:first-child strong {
+  color: var(--dark-bg);
+}
+
+main .section.experience-section .cards .cards-card-body em {
+  color: var(--accent-dark);
+  font-style: normal;
+  font-weight: 500;
+}
+
+main .section.experience-section .cards .cards-card-body p:nth-child(3) {
+  font-size: 0.85rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+/* Skills Section */
+main .section.skills-section {
+  background: var(--dark-bg);
+  color: #fff;
+  padding: 80px 32px;
+}
+
+main .section.skills-section h2 {
+  text-align: center;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 2em;
+}
+
+main .section.skills-section h3 {
+  color: var(--accent-color);
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  margin-bottom: 1em;
+}
+
+main .section.skills-section .columns > div {
+  gap: 40px;
+}
+
+main .section.skills-section .columns > div > div {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+main .section.skills-section .columns > div > div:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent-color);
+  transform: translateY(-4px);
+}
+
+main .section.skills-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+main .section.skills-section li {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+main .section.skills-section li:last-child {
+  border-bottom: none;
+}
+
+main .section.skills-section li:hover {
+  color: #fff;
+  padding-left: 8px;
+}
+
+/* Education Section */
+main .section.education-section {
+  background: #fff;
+  padding: 80px 32px;
+}
+
+main .section.education-section h2 {
+  text-align: center;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 2em;
+}
+
+main .section.education-section .cards > ul {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 32px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+main .section.education-section .cards > ul > li {
+  background: linear-gradient(135deg, var(--accent-light) 0%, #fff 100%);
+  border: none;
+  border-radius: 12px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+main .section.education-section .cards > ul > li:hover {
+  transform: scale(1.02);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+main .section.education-section .cards .cards-card-body {
+  padding: 36px;
+}
+
+main .section.education-section .cards .cards-card-body strong {
+  font-size: 1.15rem;
+  color: var(--dark-bg);
+}
+
+/* Volunteer Section */
+main .section.volunteer-section {
+  background: var(--accent-light);
+  padding: 60px 32px;
+  text-align: center;
+}
+
+main .section.volunteer-section h2 {
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+main .section.volunteer-section p {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main .section.volunteer-section strong {
+  color: var(--accent-dark);
+}
+
+/* Contact Section */
+main .section.contact-section {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  color: #fff;
+  padding: 100px 32px;
+  text-align: center;
+}
+
+main .section.contact-section h2 {
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #fff;
+  font-size: 2rem;
+}
+
+main .section.contact-section p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 2em;
+}
+
+main .section.contact-section a.button {
+  background: var(--accent-color);
+  color: var(--dark-bg);
+  border: none;
+  padding: 14px 40px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+  margin: 8px;
+}
+
+main .section.contact-section a.button:hover {
+  background: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(201, 168, 124, 0.3);
+}
+
+main .section.contact-section a.button.secondary {
+  background: transparent;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+}
+
+main .section.contact-section a.button.secondary:hover {
+  background: var(--accent-color);
+  color: var(--dark-bg);
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+  main .section.hero-intro {
+    padding: 80px 24px 60px;
+  }
+
+  main .section.hero-intro h1 {
+    letter-spacing: 0.08em;
+  }
+
+  main .section.hero-intro h2 {
+    letter-spacing: 0.15em;
+    font-size: 0.85rem;
+  }
+
+  main .section.skills-section .columns > div > div {
+    margin-left: 0 !important;
+    margin-bottom: 16px;
+  }
+}
+
+/* Hover effects for links */
+main a:not(.button) {
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+main a:not(.button)::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.3s ease;
+}
+
+main a:not(.button):hover::after {
+  width: 100%;
+}
+
+/* Loading animation for cards */
+main .cards > ul > li {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+main .cards > ul > li:nth-child(1) { animation-delay: 0.1s; }
+main .cards > ul > li:nth-child(2) { animation-delay: 0.2s; }
+main .cards > ul > li:nth-child(3) { animation-delay: 0.3s; }
+main .cards > ul > li:nth-child(4) { animation-delay: 0.4s; }
