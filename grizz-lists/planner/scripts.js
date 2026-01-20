@@ -2,30 +2,29 @@
 // PLANNER - Main Interactive Task View
 // ============================================
 
+/* eslint-disable no-use-before-define */
+
 import {
-    loadChangelogFromServer,
-    loadChangelog,
-    addEvent,
-    postEvent,
-    replayChangelog,
-    saveChangelogLocal,
-    initializeDefaultTasks,
-    parseTimeToMinutes,
-    formatTimeShort as formatTime,
-    colors,
-    getIsSyncing,
-    setIsSyncing,
-    getChangelogCache,
-    getMetadata,
-    listId,
-    addToRecentLists,
-    createPoller,
-    generateId
+  loadChangelogFromServer,
+  loadChangelog,
+  addEvent,
+  replayChangelog,
+  initializeDefaultTasks,
+  parseTimeToMinutes,
+  formatTimeShort as formatTime,
+  colors,
+  getIsSyncing,
+  setIsSyncing,
+  getMetadata,
+  listId,
+  addToRecentLists,
+  createPoller,
+  generateId,
 } from './shared.js';
 
 // If no list ID, redirect to main page
 if (!listId) {
-    window.location.href = '../index.html';
+  window.location.href = '../index.html';
 }
 
 // ============================================
@@ -33,39 +32,39 @@ if (!listId) {
 // ============================================
 
 const encouragements = [
-    { emoji: '🎉', text: 'Amazing work!' },
-    { emoji: '🚀', text: "You're on fire!" },
-    { emoji: '💪', text: 'Crushing it!' },
-    { emoji: '⭐', text: 'Superstar!' },
-    { emoji: '🏆', text: 'Champion!' },
-    { emoji: '🌟', text: 'Brilliant!' },
-    { emoji: '🔥', text: 'Unstoppable!' },
-    { emoji: '✨', text: 'Fantastic!' },
-    { emoji: '🎯', text: 'Bullseye!' },
-    { emoji: '🙌', text: 'Keep going!' },
-    { emoji: '💎', text: 'Pure gold!' },
-    { emoji: '🐻', text: 'Bear-y good!' },
+  { emoji: '🎉', text: 'Amazing work!' },
+  { emoji: '🚀', text: "You're on fire!" },
+  { emoji: '💪', text: 'Crushing it!' },
+  { emoji: '⭐', text: 'Superstar!' },
+  { emoji: '🏆', text: 'Champion!' },
+  { emoji: '🌟', text: 'Brilliant!' },
+  { emoji: '🔥', text: 'Unstoppable!' },
+  { emoji: '✨', text: 'Fantastic!' },
+  { emoji: '🎯', text: 'Bullseye!' },
+  { emoji: '🙌', text: 'Keep going!' },
+  { emoji: '💎', text: 'Pure gold!' },
+  { emoji: '🐻', text: 'Bear-y good!' },
 ];
 
 const enjoymentEmojis = ['🤮', '😕', '😐', '🙂', '😍'];
 
 const timePoints = {
-    '15m': 100,
-    '30m': 200,
-    '45m': 300,
-    '1h': 400,
-    '1.5h': 600,
-    '2h': 800,
-    '3h': 1200,
-    '4h+': 1600
+  '15m': 100,
+  '30m': 200,
+  '45m': 300,
+  '1h': 400,
+  '1.5h': 600,
+  '2h': 800,
+  '3h': 1200,
+  '4h+': 1600,
 };
 
 const enjoymentMultipliers = {
-    0: 6,    // 🤮 hated - 6x points
-    1: 4,    // 😕 dislike - 4x points
-    2: 2.5,  // 😐 neutral - 2.5x points
-    3: 1.5,  // 🙂 like - 1.5x points
-    4: 1     // 😍 loved - 1x points
+  0: 6, // 🤮 hated - 6x points
+  1: 4, // 😕 dislike - 4x points
+  2: 2.5, // 😐 neutral - 2.5x points
+  3: 1.5, // 🙂 like - 1.5x points
+  4: 1, // 😍 loved - 1x points
 };
 
 // ============================================
@@ -73,16 +72,16 @@ const enjoymentMultipliers = {
 // ============================================
 
 function calculateTaskScore(task) {
-    const basePoints = timePoints[task.time] || 400;
-    const enjoyment = task.enjoyment !== undefined ? task.enjoyment : 2;
-    const multiplier = enjoymentMultipliers[enjoyment];
-    return Math.round(basePoints * multiplier);
+  const basePoints = timePoints[task.time] || 400;
+  const enjoyment = task.enjoyment !== undefined ? task.enjoyment : 2;
+  const multiplier = enjoymentMultipliers[enjoyment];
+  return Math.round(basePoints * multiplier);
 }
 
 function calculateTotalScore() {
-    return tasks
-        .filter(t => t.completed)
-        .reduce((sum, task) => sum + calculateTaskScore(task), 0);
+  return tasks
+    .filter((t) => t.completed)
+    .reduce((sum, task) => sum + calculateTaskScore(task), 0);
 }
 
 // ============================================
@@ -123,74 +122,74 @@ const scoreValue = document.getElementById('scoreValue');
 // ============================================
 
 async function init() {
-    updateDate();
-    setupEventListeners();
-    
-    taskList.innerHTML = `
+  updateDate();
+  setupEventListeners();
+
+  taskList.innerHTML = `
         <div class="loading-state">
             <div class="loading-spinner"></div>
             <p>Loading tasks...</p>
         </div>
     `;
-    
-    await loadTasks();
-    
-    // Set the list title from metadata (extracted from changelog)
-    const metadata = getMetadata();
-    const listTitleEl = document.getElementById('listTitle');
-    if (listTitleEl && metadata.name) {
-        listTitleEl.textContent = metadata.name;
-        document.title = `${metadata.name} 📋 - Grizz Lists`;
-    }
-    
-    // Track this list as recently accessed
-    addToRecentLists(listId, metadata.name, 'planner');
-    
-    renderTasks();
+
+  await loadTasks();
+
+  // Set the list title from metadata (extracted from changelog)
+  const metadata = getMetadata();
+  const listTitleEl = document.getElementById('listTitle');
+  if (listTitleEl && metadata.name) {
+    listTitleEl.textContent = metadata.name;
+    document.title = `${metadata.name} 📋 - Grizz Lists`;
+  }
+
+  // Track this list as recently accessed
+  addToRecentLists(listId, metadata.name, 'planner');
+
+  renderTasks();
 }
 
 function updateDate() {
-    const now = new Date();
-    const options = { weekday: 'long', month: 'long', day: 'numeric' };
-    document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', options);
+  const now = new Date();
+  const options = { weekday: 'long', month: 'long', day: 'numeric' };
+  document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', options);
 }
 
 async function loadTasks() {
-    let changelog = await loadChangelogFromServer();
-    
-    if (changelog.length === 0) {
-        changelog = await initializeDefaultTasks();
-    }
-    
-    tasks = replayChangelog(changelog);
+  let changelog = await loadChangelogFromServer();
+
+  if (changelog.length === 0) {
+    changelog = await initializeDefaultTasks();
+  }
+
+  tasks = replayChangelog(changelog);
 }
 
 function setupEventListeners() {
-    addBtn.addEventListener('click', openModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
+  addBtn.addEventListener('click', openModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
 
-    document.querySelectorAll('.time-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedTime = btn.dataset.time;
-        });
+  document.querySelectorAll('.time-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.time-btn').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedTime = btn.dataset.time;
     });
-    
-    document.querySelectorAll('.enjoyment-option').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.enjoyment-option').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedEnjoyment = parseInt(btn.dataset.value);
-        });
-    });
+  });
 
-    submitBtn.addEventListener('click', addTask);
-    taskInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addTask();
+  document.querySelectorAll('.enjoyment-option').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.enjoyment-option').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedEnjoyment = parseInt(btn.dataset.value, 10);
     });
+  });
+
+  submitBtn.addEventListener('click', addTask);
+  taskInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
 }
 
 // ============================================
@@ -198,17 +197,17 @@ function setupEventListeners() {
 // ============================================
 
 function openModal() {
-    modal.classList.add('active');
-    taskInput.value = '';
-    taskInput.focus();
-    
-    selectedEnjoyment = 2;
-    document.querySelectorAll('.enjoyment-option').forEach(b => b.classList.remove('selected'));
-    document.querySelector('.enjoyment-option[data-value="2"]').classList.add('selected');
+  modal.classList.add('active');
+  taskInput.value = '';
+  taskInput.focus();
+
+  selectedEnjoyment = 2;
+  document.querySelectorAll('.enjoyment-option').forEach((b) => b.classList.remove('selected'));
+  document.querySelector('.enjoyment-option[data-value="2"]').classList.add('selected');
 }
 
 function closeModal() {
-    modal.classList.remove('active');
+  modal.classList.remove('active');
 }
 
 // ============================================
@@ -216,72 +215,76 @@ function closeModal() {
 // ============================================
 
 function addTask() {
-    const text = taskInput.value.trim();
-    if (!text) return;
+  const text = taskInput.value.trim();
+  if (!text) return;
 
-    const id = generateId();
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const time = selectedTime;
-    const enjoyment = selectedEnjoyment;
-    
-    const task = { id, text, time, color, completed: false, enjoyment };
-    
-    addEvent('added', { id, text, time, color, enjoyment });
-    tasks.push(task);
-    
-    appendTaskElement(task);
-    updateStartTimes();
-    updateProgress();
-    
-    closeModal();
+  const id = generateId();
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const time = selectedTime;
+  const enjoyment = selectedEnjoyment;
+
+  const task = {
+    id, text, time, color, completed: false, enjoyment,
+  };
+
+  addEvent('added', {
+    id, text, time, color, enjoyment,
+  });
+  tasks.push(task);
+
+  appendTaskElement(task);
+  updateStartTimes();
+  updateProgress();
+
+  closeModal();
 }
 
 function deleteTask(id) {
-    const taskEl = document.querySelector(`[data-id="${id}"]`);
-    
-    taskEl.style.transform = 'translateX(100%)';
-    taskEl.style.opacity = '0';
-    
-    setTimeout(() => {
-        addEvent('removed', { id });
-        tasks = tasks.filter(t => t.id !== id);
-        taskEl.remove();
-        updateStartTimes();
-        updateProgress();
-    }, 300);
+  const taskEl = document.querySelector(`[data-id="${id}"]`);
+
+  taskEl.style.transform = 'translateX(100%)';
+  taskEl.style.opacity = '0';
+
+  setTimeout(() => {
+    addEvent('removed', { id });
+    tasks = tasks.filter((t) => t.id !== id);
+    taskEl.remove();
+    updateStartTimes();
+    updateProgress();
+  }, 300);
 }
 
 function toggleTask(id) {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return;
+  const task = tasks.find((t) => t.id === id);
+  if (!task) return;
 
-    const wasCompleted = task.completed;
-    const taskEl = document.querySelector(`[data-id="${id}"]`);
-    const checkbox = taskEl.querySelector('.checkbox');
-    
-    addEvent(wasCompleted ? 'uncompleted' : 'completed', { id });
-    task.completed = !wasCompleted;
-    
-    taskEl.classList.toggle('completed', task.completed);
-    checkbox.classList.toggle('checked', task.completed);
+  const wasCompleted = task.completed;
+  const taskEl = document.querySelector(`[data-id="${id}"]`);
+  const checkbox = taskEl.querySelector('.checkbox');
 
-    if (!wasCompleted) {
-        const points = calculateTaskScore(task);
-        showScorePopup(taskEl, points);
-        
-        setTimeout(() => {
-            const newTotal = calculateTotalScore();
-            animateScore(newTotal);
-        }, 150);
-        
-        showEncouragement();
-        createConfetti();
-    } else {
-        const newTotal = calculateTotalScore();
-        animateScore(newTotal, 300);
-    }
+  addEvent(wasCompleted ? 'uncompleted' : 'completed', { id });
+  task.completed = !wasCompleted;
 
-    updateProgress();
+  taskEl.classList.toggle('completed', task.completed);
+  checkbox.classList.toggle('checked', task.completed);
+
+  if (!wasCompleted) {
+    const points = calculateTaskScore(task);
+    showScorePopup(taskEl, points);
+
+    setTimeout(() => {
+      const newTotal = calculateTotalScore();
+      animateScore(newTotal);
+    }, 150);
+
+    showEncouragement();
+    createConfetti();
+  } else {
+    const newTotal = calculateTotalScore();
+    animateScore(newTotal, 300);
+  }
+
+  updateProgress();
 }
 
 // ============================================
@@ -289,17 +292,17 @@ function toggleTask(id) {
 // ============================================
 
 function createTaskElement(task, index = 0) {
-    const el = document.createElement('div');
-    el.className = `task-item${task.completed ? ' completed' : ''}`;
-    el.dataset.id = task.id;
-    el.style.setProperty('--task-color', task.color);
-    el.style.animationDelay = `${index * 0.05}s`;
-    el.draggable = true;
-    
-    const enjoyment = task.enjoyment !== undefined ? task.enjoyment : 2;
-    const enjoymentEmoji = enjoymentEmojis[enjoyment];
+  const el = document.createElement('div');
+  el.className = `task-item${task.completed ? ' completed' : ''}`;
+  el.dataset.id = task.id;
+  el.style.setProperty('--task-color', task.color);
+  el.style.animationDelay = `${index * 0.05}s`;
+  el.draggable = true;
 
-    el.innerHTML = `
+  const enjoyment = task.enjoyment !== undefined ? task.enjoyment : 2;
+  const enjoymentEmoji = enjoymentEmojis[enjoyment];
+
+  el.innerHTML = `
         <div class="drag-handle">
             <span></span>
             <span></span>
@@ -325,44 +328,44 @@ function createTaskElement(task, index = 0) {
         </button>
     `;
 
-    el.querySelector('.checkbox').addEventListener('click', () => toggleTask(task.id));
-    el.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.id));
+  el.querySelector('.checkbox').addEventListener('click', () => toggleTask(task.id));
+  el.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.id));
 
-    el.addEventListener('dragstart', handleDragStart);
-    el.addEventListener('dragend', handleDragEnd);
-    el.addEventListener('dragover', handleDragOver);
-    el.addEventListener('drop', handleDrop);
+  el.addEventListener('dragstart', handleDragStart);
+  el.addEventListener('dragend', handleDragEnd);
+  el.addEventListener('dragover', handleDragOver);
+  el.addEventListener('drop', handleDrop);
 
-    el.addEventListener('touchstart', handleTouchStart, { passive: false });
-    el.addEventListener('touchmove', handleTouchMove, { passive: false });
-    el.addEventListener('touchend', handleTouchEnd);
+  el.addEventListener('touchstart', handleTouchStart, { passive: false });
+  el.addEventListener('touchmove', handleTouchMove, { passive: false });
+  el.addEventListener('touchend', handleTouchEnd);
 
-    return el;
+  return el;
 }
 
 function createTimeDivider(time) {
-    const el = document.createElement('div');
-    el.className = 'time-divider';
-    el.innerHTML = `
+  const el = document.createElement('div');
+  el.className = 'time-divider';
+  el.innerHTML = `
         <div class="time-divider-line"></div>
         <span class="time-divider-time">${time}</span>
         <div class="time-divider-line"></div>
     `;
-    return el;
+  return el;
 }
 
 function appendTaskElement(task) {
-    const emptyState = taskList.querySelector('.empty-state');
-    if (emptyState) emptyState.remove();
-    
-    const allDone = taskList.querySelector('.all-done');
-    if (allDone) allDone.remove();
-    
-    const startTime = calculateStartTime(tasks.length - 1);
-    taskList.appendChild(createTimeDivider(startTime));
-    
-    const el = createTaskElement(task, tasks.length - 1);
-    taskList.appendChild(el);
+  const emptyState = taskList.querySelector('.empty-state');
+  if (emptyState) emptyState.remove();
+
+  const allDone = taskList.querySelector('.all-done');
+  if (allDone) allDone.remove();
+
+  const startTime = calculateStartTime(tasks.length - 1);
+  taskList.appendChild(createTimeDivider(startTime));
+
+  const el = createTaskElement(task, tasks.length - 1);
+  taskList.appendChild(el);
 }
 
 // ============================================
@@ -370,36 +373,36 @@ function appendTaskElement(task) {
 // ============================================
 
 function calculateStartTime(index) {
-    let currentMinutes = 9 * 60;
-    for (let i = 0; i < index; i++) {
-        currentMinutes += parseTimeToMinutes(tasks[i].time);
-    }
-    return formatTime(currentMinutes);
+  let currentMinutes = 9 * 60;
+  for (let i = 0; i < index; i += 1) {
+    currentMinutes += parseTimeToMinutes(tasks[i].time);
+  }
+  return formatTime(currentMinutes);
 }
 
 function updateStartTimes() {
-    taskList.querySelectorAll('.time-divider').forEach(el => el.remove());
-    
-    if (tasks.length === 0) return;
-    
-    let currentMinutes = 9 * 60;
-    
-    tasks.forEach(task => {
-        const taskEl = document.querySelector(`[data-id="${task.id}"]`);
-        if (taskEl) {
-            const divider = createTimeDivider(formatTime(currentMinutes));
-            taskEl.parentNode.insertBefore(divider, taskEl);
-        }
-        currentMinutes += parseTimeToMinutes(task.time);
-    });
-    
-    const allDoneEl = taskList.querySelector('.all-done');
-    const endDivider = createTimeDivider(formatTime(currentMinutes));
-    if (allDoneEl) {
-        taskList.insertBefore(endDivider, allDoneEl);
-    } else {
-        taskList.appendChild(endDivider);
+  taskList.querySelectorAll('.time-divider').forEach((el) => el.remove());
+
+  if (tasks.length === 0) return;
+
+  let currentMinutes = 9 * 60;
+
+  tasks.forEach((task) => {
+    const taskEl = document.querySelector(`[data-id="${task.id}"]`);
+    if (taskEl) {
+      const divider = createTimeDivider(formatTime(currentMinutes));
+      taskEl.parentNode.insertBefore(divider, taskEl);
     }
+    currentMinutes += parseTimeToMinutes(task.time);
+  });
+
+  const allDoneEl = taskList.querySelector('.all-done');
+  const endDivider = createTimeDivider(formatTime(currentMinutes));
+  if (allDoneEl) {
+    taskList.insertBefore(endDivider, allDoneEl);
+  } else {
+    taskList.appendChild(endDivider);
+  }
 }
 
 // ============================================
@@ -407,96 +410,96 @@ function updateStartTimes() {
 // ============================================
 
 function showEncouragement() {
-    const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
-    document.getElementById('encourageEmoji').textContent = msg.emoji;
-    document.getElementById('encourageText').textContent = msg.text;
-    encouragement.classList.add('show');
+  const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
+  document.getElementById('encourageEmoji').textContent = msg.emoji;
+  document.getElementById('encourageText').textContent = msg.text;
+  encouragement.classList.add('show');
 
-    setTimeout(() => {
-        encouragement.classList.remove('show');
-    }, 1500);
+  setTimeout(() => {
+    encouragement.classList.remove('show');
+  }, 1500);
 }
 
 function createConfetti() {
-    const confettiColors = ['#ff6b35', '#00d9c0', '#ff2e63', '#ffc93c', '#a855f7', '#4ade80'];
-    
-    for (let i = 0; i < 30; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        confetti.style.left = Math.random() * 100 + '%';
-        confetti.style.background = confettiColors[Math.floor(Math.random() * confettiColors.length)];
-        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-        confetti.style.width = (Math.random() * 8 + 5) + 'px';
-        confetti.style.height = (Math.random() * 8 + 5) + 'px';
-        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
-        confetti.style.animationDelay = Math.random() * 0.5 + 's';
-        
-        confettiContainer.appendChild(confetti);
-        
-        setTimeout(() => confetti.remove(), 3500);
-    }
+  const confettiColors = ['#ff6b35', '#00d9c0', '#ff2e63', '#ffc93c', '#a855f7', '#4ade80'];
+
+  for (let i = 0; i < 30; i += 1) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = `${Math.random() * 100}%`;
+    confetti.style.background = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    confetti.style.width = `${Math.random() * 8 + 5}px`;
+    confetti.style.height = `${Math.random() * 8 + 5}px`;
+    confetti.style.animationDuration = `${Math.random() * 2 + 2}s`;
+    confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+
+    confettiContainer.appendChild(confetti);
+
+    setTimeout(() => confetti.remove(), 3500);
+  }
 }
 
 function animateScore(targetScore, duration = 600) {
-    const startScore = displayedScore;
-    const diff = targetScore - startScore;
-    const startTime = performance.now();
-    
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const currentScore = Math.round(startScore + diff * eased);
-        
-        scoreValue.textContent = currentScore.toLocaleString();
-        displayedScore = currentScore;
-        
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        } else {
-            scoreValue.classList.remove('bump');
-        }
+  const startScore = displayedScore;
+  const diff = targetScore - startScore;
+  const startTime = performance.now();
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - (1 - progress) ** 3;
+    const currentScore = Math.round(startScore + diff * eased);
+
+    scoreValue.textContent = currentScore.toLocaleString();
+    displayedScore = currentScore;
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      scoreValue.classList.remove('bump');
     }
-    
-    if (diff > 0) {
-        scoreValue.classList.add('bump');
-    }
-    requestAnimationFrame(update);
+  }
+
+  if (diff > 0) {
+    scoreValue.classList.add('bump');
+  }
+  requestAnimationFrame(update);
 }
 
 function showScorePopup(element, points) {
-    const rect = element.getBoundingClientRect();
-    const popup = document.createElement('div');
-    popup.className = 'score-popup';
-    popup.textContent = `+${points.toLocaleString()}`;
-    popup.style.left = `${rect.left + rect.width / 2}px`;
-    popup.style.top = `${rect.top}px`;
-    document.body.appendChild(popup);
-    
-    popup.addEventListener('animationend', () => popup.remove());
+  const rect = element.getBoundingClientRect();
+  const popup = document.createElement('div');
+  popup.className = 'score-popup';
+  popup.textContent = `+${points.toLocaleString()}`;
+  popup.style.left = `${rect.left + rect.width / 2}px`;
+  popup.style.top = `${rect.top}px`;
+  document.body.appendChild(popup);
+
+  popup.addEventListener('animationend', () => popup.remove());
 }
 
 function updateScoreDisplay() {
-    const totalScore = calculateTotalScore();
-    displayedScore = totalScore;
-    scoreValue.textContent = totalScore.toLocaleString();
+  const totalScore = calculateTotalScore();
+  displayedScore = totalScore;
+  scoreValue.textContent = totalScore.toLocaleString();
 }
 
 function updateProgress() {
-    const total = tasks.length;
-    const completed = tasks.filter(t => t.completed).length;
-    const percent = total > 0 ? (completed / total) * 100 : 0;
-    
-    progressFill.style.width = percent + '%';
-    progressCount.textContent = `${completed}/${total}`;
+  const total = tasks.length;
+  const completed = tasks.filter((t) => t.completed).length;
+  const percent = total > 0 ? (completed / total) * 100 : 0;
 
-    if (total > 0 && completed === total) {
-        setTimeout(() => {
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => createConfetti(), i * 200);
-            }
-        }, 300);
-    }
+  progressFill.style.width = `${percent}%`;
+  progressCount.textContent = `${completed}/${total}`;
+
+  if (total > 0 && completed === total) {
+    setTimeout(() => {
+      for (let i = 0; i < 3; i += 1) {
+        setTimeout(() => createConfetti(), i * 200);
+      }
+    }, 300);
+  }
 }
 
 // ============================================
@@ -504,46 +507,46 @@ function updateProgress() {
 // ============================================
 
 function renderTasks() {
-    taskList.innerHTML = '';
-    
-    if (tasks.length === 0) {
-        taskList.innerHTML = `
+  taskList.innerHTML = '';
+
+  if (tasks.length === 0) {
+    taskList.innerHTML = `
             <div class="empty-state">
                 <div class="empty-emoji">🐻</div>
                 <p class="empty-text">No tasks yet! Add one below.</p>
             </div>
         `;
-        updateProgress();
-        updateScoreDisplay();
-        return;
-    }
+    updateProgress();
+    updateScoreDisplay();
+    return;
+  }
 
-    let currentMinutes = 9 * 60;
-    tasks.forEach((task, index) => {
-        const startTime = formatTime(currentMinutes);
-        taskList.appendChild(createTimeDivider(startTime));
-        
-        const el = createTaskElement(task, index);
-        taskList.appendChild(el);
-        
-        currentMinutes += parseTimeToMinutes(task.time);
-    });
-    
-    taskList.appendChild(createTimeDivider(formatTime(currentMinutes)));
+  let currentMinutes = 9 * 60;
+  tasks.forEach((task, index) => {
+    const startTime = formatTime(currentMinutes);
+    taskList.appendChild(createTimeDivider(startTime));
 
-    const allDone = tasks.every(t => t.completed);
-    if (allDone) {
-        const doneEl = document.createElement('div');
-        doneEl.className = 'all-done';
-        doneEl.innerHTML = `
+    const el = createTaskElement(task, index);
+    taskList.appendChild(el);
+
+    currentMinutes += parseTimeToMinutes(task.time);
+  });
+
+  taskList.appendChild(createTimeDivider(formatTime(currentMinutes)));
+
+  const allDone = tasks.every((t) => t.completed);
+  if (allDone) {
+    const doneEl = document.createElement('div');
+    doneEl.className = 'all-done';
+    doneEl.innerHTML = `
             <div class="all-done-emoji">🎊🐻🎊</div>
             <div class="all-done-text">All done! You're amazing!</div>
         `;
-        taskList.appendChild(doneEl);
-    }
+    taskList.appendChild(doneEl);
+  }
 
-    updateProgress();
-    updateScoreDisplay();
+  updateProgress();
+  updateScoreDisplay();
 }
 
 // ============================================
@@ -551,44 +554,44 @@ function renderTasks() {
 // ============================================
 
 function handleDragStart(e) {
-    draggedItem = this;
-    isDragging = true;
-    this.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
+  draggedItem = this;
+  isDragging = true;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
 }
 
 function handleDragEnd() {
-    this.classList.remove('dragging');
-    
-    if (isDragging && draggedItem) {
-        updateTaskOrder();
-    }
-    
-    draggedItem = null;
-    isDragging = false;
-    document.querySelectorAll('.drag-placeholder').forEach(p => p.remove());
+  this.classList.remove('dragging');
+
+  if (isDragging && draggedItem) {
+    updateTaskOrder();
+  }
+
+  draggedItem = null;
+  isDragging = false;
+  document.querySelectorAll('.drag-placeholder').forEach((p) => p.remove());
 }
 
 function handleDragOver(e) {
-    e.preventDefault();
-    if (this === draggedItem) return;
+  e.preventDefault();
+  if (this === draggedItem) return;
 
-    const rect = this.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    
-    if (e.clientY < midY) {
-        this.parentNode.insertBefore(draggedItem, this);
-    } else {
-        this.parentNode.insertBefore(draggedItem, this.nextSibling);
-    }
+  const rect = this.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+
+  if (e.clientY < midY) {
+    this.parentNode.insertBefore(draggedItem, this);
+  } else {
+    this.parentNode.insertBefore(draggedItem, this.nextSibling);
+  }
 }
 
 function handleDrop(e) {
-    e.preventDefault();
-    if (isDragging) {
-        isDragging = false;
-        updateTaskOrder();
-    }
+  e.preventDefault();
+  if (isDragging) {
+    isDragging = false;
+    updateTaskOrder();
+  }
 }
 
 // ============================================
@@ -596,104 +599,102 @@ function handleDrop(e) {
 // ============================================
 
 function handleTouchStart(e) {
-    if (!e.target.closest('.drag-handle')) return;
-    
-    touchElement = this;
-    isDragging = true;
-    touchStartY = e.touches[0].clientY;
-    
-    const rect = this.getBoundingClientRect();
-    touchClone = this.cloneNode(true);
-    touchClone.classList.add('touch-clone');
-    touchClone.style.position = 'fixed';
-    touchClone.style.left = rect.left + 'px';
-    touchClone.style.top = rect.top + 'px';
-    touchClone.style.width = rect.width + 'px';
-    touchClone.style.zIndex = '1000';
-    touchClone.style.opacity = '0.9';
-    touchClone.style.pointerEvents = 'none';
-    touchClone.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
-    touchClone.style.transform = 'scale(1.02)';
-    document.body.appendChild(touchClone);
-    
-    touchPlaceholder = document.createElement('div');
-    touchPlaceholder.className = 'touch-placeholder';
-    touchPlaceholder.style.height = rect.height + 'px';
-    touchPlaceholder.style.background = 'rgba(255,255,255,0.1)';
-    touchPlaceholder.style.borderRadius = '16px';
-    touchPlaceholder.style.border = '2px dashed rgba(255,255,255,0.3)';
-    touchPlaceholder.style.margin = '8px 0';
-    
-    this.style.opacity = '0';
-    this.style.height = '0';
-    this.style.margin = '0';
-    this.style.padding = '0';
-    this.style.overflow = 'hidden';
-    this.parentNode.insertBefore(touchPlaceholder, this);
+  if (!e.target.closest('.drag-handle')) return;
+
+  touchElement = this;
+  isDragging = true;
+  touchStartY = e.touches[0].clientY;
+
+  const rect = this.getBoundingClientRect();
+  touchClone = this.cloneNode(true);
+  touchClone.classList.add('touch-clone');
+  touchClone.style.position = 'fixed';
+  touchClone.style.left = `${rect.left}px`;
+  touchClone.style.top = `${rect.top}px`;
+  touchClone.style.width = `${rect.width}px`;
+  touchClone.style.zIndex = '1000';
+  touchClone.style.opacity = '0.9';
+  touchClone.style.pointerEvents = 'none';
+  touchClone.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+  touchClone.style.transform = 'scale(1.02)';
+  document.body.appendChild(touchClone);
+
+  touchPlaceholder = document.createElement('div');
+  touchPlaceholder.className = 'touch-placeholder';
+  touchPlaceholder.style.height = `${rect.height}px`;
+  touchPlaceholder.style.background = 'rgba(255,255,255,0.1)';
+  touchPlaceholder.style.borderRadius = '16px';
+  touchPlaceholder.style.border = '2px dashed rgba(255,255,255,0.3)';
+  touchPlaceholder.style.margin = '8px 0';
+
+  this.style.opacity = '0';
+  this.style.height = '0';
+  this.style.margin = '0';
+  this.style.padding = '0';
+  this.style.overflow = 'hidden';
+  this.parentNode.insertBefore(touchPlaceholder, this);
 }
 
 function handleTouchMove(e) {
-    if (!touchElement || !touchClone) return;
-    e.preventDefault();
-    
-    const touchY = e.touches[0].clientY;
-    const deltaY = touchY - touchStartY;
-    
-    const originalRect = touchPlaceholder.getBoundingClientRect();
-    touchClone.style.top = (originalRect.top + deltaY) + 'px';
-    
-    const items = [...document.querySelectorAll('.task-item:not([style*="opacity: 0"])')];
-    
-    for (const item of items) {
-        if (item === touchElement) continue;
-        
-        const rect = item.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        
-        if (touchY < midY && touchPlaceholder.nextElementSibling !== item) {
-            if (item.previousElementSibling !== touchPlaceholder) {
-                taskList.insertBefore(touchPlaceholder, item);
-                taskList.insertBefore(touchElement, touchPlaceholder.nextElementSibling);
-            }
-            break;
-        } else if (touchY > midY && touchY < rect.bottom) {
-            if (item.nextElementSibling !== touchPlaceholder) {
-                if (item.nextElementSibling) {
-                    taskList.insertBefore(touchPlaceholder, item.nextElementSibling);
-                } else {
-                    taskList.appendChild(touchPlaceholder);
-                }
-                taskList.insertBefore(touchElement, touchPlaceholder.nextElementSibling);
-            }
-            break;
+  if (!touchElement || !touchClone) return;
+  e.preventDefault();
+
+  const touchY = e.touches[0].clientY;
+  const deltaY = touchY - touchStartY;
+
+  const originalRect = touchPlaceholder.getBoundingClientRect();
+  touchClone.style.top = `${originalRect.top + deltaY}px`;
+
+  const items = [...document.querySelectorAll('.task-item:not([style*="opacity: 0"])')];
+
+  items.forEach((item) => {
+    if (item === touchElement) return;
+
+    const rect = item.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+
+    if (touchY < midY && touchPlaceholder.nextElementSibling !== item) {
+      if (item.previousElementSibling !== touchPlaceholder) {
+        taskList.insertBefore(touchPlaceholder, item);
+        taskList.insertBefore(touchElement, touchPlaceholder.nextElementSibling);
+      }
+    } else if (touchY > midY && touchY < rect.bottom) {
+      if (item.nextElementSibling !== touchPlaceholder) {
+        if (item.nextElementSibling) {
+          taskList.insertBefore(touchPlaceholder, item.nextElementSibling);
+        } else {
+          taskList.appendChild(touchPlaceholder);
         }
+        taskList.insertBefore(touchElement, touchPlaceholder.nextElementSibling);
+      }
     }
+  });
 }
 
 function handleTouchEnd() {
-    if (!touchElement) return;
-    
-    if (touchClone) {
-        touchClone.remove();
-        touchClone = null;
-    }
-    
-    if (touchPlaceholder) {
-        touchPlaceholder.remove();
-        touchPlaceholder = null;
-    }
-    
-    touchElement.style.opacity = '';
-    touchElement.style.height = '';
-    touchElement.style.margin = '';
-    touchElement.style.padding = '';
-    touchElement.style.overflow = '';
-    
-    if (isDragging) {
-        isDragging = false;
-        updateTaskOrder();
-    }
-    touchElement = null;
+  if (!touchElement) return;
+
+  if (touchClone) {
+    touchClone.remove();
+    touchClone = null;
+  }
+
+  if (touchPlaceholder) {
+    touchPlaceholder.remove();
+    touchPlaceholder = null;
+  }
+
+  touchElement.style.opacity = '';
+  touchElement.style.height = '';
+  touchElement.style.margin = '';
+  touchElement.style.padding = '';
+  touchElement.style.overflow = '';
+
+  if (isDragging) {
+    isDragging = false;
+    updateTaskOrder();
+  }
+  touchElement = null;
 }
 
 // ============================================
@@ -701,15 +702,13 @@ function handleTouchEnd() {
 // ============================================
 
 async function updateTaskOrder() {
-    const newOrder = [...document.querySelectorAll('.task-item')].map(el => 
-        el.dataset.id
-    ).filter(Boolean);
-    
-    tasks = newOrder.map(id => tasks.find(t => String(t.id) === String(id))).filter(Boolean);
-    updateStartTimes();
-    
-    await addEvent('reorder', { order: newOrder });
-    lastKnownEventCount = loadChangelog().length;
+  const newOrder = [...document.querySelectorAll('.task-item')].map((el) => el.dataset.id).filter(Boolean);
+
+  tasks = newOrder.map((id) => tasks.find((t) => String(t.id) === String(id))).filter(Boolean);
+  updateStartTimes();
+
+  await addEvent('reorder', { order: newOrder });
+  lastKnownEventCount = loadChangelog().length;
 }
 
 // ============================================
@@ -717,43 +716,44 @@ async function updateTaskOrder() {
 // ============================================
 
 async function pollForChanges() {
-    if (getIsSyncing() || isDragging) return;
-    
-    try {
-        setIsSyncing(true);
-        const changelog = await loadChangelogFromServer();
-        setIsSyncing(false);
-        
-        if (changelog.length > lastKnownEventCount) {
-            lastKnownEventCount = changelog.length;
-            
-            const oldTaskIds = tasks.map(t => t.id).join(',');
-            const oldCompletedIds = tasks.filter(t => t.completed).map(t => t.id).join(',');
-            
-            tasks = replayChangelog(changelog);
-            
-            const newTaskIds = tasks.map(t => t.id).join(',');
-            const newCompletedIds = tasks.filter(t => t.completed).map(t => t.id).join(',');
-            
-            if (oldTaskIds !== newTaskIds) {
-                renderTasks();
-            } else if (oldCompletedIds !== newCompletedIds) {
-                tasks.forEach(task => {
-                    const el = document.querySelector(`[data-id="${task.id}"]`);
-                    if (el) {
-                        el.classList.toggle('completed', task.completed);
-                        el.querySelector('.checkbox').classList.toggle('checked', task.completed);
-                    }
-                });
-                updateStartTimes();
-                updateProgress();
-                updateScoreDisplay();
-            }
-        }
-    } catch (error) {
-        setIsSyncing(false);
-        console.error('Poll error:', error);
+  if (getIsSyncing() || isDragging) return;
+
+  try {
+    setIsSyncing(true);
+    const changelog = await loadChangelogFromServer();
+    setIsSyncing(false);
+
+    if (changelog.length > lastKnownEventCount) {
+      lastKnownEventCount = changelog.length;
+
+      const oldTaskIds = tasks.map((t) => t.id).join(',');
+      const oldCompletedIds = tasks.filter((t) => t.completed).map((t) => t.id).join(',');
+
+      tasks = replayChangelog(changelog);
+
+      const newTaskIds = tasks.map((t) => t.id).join(',');
+      const newCompletedIds = tasks.filter((t) => t.completed).map((t) => t.id).join(',');
+
+      if (oldTaskIds !== newTaskIds) {
+        renderTasks();
+      } else if (oldCompletedIds !== newCompletedIds) {
+        tasks.forEach((task) => {
+          const el = document.querySelector(`[data-id="${task.id}"]`);
+          if (el) {
+            el.classList.toggle('completed', task.completed);
+            el.querySelector('.checkbox').classList.toggle('checked', task.completed);
+          }
+        });
+        updateStartTimes();
+        updateProgress();
+        updateScoreDisplay();
+      }
     }
+  } catch (error) {
+    setIsSyncing(false);
+    // eslint-disable-next-line no-console
+    console.error('Poll error:', error);
+  }
 }
 
 // ============================================
@@ -761,13 +761,15 @@ async function pollForChanges() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await init();
-    
-    lastKnownEventCount = loadChangelog().length;
-    createPoller(pollForChanges, 5000);
-    
-    if (window.__loadState) {
-        window.__loadState.js = true;
-        if (window.checkReady) window.checkReady();
-    }
+  await init();
+
+  lastKnownEventCount = loadChangelog().length;
+  createPoller(pollForChanges, 5000);
+
+  // eslint-disable-next-line no-underscore-dangle
+  if (window.__loadState) {
+    // eslint-disable-next-line no-underscore-dangle
+    window.__loadState.js = true;
+    if (window.checkReady) window.checkReady();
+  }
 });

@@ -7,11 +7,11 @@
 let eventLogModal = null;
 
 function createEventLogModal() {
-    if (eventLogModal) return eventLogModal;
-    
-    const modal = document.createElement('div');
-    modal.id = 'eventLogModal';
-    modal.innerHTML = `
+  if (eventLogModal) return eventLogModal;
+
+  const modal = document.createElement('div');
+  modal.id = 'eventLogModal';
+  modal.innerHTML = `
         <div class="event-log-overlay"></div>
         <div class="event-log-content">
             <div class="event-log-header">
@@ -39,10 +39,10 @@ function createEventLogModal() {
             </div>
         </div>
     `;
-    
-    // Add styles
-    const style = document.createElement('style');
-    style.textContent = `
+
+  // Add styles
+  const style = document.createElement('style');
+  style.textContent = `
         #eventLogModal {
             display: none;
             position: fixed;
@@ -200,85 +200,86 @@ function createEventLogModal() {
             }
         }
     `;
-    
-    document.head.appendChild(style);
-    document.body.appendChild(modal);
-    
-    eventLogModal = modal;
-    return modal;
+
+  document.head.appendChild(style);
+  document.body.appendChild(modal);
+
+  eventLogModal = modal;
+  return modal;
 }
 
 function formatEventDetails(event) {
-    const excludeKeys = ['op', 'ts', 'timeStamp', 'id', 'user', '_postPromise'];
-    const details = [];
-    
-    for (const [key, value] of Object.entries(event)) {
-        if (excludeKeys.includes(key)) continue;
-        if (value === undefined || value === null || value === '') continue;
-        
-        let displayValue = value;
-        if (typeof value === 'object') {
-            try {
-                displayValue = JSON.stringify(value);
-                if (displayValue.length > 100) {
-                    displayValue = displayValue.substring(0, 100) + '...';
-                }
-            } catch {
-                displayValue = '[object]';
-            }
-        } else if (typeof value === 'string' && value.length > 100) {
-            displayValue = value.substring(0, 100) + '...';
+  const excludeKeys = ['op', 'ts', 'timeStamp', 'id', 'user', 'postPromise'];
+  const details = [];
+
+  Object.entries(event)
+    .filter(([key, value]) => !excludeKeys.includes(key)
+      && value !== undefined
+      && value !== null
+      && value !== '')
+    .forEach(([key, value]) => {
+      let displayValue = value;
+      if (typeof value === 'object') {
+        try {
+          displayValue = JSON.stringify(value);
+          if (displayValue.length > 100) {
+            displayValue = `${displayValue.substring(0, 100)}...`;
+          }
+        } catch {
+          displayValue = '[object]';
         }
-        
-        details.push(`<span class="details-key">${key}</span>: ${displayValue}`);
-    }
-    
-    return details.join(', ') || '—';
+      } else if (typeof value === 'string' && value.length > 100) {
+        displayValue = `${value.substring(0, 100)}...`;
+      }
+      details.push(`<span class="details-key">${key}</span>: ${displayValue}`);
+    });
+
+  return details.join(', ') || '—';
 }
 
 function formatTimestamp(ts) {
-    if (!ts) return '—';
-    try {
-        const date = new Date(ts);
-        return date.toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    } catch {
-        return ts;
-    }
+  if (!ts) return '—';
+  try {
+    const date = new Date(ts);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return ts;
+  }
 }
 
 function populateEventLog(getCacheFn) {
-    if (!eventLogModal || !getCacheFn) return;
-    
-    const events = getCacheFn();
-    const sortedEvents = [...events].sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
-    
-    const tbody = eventLogModal.querySelector('.event-log-table tbody');
-    const stats = eventLogModal.querySelector('.event-log-stats');
-    
-    // Calculate stats
-    const opCounts = {};
-    for (const event of events) {
-        opCounts[event.op] = (opCounts[event.op] || 0) + 1;
-    }
-    const opSummary = Object.entries(opCounts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([op, count]) => `${op}: ${count}`)
-        .join(' · ');
-    
-    stats.textContent = `${events.length} events total${opSummary ? ' · ' + opSummary : ''}`;
-    
-    if (sortedEvents.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="event-log-empty">No events recorded yet</td></tr>`;
-        return;
-    }
-    
-    tbody.innerHTML = sortedEvents.map((event, idx) => `
+  if (!eventLogModal || !getCacheFn) return;
+
+  const events = getCacheFn();
+  const sortedEvents = [...events].sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+
+  const tbody = eventLogModal.querySelector('.event-log-table tbody');
+  const stats = eventLogModal.querySelector('.event-log-stats');
+
+  // Calculate stats
+  const opCounts = {};
+  events.forEach((event) => {
+    opCounts[event.op] = (opCounts[event.op] || 0) + 1;
+  });
+  const opSummary = Object.entries(opCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([op, count]) => `${op}: ${count}`)
+    .join(' · ');
+
+  stats.textContent = `${events.length} events total${opSummary ? ` · ${opSummary}` : ''}`;
+
+  if (sortedEvents.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="event-log-empty">No events recorded yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sortedEvents.map((event, idx) => `
         <tr>
             <td class="row-num">${sortedEvents.length - idx}</td>
             <td class="ts">${formatTimestamp(event.ts)}</td>
@@ -291,51 +292,53 @@ function populateEventLog(getCacheFn) {
 }
 
 function copyEventLogAsJson(getCacheFn) {
-    if (!getCacheFn) return;
-    
-    const events = getCacheFn();
-    const json = JSON.stringify(events, null, 2);
-    
-    navigator.clipboard.writeText(json).then(() => {
-        const btn = eventLogModal.querySelector('.event-log-copy-btn');
-        const originalText = btn.textContent;
-        btn.textContent = '✓ Copied!';
-        setTimeout(() => {
-            btn.textContent = originalText;
-        }, 2000);
-    });
+  if (!getCacheFn) return;
+
+  const events = getCacheFn();
+  const json = JSON.stringify(events, null, 2);
+
+  navigator.clipboard.writeText(json).then(() => {
+    const btn = eventLogModal.querySelector('.event-log-copy-btn');
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => {
+      btn.textContent = originalText;
+    }, 2000);
+  });
 }
 
 // Store reference to getCacheFn for event handlers
 let currentGetCacheFn = null;
 
-export function openEventLog(getCacheFn) {
-    currentGetCacheFn = getCacheFn;
-    const modal = createEventLogModal();
-    
-    // Set up event listeners (only once)
-    if (!modal._listenersAttached) {
-        modal.querySelector('.event-log-overlay').addEventListener('click', closeEventLog);
-        modal.querySelector('.event-log-close-btn').addEventListener('click', closeEventLog);
-        modal.querySelector('.event-log-copy-btn').addEventListener('click', () => {
-            copyEventLogAsJson(currentGetCacheFn);
-        });
-        modal._listenersAttached = true;
-    }
-    
-    populateEventLog(getCacheFn);
-    modal.classList.add('open');
-    document.body.style.overflow = 'hidden';
-}
+// Track if listeners have been attached to the modal
+let listenersAttached = false;
 
 export function closeEventLog() {
-    if (eventLogModal) {
-        eventLogModal.classList.remove('open');
-        document.body.style.overflow = '';
-    }
+  if (eventLogModal) {
+    eventLogModal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+export function openEventLog(getCacheFn) {
+  currentGetCacheFn = getCacheFn;
+  const modal = createEventLogModal();
+
+  // Set up event listeners (only once)
+  if (!listenersAttached) {
+    modal.querySelector('.event-log-overlay').addEventListener('click', closeEventLog);
+    modal.querySelector('.event-log-close-btn').addEventListener('click', closeEventLog);
+    modal.querySelector('.event-log-copy-btn').addEventListener('click', () => {
+      copyEventLogAsJson(currentGetCacheFn);
+    });
+    listenersAttached = true;
+  }
+
+  populateEventLog(getCacheFn);
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 export function isOpen() {
-    return eventLogModal?.classList.contains('open') ?? false;
+  return eventLogModal?.classList.contains('open') ?? false;
 }
-

@@ -3,279 +3,6 @@
 // A reusable, styleable autocomplete component
 // ============================================
 
-/**
- * Creates an autocomplete dropdown for an input element
- * 
- * @param {Object} options
- * @param {HTMLInputElement} options.input - The input element to attach to
- * @param {Function} options.getSuggestions - Returns array of { text: string, count?: number }
- * @param {Function} options.onSelect - Called when a suggestion is selected
- * @param {number} [options.maxSuggestions=10] - Max suggestions to show
- * @param {number} [options.minChars=1] - Min chars before showing suggestions
- * @param {boolean} [options.showCount=false] - Show frequency count badge
- * @param {string} [options.position='above'] - 'above' or 'below' the input
- * 
- * @returns {Object} Autocomplete instance with update() and destroy() methods
- */
-export function createAutocomplete(options) {
-    const {
-        input,
-        getSuggestions,
-        onSelect,
-        maxSuggestions = 10,
-        minChars = 1,
-        showCount = false,
-        position = 'above'
-    } = options;
-
-    // Inject styles once
-    injectStyles();
-
-    // Create dropdown container
-    const dropdown = document.createElement('div');
-    dropdown.className = `autocomplete-dropdown ${position === 'above' ? 'position-above' : 'position-below'}`;
-    dropdown.setAttribute('role', 'listbox');
-    dropdown.style.display = 'none';
-    
-    // Position dropdown relative to input's parent
-    const wrapper = input.parentElement;
-    wrapper.style.position = 'relative';
-    wrapper.appendChild(dropdown);
-
-    let selectedIndex = -1;
-    let currentSuggestions = [];
-    let isOpen = false;
-
-    // Filter and render suggestions
-    function updateSuggestions() {
-        const query = input.value.trim().toLowerCase();
-        
-        if (query.length < minChars) {
-            close();
-            return;
-        }
-
-        const allSuggestions = getSuggestions();
-        
-        // Filter by query and limit
-        currentSuggestions = allSuggestions
-            .filter(item => item.text.toLowerCase().includes(query))
-            .slice(0, maxSuggestions);
-
-        if (currentSuggestions.length === 0) {
-            close();
-            return;
-        }
-
-        // When position is 'above', reverse so most frequent is at bottom (closest to input)
-        if (position === 'above') {
-            currentSuggestions = currentSuggestions.reverse();
-        }
-
-        renderDropdown(query);
-        open();
-    }
-
-    function renderDropdown(query) {
-        const html = currentSuggestions.map((item, index) => {
-            const highlighted = highlightMatch(item.text, query);
-            const countBadge = showCount && item.count > 1 
-                ? `<span class="autocomplete-count">${item.count}×</span>` 
-                : '';
-            
-            return `
-                <div class="autocomplete-item${index === selectedIndex ? ' selected' : ''}" 
-                     data-index="${index}"
-                     role="option"
-                     aria-selected="${index === selectedIndex}">
-                    <span class="autocomplete-text">${highlighted}</span>
-                    ${countBadge}
-                </div>
-            `;
-        }).join('');
-
-        dropdown.innerHTML = html;
-
-        // Add click listeners
-        dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
-            el.addEventListener('mousedown', (e) => {
-                e.preventDefault(); // Prevent input blur
-                const index = parseInt(el.dataset.index);
-                selectItem(index);
-            });
-
-            el.addEventListener('mouseenter', () => {
-                selectedIndex = parseInt(el.dataset.index);
-                updateSelection();
-            });
-        });
-    }
-
-    function highlightMatch(text, query) {
-        if (!query) return escapeHtml(text);
-        
-        const lowerText = text.toLowerCase();
-        const matchIndex = lowerText.indexOf(query);
-        
-        if (matchIndex === -1) return escapeHtml(text);
-        
-        const before = text.slice(0, matchIndex);
-        const match = text.slice(matchIndex, matchIndex + query.length);
-        const after = text.slice(matchIndex + query.length);
-        
-        return `${escapeHtml(before)}<mark>${escapeHtml(match)}</mark>${escapeHtml(after)}`;
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function updateSelection() {
-        dropdown.querySelectorAll('.autocomplete-item').forEach((el, index) => {
-            el.classList.toggle('selected', index === selectedIndex);
-            el.setAttribute('aria-selected', index === selectedIndex);
-        });
-
-        // Scroll selected item into view
-        const selectedEl = dropdown.querySelector('.autocomplete-item.selected');
-        if (selectedEl) {
-            selectedEl.scrollIntoView({ block: 'nearest' });
-        }
-    }
-
-    function selectItem(index) {
-        const item = currentSuggestions[index];
-        if (item) {
-            input.value = item.text;
-            onSelect(item);
-            close();
-        }
-    }
-
-    function open() {
-        if (!isOpen) {
-            dropdown.style.display = 'block';
-            isOpen = true;
-            requestAnimationFrame(() => {
-                dropdown.classList.add('open');
-            });
-        }
-    }
-
-    function close() {
-        if (isOpen) {
-            dropdown.classList.remove('open');
-            dropdown.style.display = 'none';
-            isOpen = false;
-            selectedIndex = -1;
-            currentSuggestions = [];
-        }
-    }
-
-    // Event handlers
-    function handleInput() {
-        selectedIndex = -1;
-        updateSuggestions();
-    }
-
-    function handleKeyDown(e) {
-        if (!isOpen) {
-            // Open dropdown with appropriate arrow key based on position
-            const openKey = position === 'above' ? 'ArrowUp' : 'ArrowDown';
-            if (e.key === openKey && input.value.trim().length >= minChars) {
-                updateSuggestions();
-                // Select the item closest to input (bottom for above, top for below)
-                if (currentSuggestions.length > 0) {
-                    selectedIndex = position === 'above' 
-                        ? currentSuggestions.length - 1  // Bottom item (closest to input)
-                        : 0;                              // Top item (closest to input)
-                    updateSelection();
-                }
-            }
-            return;
-        }
-
-        switch (e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                if (selectedIndex === -1) {
-                    // Nothing selected yet - start from top for below, bottom for above
-                    selectedIndex = position === 'above' ? currentSuggestions.length - 1 : 0;
-                } else {
-                    // Move down visually (toward higher index)
-                    selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
-                }
-                updateSelection();
-                break;
-
-            case 'ArrowUp':
-                e.preventDefault();
-                if (selectedIndex === -1) {
-                    // Nothing selected yet - start from bottom (closest to input when above)
-                    selectedIndex = position === 'above' 
-                        ? currentSuggestions.length - 1  // Bottom item
-                        : 0;                              // Top item
-                } else {
-                    // Move up visually (toward lower index)
-                    selectedIndex = Math.max(selectedIndex - 1, 0);
-                }
-                updateSelection();
-                break;
-
-            case 'Enter':
-                if (selectedIndex >= 0) {
-                    e.preventDefault();
-                    selectItem(selectedIndex);
-                }
-                break;
-
-            case 'Escape':
-                e.preventDefault();
-                close();
-                break;
-
-            case 'Tab':
-                close();
-                break;
-        }
-    }
-
-    function handleBlur() {
-        // Small delay to allow click events on dropdown items
-        setTimeout(close, 150);
-    }
-
-    function handleFocus() {
-        if (input.value.trim().length >= minChars) {
-            updateSuggestions();
-        }
-    }
-
-    // Attach event listeners
-    input.addEventListener('input', handleInput);
-    input.addEventListener('keydown', handleKeyDown);
-    input.addEventListener('blur', handleBlur);
-    input.addEventListener('focus', handleFocus);
-
-    // Remove the datalist attribute if present
-    input.removeAttribute('list');
-
-    // Public API
-    return {
-        update: updateSuggestions,
-        close,
-        destroy() {
-            input.removeEventListener('input', handleInput);
-            input.removeEventListener('keydown', handleKeyDown);
-            input.removeEventListener('blur', handleBlur);
-            input.removeEventListener('focus', handleFocus);
-            dropdown.remove();
-        }
-    };
-}
-
 // ============================================
 // STYLES
 // ============================================
@@ -283,11 +10,11 @@ export function createAutocomplete(options) {
 let stylesInjected = false;
 
 function injectStyles() {
-    if (stylesInjected) return;
-    stylesInjected = true;
+  if (stylesInjected) return;
+  stylesInjected = true;
 
-    const styles = document.createElement('style');
-    styles.textContent = `
+  const styles = document.createElement('style');
+  styles.textContent = `
         .autocomplete-dropdown {
             position: absolute;
             left: 0;
@@ -390,6 +117,283 @@ function injectStyles() {
             flex-shrink: 0;
         }
     `;
-    document.head.appendChild(styles);
+  document.head.appendChild(styles);
 }
 
+/**
+ * Creates an autocomplete dropdown for an input element
+ *
+ * @param {Object} options
+ * @param {HTMLInputElement} options.input - The input element to attach to
+ * @param {Function} options.getSuggestions - Returns array of { text: string, count?: number }
+ * @param {Function} options.onSelect - Called when a suggestion is selected
+ * @param {number} [options.maxSuggestions=10] - Max suggestions to show
+ * @param {number} [options.minChars=1] - Min chars before showing suggestions
+ * @param {boolean} [options.showCount=false] - Show frequency count badge
+ * @param {string} [options.position='above'] - 'above' or 'below' the input
+ *
+ * @returns {Object} Autocomplete instance with update() and destroy() methods
+ */
+// eslint-disable-next-line import/prefer-default-export
+export function createAutocomplete(options) {
+  const {
+    input,
+    getSuggestions,
+    onSelect,
+    maxSuggestions = 10,
+    minChars = 1,
+    showCount = false,
+    position = 'above',
+  } = options;
+
+  // Inject styles once
+  injectStyles();
+
+  // Create dropdown container
+  const dropdown = document.createElement('div');
+  dropdown.className = `autocomplete-dropdown ${position === 'above' ? 'position-above' : 'position-below'}`;
+  dropdown.setAttribute('role', 'listbox');
+  dropdown.style.display = 'none';
+
+  // Position dropdown relative to input's parent
+  const wrapper = input.parentElement;
+  wrapper.style.position = 'relative';
+  wrapper.appendChild(dropdown);
+
+  let selectedIndex = -1;
+  let currentSuggestions = [];
+  let isOpen = false;
+
+  // Helper functions - defined first
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function highlightMatch(text, query) {
+    if (!query) return escapeHtml(text);
+
+    const lowerText = text.toLowerCase();
+    const matchIndex = lowerText.indexOf(query);
+
+    if (matchIndex === -1) return escapeHtml(text);
+
+    const before = text.slice(0, matchIndex);
+    const match = text.slice(matchIndex, matchIndex + query.length);
+    const after = text.slice(matchIndex + query.length);
+
+    return `${escapeHtml(before)}<mark>${escapeHtml(match)}</mark>${escapeHtml(after)}`;
+  }
+
+  function open() {
+    if (!isOpen) {
+      dropdown.style.display = 'block';
+      isOpen = true;
+      requestAnimationFrame(() => {
+        dropdown.classList.add('open');
+      });
+    }
+  }
+
+  function close() {
+    if (isOpen) {
+      dropdown.classList.remove('open');
+      dropdown.style.display = 'none';
+      isOpen = false;
+      selectedIndex = -1;
+      currentSuggestions = [];
+    }
+  }
+
+  function updateSelection() {
+    dropdown.querySelectorAll('.autocomplete-item').forEach((el, index) => {
+      el.classList.toggle('selected', index === selectedIndex);
+      el.setAttribute('aria-selected', index === selectedIndex);
+    });
+
+    // Scroll selected item into view
+    const selectedEl = dropdown.querySelector('.autocomplete-item.selected');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function selectItem(index) {
+    const item = currentSuggestions[index];
+    if (item) {
+      input.value = item.text;
+      onSelect(item);
+      close();
+    }
+  }
+
+  function renderDropdown(query) {
+    const html = currentSuggestions.map((item, index) => {
+      const highlighted = highlightMatch(item.text, query);
+      const countBadge = showCount && item.count > 1
+        ? `<span class="autocomplete-count">${item.count}×</span>`
+        : '';
+
+      return `
+                <div class="autocomplete-item${index === selectedIndex ? ' selected' : ''}" 
+                     data-index="${index}"
+                     role="option"
+                     aria-selected="${index === selectedIndex}">
+                    <span class="autocomplete-text">${highlighted}</span>
+                    ${countBadge}
+                </div>
+            `;
+    }).join('');
+
+    dropdown.innerHTML = html;
+
+    // Add click listeners
+    dropdown.querySelectorAll('.autocomplete-item').forEach((el) => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Prevent input blur
+        const index = parseInt(el.dataset.index, 10);
+        selectItem(index);
+      });
+
+      el.addEventListener('mouseenter', () => {
+        selectedIndex = parseInt(el.dataset.index, 10);
+        updateSelection();
+      });
+    });
+  }
+
+  // Filter and render suggestions
+  function updateSuggestions() {
+    const query = input.value.trim().toLowerCase();
+
+    if (query.length < minChars) {
+      close();
+      return;
+    }
+
+    const allSuggestions = getSuggestions();
+
+    // Filter by query and limit
+    currentSuggestions = allSuggestions
+      .filter((item) => item.text.toLowerCase().includes(query))
+      .slice(0, maxSuggestions);
+
+    if (currentSuggestions.length === 0) {
+      close();
+      return;
+    }
+
+    // When position is 'above', reverse so most frequent is at bottom (closest to input)
+    if (position === 'above') {
+      currentSuggestions = currentSuggestions.reverse();
+    }
+
+    renderDropdown(query);
+    open();
+  }
+
+  // Event handlers
+  function handleInput() {
+    selectedIndex = -1;
+    updateSuggestions();
+  }
+
+  function handleKeyDown(e) {
+    if (!isOpen) {
+      // Open dropdown with appropriate arrow key based on position
+      const openKey = position === 'above' ? 'ArrowUp' : 'ArrowDown';
+      if (e.key === openKey && input.value.trim().length >= minChars) {
+        updateSuggestions();
+        // Select the item closest to input (bottom for above, top for below)
+        if (currentSuggestions.length > 0) {
+          selectedIndex = position === 'above'
+            ? currentSuggestions.length - 1 // Bottom item (closest to input)
+            : 0; // Top item (closest to input)
+          updateSelection();
+        }
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        if (selectedIndex === -1) {
+          // Nothing selected yet - start from top for below, bottom for above
+          selectedIndex = position === 'above' ? currentSuggestions.length - 1 : 0;
+        } else {
+          // Move down visually (toward higher index)
+          selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
+        }
+        updateSelection();
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        if (selectedIndex === -1) {
+          // Nothing selected yet - start from bottom (closest to input when above)
+          selectedIndex = position === 'above'
+            ? currentSuggestions.length - 1 // Bottom item
+            : 0; // Top item
+        } else {
+          // Move up visually (toward lower index)
+          selectedIndex = Math.max(selectedIndex - 1, 0);
+        }
+        updateSelection();
+        break;
+
+      case 'Enter':
+        if (selectedIndex >= 0) {
+          e.preventDefault();
+          selectItem(selectedIndex);
+        }
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        close();
+        break;
+
+      case 'Tab':
+        close();
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  function handleBlur() {
+    // Small delay to allow click events on dropdown items
+    setTimeout(close, 150);
+  }
+
+  function handleFocus() {
+    if (input.value.trim().length >= minChars) {
+      updateSuggestions();
+    }
+  }
+
+  // Attach event listeners
+  input.addEventListener('input', handleInput);
+  input.addEventListener('keydown', handleKeyDown);
+  input.addEventListener('blur', handleBlur);
+  input.addEventListener('focus', handleFocus);
+
+  // Remove the datalist attribute if present
+  input.removeAttribute('list');
+
+  // Public API
+  return {
+    update: updateSuggestions,
+    close,
+    destroy() {
+      input.removeEventListener('input', handleInput);
+      input.removeEventListener('keydown', handleKeyDown);
+      input.removeEventListener('blur', handleBlur);
+      input.removeEventListener('focus', handleFocus);
+      dropdown.remove();
+    },
+  };
+}

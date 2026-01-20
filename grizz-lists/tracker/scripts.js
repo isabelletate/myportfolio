@@ -2,29 +2,29 @@
 // TRACKER - Product Tracker Interactive View
 // ============================================
 
+/* eslint-disable no-use-before-define */
+
 import {
-    loadChangelogFromServer,
-    loadChangelog,
-    addEvent,
-    replayChangelog,
-    getIsSyncing,
-    setIsSyncing,
-    getMetadata,
-    getChangelogCache,
-    listId,
-    addToRecentLists,
-    statusOptions,
-    getStatusInfo,
-    protoStatusTypes,
-    getProtoStatusInfo,
-    generateId
+  loadChangelogFromServer,
+  addEvent,
+  replayChangelog,
+  getIsSyncing,
+  setIsSyncing,
+  getMetadata,
+  getChangelogCache,
+  listId,
+  addToRecentLists,
+  getStatusInfo,
+  protoStatusTypes,
+  getProtoStatusInfo,
+  generateId,
 } from './shared.js';
 
 import { API_BASE, createPoller } from '../shared.js';
 
 // If no list ID, redirect to main page
 if (!listId) {
-    window.location.href = '../index.html';
+  window.location.href = '../index.html';
 }
 
 // ============================================
@@ -34,7 +34,7 @@ if (!listId) {
 let products = [];
 let editingProductId = null;
 let productToDelete = null;
-let currentSort = { field: null, direction: 'asc' };
+const currentSort = { field: null, direction: 'asc' };
 let lastKnownEventCount = 0;
 let pendingImageFile = null;
 let editingProtoProductId = null;
@@ -45,7 +45,7 @@ let editingUpdateId = null; // Track which update row is in edit mode
 // DOM ELEMENTS
 // ============================================
 
-const productTableBody = document.getElementById('productTableBody');
+// productTableBody is dynamically created/updated, so we don't store it here
 const tableWrapper = document.getElementById('tableWrapper');
 const addProductBtn = document.getElementById('addProductBtn');
 const productModal = document.getElementById('productModal');
@@ -126,7 +126,7 @@ const selectionCount = document.getElementById('selectionCount');
 const clearSelectionBtn = document.getElementById('clearSelectionBtn');
 const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
 const bulkSetDateBtn = document.getElementById('bulkSetDateBtn');
-let selectedProductIds = new Set();
+const selectedProductIds = new Set();
 
 // Bulk Delete Modal
 const bulkDeleteModal = document.getElementById('bulkDeleteModal');
@@ -149,27 +149,27 @@ const applyBulkDateBtn = document.getElementById('applyBulkDateBtn');
 // ============================================
 
 async function init() {
-    showLoading();
-    setupEventListeners();
-    
-    await loadProducts();
-    
-    // Set the list title from metadata
-    const metadata = getMetadata();
-    const listTitleEl = document.getElementById('listTitle');
-    if (listTitleEl && metadata.name) {
-        listTitleEl.textContent = metadata.name;
-        document.title = `${metadata.name} - Product Tracker`;
-    }
-    
-    // Track this list as recently accessed
-    addToRecentLists(listId, metadata.name, 'tracker');
-    
-    renderProducts();
+  showLoading();
+  setupEventListeners();
+
+  await loadProducts();
+
+  // Set the list title from metadata
+  const metadata = getMetadata();
+  const listTitleEl = document.getElementById('listTitle');
+  if (listTitleEl && metadata.name) {
+    listTitleEl.textContent = metadata.name;
+    document.title = `${metadata.name} - Product Tracker`;
+  }
+
+  // Track this list as recently accessed
+  addToRecentLists(listId, metadata.name, 'tracker');
+
+  renderProducts();
 }
 
 function showLoading() {
-    tableWrapper.innerHTML = `
+  tableWrapper.innerHTML = `
         <div class="loading-state">
             <div class="loading-spinner"></div>
             <p class="loading-text">Loading products...</p>
@@ -178,123 +178,124 @@ function showLoading() {
 }
 
 async function loadProducts() {
-    const changelog = await loadChangelogFromServer();
-    products = replayChangelog(changelog);
-    lastKnownEventCount = changelog.length;
+  const changelog = await loadChangelogFromServer();
+  products = replayChangelog(changelog);
+  lastKnownEventCount = changelog.length;
 }
 
 async function syncAndRender() {
-    // Optimistic: render immediately from local cache
-    const localChangelog = getChangelogCache();
-    products = replayChangelog(localChangelog);
-    renderProducts();
-    
-    // Then sync with server in background (for consistency)
-    try {
-        const serverChangelog = await loadChangelogFromServer({ silent: true });
-        if (serverChangelog.length !== localChangelog.length) {
-            // Server has different data, re-render
-            products = replayChangelog(serverChangelog);
-            lastKnownEventCount = serverChangelog.length;
-            renderProducts();
-        } else {
-            lastKnownEventCount = serverChangelog.length;
-        }
-    } catch (err) {
-        console.warn('Background sync failed:', err);
+  // Optimistic: render immediately from local cache
+  const localChangelog = getChangelogCache();
+  products = replayChangelog(localChangelog);
+  renderProducts();
+
+  // Then sync with server in background (for consistency)
+  try {
+    const serverChangelog = await loadChangelogFromServer({ silent: true });
+    if (serverChangelog.length !== localChangelog.length) {
+      // Server has different data, re-render
+      products = replayChangelog(serverChangelog);
+      lastKnownEventCount = serverChangelog.length;
+      renderProducts();
+    } else {
+      lastKnownEventCount = serverChangelog.length;
     }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('Background sync failed:', err);
+  }
 }
 
 function setupEventListeners() {
-    // Add product button
-    addProductBtn.addEventListener('click', () => openProductModal());
-    
-    // Modal close handlers
-    modalClose.addEventListener('click', closeProductModal);
-    cancelBtn.addEventListener('click', closeProductModal);
-    productModal.addEventListener('click', (e) => {
-        if (e.target === productModal) closeProductModal();
+  // Add product button
+  addProductBtn.addEventListener('click', () => openProductModal());
+
+  // Modal close handlers
+  modalClose.addEventListener('click', closeProductModal);
+  cancelBtn.addEventListener('click', closeProductModal);
+  productModal.addEventListener('click', (e) => {
+    if (e.target === productModal) closeProductModal();
+  });
+
+  // Save button
+  saveBtn.addEventListener('click', saveProduct);
+
+  // Form submission (Enter key)
+  productForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveProduct();
+  });
+
+  // Image file selection
+  inputImageFile.addEventListener('change', handleImageSelect);
+
+  // Materials section toggle
+  materialsToggle.addEventListener('click', () => {
+    materialsSection.classList.toggle('open');
+  });
+
+  // Dates section toggle
+  datesToggle.addEventListener('click', () => {
+    datesSection.classList.toggle('open');
+  });
+
+  // Delete modal handlers
+  deleteModalClose.addEventListener('click', closeDeleteModal);
+  cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+  confirmDeleteBtn.addEventListener('click', confirmDelete);
+  deleteModal.addEventListener('click', (e) => {
+    if (e.target === deleteModal) closeDeleteModal();
+  });
+
+  // Proto modal handlers
+  protoModalClose.addEventListener('click', closeProtoModal);
+  protoModal.addEventListener('click', (e) => {
+    if (e.target === protoModal) closeProtoModal();
+  });
+  addProtoBtn.addEventListener('click', addProto);
+  saveProtosBtn.addEventListener('click', saveProtos);
+
+  // Sortable columns
+  document.querySelectorAll('.sortable').forEach((th) => {
+    th.addEventListener('click', () => handleSort(th.dataset.sort));
+  });
+
+  // More menu toggle
+  moreMenuTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    moreMenu.classList.toggle('open');
+  });
+
+  // Close more menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!moreMenu.contains(e.target)) {
+      moreMenu.classList.remove('open');
+    }
+  });
+
+  // Close more menu when clicking a menu item
+  moreMenu.querySelectorAll('.more-menu-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      moreMenu.classList.remove('open');
     });
-    
-    // Save button
-    saveBtn.addEventListener('click', saveProduct);
-    
-    // Form submission (Enter key)
-    productForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        saveProduct();
-    });
-    
-    // Image file selection
-    inputImageFile.addEventListener('change', handleImageSelect);
-    
-    // Materials section toggle
-    materialsToggle.addEventListener('click', () => {
-        materialsSection.classList.toggle('open');
-    });
-    
-    // Dates section toggle
-    datesToggle.addEventListener('click', () => {
-        datesSection.classList.toggle('open');
-    });
-    
-    // Delete modal handlers
-    deleteModalClose.addEventListener('click', closeDeleteModal);
-    cancelDeleteBtn.addEventListener('click', closeDeleteModal);
-    confirmDeleteBtn.addEventListener('click', confirmDelete);
-    deleteModal.addEventListener('click', (e) => {
-        if (e.target === deleteModal) closeDeleteModal();
-    });
-    
-    // Proto modal handlers
-    protoModalClose.addEventListener('click', closeProtoModal);
-    protoModal.addEventListener('click', (e) => {
-        if (e.target === protoModal) closeProtoModal();
-    });
-    addProtoBtn.addEventListener('click', addProto);
-    saveProtosBtn.addEventListener('click', saveProtos);
-    
-    // Sortable columns
-    document.querySelectorAll('.sortable').forEach(th => {
-        th.addEventListener('click', () => handleSort(th.dataset.sort));
-    });
-    
-    // More menu toggle
-    moreMenuTrigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        moreMenu.classList.toggle('open');
-    });
-    
-    // Close more menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!moreMenu.contains(e.target)) {
-            moreMenu.classList.remove('open');
-        }
-    });
-    
-    // Close more menu when clicking a menu item
-    moreMenu.querySelectorAll('.more-menu-item').forEach(item => {
-        item.addEventListener('click', () => {
-            moreMenu.classList.remove('open');
+  });
+
+  // Import button - dynamically loads import module
+  importBtn.addEventListener('click', async () => {
+    if (!importModule) {
+      importBtn.disabled = true;
+      importBtn.innerHTML = '<span>Loading...</span>';
+      try {
+        importModule = await import('./import.js');
+        importModule.initImport({
+          addEvent,
+          syncAndRender,
+          escapeHtml,
+          formatDateShort,
         });
-    });
-    
-    // Import button - dynamically loads import module
-    importBtn.addEventListener('click', async () => {
-        if (!importModule) {
-            importBtn.disabled = true;
-            importBtn.innerHTML = '<span>Loading...</span>';
-            try {
-                importModule = await import('./import.js');
-                importModule.initImport({
-                    addEvent,
-                    syncAndRender: syncAndRender,
-                    escapeHtml,
-                    formatDateShort
-                });
-            } finally {
-                importBtn.disabled = false;
-                importBtn.innerHTML = `
+      } finally {
+        importBtn.disabled = false;
+        importBtn.innerHTML = `
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="17 8 12 3 7 8"/>
@@ -302,70 +303,70 @@ function setupEventListeners() {
                     </svg>
                     <span>Import</span>
                 `;
-            }
-        }
-        importModule.openImportModal();
-    });
-    
-    // Table search
-    tableSearchInput.addEventListener('input', (e) => {
-        searchTerm = e.target.value.trim().toLowerCase();
-        tableSearchClear.classList.toggle('hidden', !searchTerm);
-        applySearch();
-    });
-    
-    tableSearchClear.addEventListener('click', () => {
-        searchTerm = '';
-        tableSearchInput.value = '';
-        tableSearchClear.classList.add('hidden');
-        applySearch();
-        tableSearchInput.focus();
-    });
-    
-    // Clear search on Escape
-    tableSearchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            searchTerm = '';
-            tableSearchInput.value = '';
-            tableSearchClear.classList.add('hidden');
-            applySearch();
-            tableSearchInput.blur();
-        }
-    });
-    
-    // Select all checkbox
-    selectAllCheckbox.addEventListener('change', (e) => {
-        const visibleIds = getVisibleProductIds();
-        if (e.target.checked) {
-            visibleIds.forEach(id => selectedProductIds.add(id));
-        } else {
-            visibleIds.forEach(id => selectedProductIds.delete(id));
-        }
-        updateSelectionUI();
-    });
-    
-    // Clear selection button
-    clearSelectionBtn.addEventListener('click', () => {
-        clearSelection();
-    });
-    
-    // Bulk delete button
-    bulkDeleteBtn.addEventListener('click', openBulkDeleteModal);
-    bulkDeleteModalClose.addEventListener('click', closeBulkDeleteModal);
-    cancelBulkDeleteBtn.addEventListener('click', closeBulkDeleteModal);
-    confirmBulkDeleteBtn.addEventListener('click', confirmBulkDelete);
-    bulkDeleteModal.addEventListener('click', (e) => {
-        if (e.target === bulkDeleteModal) closeBulkDeleteModal();
-    });
-    
-    // Bulk set date button
-    bulkSetDateBtn.addEventListener('click', openBulkDateModal);
-    bulkDateModalClose.addEventListener('click', closeBulkDateModal);
-    cancelBulkDateBtn.addEventListener('click', closeBulkDateModal);
-    applyBulkDateBtn.addEventListener('click', applyBulkDate);
-    bulkDateModal.addEventListener('click', (e) => {
-        if (e.target === bulkDateModal) closeBulkDateModal();
-    });
+      }
+    }
+    importModule.openImportModal();
+  });
+
+  // Table search
+  tableSearchInput.addEventListener('input', (e) => {
+    searchTerm = e.target.value.trim().toLowerCase();
+    tableSearchClear.classList.toggle('hidden', !searchTerm);
+    applySearch();
+  });
+
+  tableSearchClear.addEventListener('click', () => {
+    searchTerm = '';
+    tableSearchInput.value = '';
+    tableSearchClear.classList.add('hidden');
+    applySearch();
+    tableSearchInput.focus();
+  });
+
+  // Clear search on Escape
+  tableSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchTerm = '';
+      tableSearchInput.value = '';
+      tableSearchClear.classList.add('hidden');
+      applySearch();
+      tableSearchInput.blur();
+    }
+  });
+
+  // Select all checkbox
+  selectAllCheckbox.addEventListener('change', (e) => {
+    const visibleIds = getVisibleProductIds();
+    if (e.target.checked) {
+      visibleIds.forEach((id) => selectedProductIds.add(id));
+    } else {
+      visibleIds.forEach((id) => selectedProductIds.delete(id));
+    }
+    updateSelectionUI();
+  });
+
+  // Clear selection button
+  clearSelectionBtn.addEventListener('click', () => {
+    clearSelection();
+  });
+
+  // Bulk delete button
+  bulkDeleteBtn.addEventListener('click', openBulkDeleteModal);
+  bulkDeleteModalClose.addEventListener('click', closeBulkDeleteModal);
+  cancelBulkDeleteBtn.addEventListener('click', closeBulkDeleteModal);
+  confirmBulkDeleteBtn.addEventListener('click', confirmBulkDelete);
+  bulkDeleteModal.addEventListener('click', (e) => {
+    if (e.target === bulkDeleteModal) closeBulkDeleteModal();
+  });
+
+  // Bulk set date button
+  bulkSetDateBtn.addEventListener('click', openBulkDateModal);
+  bulkDateModalClose.addEventListener('click', closeBulkDateModal);
+  cancelBulkDateBtn.addEventListener('click', closeBulkDateModal);
+  applyBulkDateBtn.addEventListener('click', applyBulkDate);
+  bulkDateModal.addEventListener('click', (e) => {
+    if (e.target === bulkDateModal) closeBulkDateModal();
+  });
 }
 
 // ============================================
@@ -373,70 +374,82 @@ function setupEventListeners() {
 // ============================================
 
 function openBulkDeleteModal() {
-    const count = selectedProductIds.size;
-    bulkDeleteCount.textContent = `${count} product${count !== 1 ? 's' : ''}`;
-    bulkDeleteModal.classList.add('active');
+  const count = selectedProductIds.size;
+  bulkDeleteCount.textContent = `${count} product${count !== 1 ? 's' : ''}`;
+  bulkDeleteModal.classList.add('active');
 }
 
 function closeBulkDeleteModal() {
-    bulkDeleteModal.classList.remove('active');
+  bulkDeleteModal.classList.remove('active');
 }
 
 async function confirmBulkDelete() {
-    const idsToDelete = Array.from(selectedProductIds);
-    console.log('Bulk deleting products:', idsToDelete);
-    
-    // Delete each product
-    for (const productId of idsToDelete) {
-        console.log('Deleting product:', productId);
-        await addEvent('removed', { id: productId });
-    }
-    
-    closeBulkDeleteModal();
-    clearSelection();
-    await syncAndRender();
-    console.log('Bulk delete complete');
+  const idsToDelete = Array.from(selectedProductIds);
+  // eslint-disable-next-line no-console
+  console.log('Bulk deleting products:', idsToDelete);
+
+  // Delete each product sequentially
+  for (let i = 0; i < idsToDelete.length; i += 1) {
+    const productId = idsToDelete[i];
+    // eslint-disable-next-line no-console
+    console.log('Deleting product:', productId);
+    // eslint-disable-next-line no-await-in-loop
+    await addEvent('removed', { id: productId });
+  }
+
+  closeBulkDeleteModal();
+  clearSelection();
+  await syncAndRender();
+  // eslint-disable-next-line no-console
+  console.log('Bulk delete complete');
 }
 
 function openBulkDateModal() {
-    const count = selectedProductIds.size;
-    bulkDateInfo.textContent = `Setting date for ${count} product${count !== 1 ? 's' : ''}`;
-    bulkDateField.value = '';
-    bulkDateValue.value = '';
-    bulkDateModal.classList.add('active');
+  const count = selectedProductIds.size;
+  bulkDateInfo.textContent = `Setting date for ${count} product${count !== 1 ? 's' : ''}`;
+  bulkDateField.value = '';
+  bulkDateValue.value = '';
+  bulkDateModal.classList.add('active');
 }
 
 function closeBulkDateModal() {
-    bulkDateModal.classList.remove('active');
+  bulkDateModal.classList.remove('active');
 }
 
 async function applyBulkDate() {
-    const field = bulkDateField.value;
-    const dateValue = bulkDateValue.value;
-    
-    if (!field) {
-        alert('Please select a date field.');
-        return;
-    }
-    
-    if (!dateValue) {
-        alert('Please select a date.');
-        return;
-    }
-    
-    const idsToUpdate = Array.from(selectedProductIds);
-    console.log('Bulk setting date:', field, '=', dateValue, 'for products:', idsToUpdate);
-    
-    // Update each product
-    for (const productId of idsToUpdate) {
-        console.log('Updating product:', productId);
-        await addEvent('updated', { id: productId, [field]: dateValue });
-    }
-    
-    closeBulkDateModal();
-    clearSelection();
-    await syncAndRender();
-    console.log('Bulk date update complete');
+  const field = bulkDateField.value;
+  const dateValue = bulkDateValue.value;
+
+  if (!field) {
+    // eslint-disable-next-line no-alert
+    alert('Please select a date field.');
+    return;
+  }
+
+  if (!dateValue) {
+    // eslint-disable-next-line no-alert
+    alert('Please select a date.');
+    return;
+  }
+
+  const idsToUpdate = Array.from(selectedProductIds);
+  // eslint-disable-next-line no-console
+  console.log('Bulk setting date:', field, '=', dateValue, 'for products:', idsToUpdate);
+
+  // Update each product sequentially
+  for (let i = 0; i < idsToUpdate.length; i += 1) {
+    const productId = idsToUpdate[i];
+    // eslint-disable-next-line no-console
+    console.log('Updating product:', productId);
+    // eslint-disable-next-line no-await-in-loop
+    await addEvent('updated', { id: productId, [field]: dateValue });
+  }
+
+  closeBulkDateModal();
+  clearSelection();
+  await syncAndRender();
+  // eslint-disable-next-line no-console
+  console.log('Bulk date update complete');
 }
 
 // ============================================
@@ -444,71 +457,71 @@ async function applyBulkDate() {
 // ============================================
 
 function getVisibleProductIds() {
-    const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
-    if (!tbody) return [];
-    
-    const ids = [];
-    tbody.querySelectorAll('tr:not(.search-hidden)').forEach(row => {
-        if (row.dataset.id) {
-            ids.push(row.dataset.id);
-        }
-    });
-    return ids;
+  const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
+  if (!tbody) return [];
+
+  const ids = [];
+  tbody.querySelectorAll('tr:not(.search-hidden)').forEach((row) => {
+    if (row.dataset.id) {
+      ids.push(row.dataset.id);
+    }
+  });
+  return ids;
 }
 
 function toggleProductSelection(productId, isSelected) {
-    if (isSelected) {
-        selectedProductIds.add(productId);
-    } else {
-        selectedProductIds.delete(productId);
-    }
-    updateSelectionUI();
+  if (isSelected) {
+    selectedProductIds.add(productId);
+  } else {
+    selectedProductIds.delete(productId);
+  }
+  updateSelectionUI();
 }
 
 function clearSelection() {
-    selectedProductIds.clear();
-    updateSelectionUI();
+  selectedProductIds.clear();
+  updateSelectionUI();
 }
 
 function updateSelectionUI() {
-    const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
-    if (!tbody) return;
-    
-    // Update row visual state and checkboxes
-    tbody.querySelectorAll('tr').forEach(row => {
-        const productId = row.dataset.id;
-        const isSelected = selectedProductIds.has(productId);
-        row.classList.toggle('selected', isSelected);
-        
-        const checkbox = row.querySelector('.row-checkbox');
-        if (checkbox) {
-            checkbox.checked = isSelected;
-        }
-    });
-    
-    // Update select all checkbox state
-    const visibleIds = getVisibleProductIds();
-    const visibleSelectedCount = visibleIds.filter(id => selectedProductIds.has(id)).length;
-    
-    if (visibleSelectedCount === 0) {
-        selectAllCheckbox.checked = false;
-        selectAllCheckbox.indeterminate = false;
-    } else if (visibleSelectedCount === visibleIds.length) {
-        selectAllCheckbox.checked = true;
-        selectAllCheckbox.indeterminate = false;
-    } else {
-        selectAllCheckbox.checked = false;
-        selectAllCheckbox.indeterminate = true;
+  const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
+  if (!tbody) return;
+
+  // Update row visual state and checkboxes
+  tbody.querySelectorAll('tr').forEach((row) => {
+    const productId = row.dataset.id;
+    const isSelected = selectedProductIds.has(productId);
+    row.classList.toggle('selected', isSelected);
+
+    const checkbox = row.querySelector('.row-checkbox');
+    if (checkbox) {
+      checkbox.checked = isSelected;
     }
-    
-    // Update selection bar
-    const totalSelected = selectedProductIds.size;
-    if (totalSelected > 0) {
-        selectionBar.classList.add('visible');
-        selectionCount.textContent = `${totalSelected} selected`;
-    } else {
-        selectionBar.classList.remove('visible');
-    }
+  });
+
+  // Update select all checkbox state
+  const visibleIds = getVisibleProductIds();
+  const visibleSelectedCount = visibleIds.filter((id) => selectedProductIds.has(id)).length;
+
+  if (visibleSelectedCount === 0) {
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.indeterminate = false;
+  } else if (visibleSelectedCount === visibleIds.length) {
+    selectAllCheckbox.checked = true;
+    selectAllCheckbox.indeterminate = false;
+  } else {
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.indeterminate = true;
+  }
+
+  // Update selection bar
+  const totalSelected = selectedProductIds.size;
+  if (totalSelected > 0) {
+    selectionBar.classList.add('visible');
+    selectionCount.textContent = `${totalSelected} selected`;
+  } else {
+    selectionBar.classList.remove('visible');
+  }
 }
 
 // ============================================
@@ -516,96 +529,97 @@ function updateSelectionUI() {
 // ============================================
 
 function applySearch() {
-    const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
-    if (!tbody) return;
-    
-    const rows = tbody.querySelectorAll('tr');
-    let visibleCount = 0;
-    
-    rows.forEach(row => {
-        // Remove existing highlights
-        row.querySelectorAll('.search-match').forEach(el => {
-            el.outerHTML = el.textContent;
-        });
-        
-        if (!searchTerm) {
-            row.classList.remove('search-hidden');
-            visibleCount++;
-            return;
-        }
-        
-        // Get searchable text from all cells (skip image and actions)
-        const cells = row.querySelectorAll('td');
-        let foundMatch = false;
-        let firstMatchHighlighted = false;
-        
-        cells.forEach((cell, index) => {
-            // Skip checkbox cell (first), image cell (second), and actions cell (last)
-            if (index === 0 || index === 1 || index === cells.length - 1) return;
-            
-            const textNodes = getTextNodes(cell);
-            
-            textNodes.forEach(node => {
-                const text = node.textContent;
-                const lowerText = text.toLowerCase();
-                const matchIndex = lowerText.indexOf(searchTerm);
-                
-                if (matchIndex !== -1) {
-                    foundMatch = true;
-                    
-                    // Only highlight the first match per row
-                    if (!firstMatchHighlighted) {
-                        firstMatchHighlighted = true;
-                        const before = text.substring(0, matchIndex);
-                        const match = text.substring(matchIndex, matchIndex + searchTerm.length);
-                        const after = text.substring(matchIndex + searchTerm.length);
-                        
-                        const span = document.createElement('span');
-                        span.innerHTML = escapeHtml(before) + 
-                            '<mark class="search-match">' + escapeHtml(match) + '</mark>' + 
-                            escapeHtml(after);
-                        node.parentNode.replaceChild(span, node);
-                    }
-                }
-            });
-        });
-        
-        if (foundMatch) {
-            row.classList.remove('search-hidden');
-            visibleCount++;
-        } else {
-            row.classList.add('search-hidden');
-        }
+  const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
+  if (!tbody) return;
+
+  const rows = tbody.querySelectorAll('tr');
+  let visibleCount = 0;
+
+  rows.forEach((row) => {
+    // Remove existing highlights
+    row.querySelectorAll('.search-match').forEach((el) => {
+      el.outerHTML = el.textContent;
     });
-    
-    // Update count
-    const tableCount = document.getElementById('tableCount');
-    if (searchTerm) {
-        tableCount.textContent = `${visibleCount} of ${products.length} products`;
-    } else {
-        tableCount.textContent = `${products.length} product${products.length !== 1 ? 's' : ''}`;
+
+    if (!searchTerm) {
+      row.classList.remove('search-hidden');
+      visibleCount += 1;
+      return;
     }
-    
-    // Update select all checkbox state based on visible items
-    updateSelectionUI();
+
+    // Get searchable text from all cells (skip image and actions)
+    const cells = row.querySelectorAll('td');
+    let foundMatch = false;
+    let firstMatchHighlighted = false;
+
+    cells.forEach((cell, cellIndex) => {
+      // Skip checkbox cell (first), image cell (second), and actions cell (last)
+      if (cellIndex === 0 || cellIndex === 1 || cellIndex === cells.length - 1) return;
+
+      const textNodes = getTextNodes(cell);
+
+      textNodes.forEach((node) => {
+        const text = node.textContent;
+        const lowerText = text.toLowerCase();
+        const matchIndex = lowerText.indexOf(searchTerm);
+
+        if (matchIndex !== -1) {
+          foundMatch = true;
+
+          // Only highlight the first match per row
+          if (!firstMatchHighlighted) {
+            firstMatchHighlighted = true;
+            const before = text.substring(0, matchIndex);
+            const match = text.substring(matchIndex, matchIndex + searchTerm.length);
+            const after = text.substring(matchIndex + searchTerm.length);
+
+            const span = document.createElement('span');
+            span.innerHTML = `${escapeHtml(before)
+            }<mark class="search-match">${escapeHtml(match)}</mark>${
+              escapeHtml(after)}`;
+            node.parentNode.replaceChild(span, node);
+          }
+        }
+      });
+    });
+
+    if (foundMatch) {
+      row.classList.remove('search-hidden');
+      visibleCount += 1;
+    } else {
+      row.classList.add('search-hidden');
+    }
+  });
+
+  // Update count
+  const tableCount = document.getElementById('tableCount');
+  if (searchTerm) {
+    tableCount.textContent = `${visibleCount} of ${products.length} products`;
+  } else {
+    tableCount.textContent = `${products.length} product${products.length !== 1 ? 's' : ''}`;
+  }
+
+  // Update select all checkbox state based on visible items
+  updateSelectionUI();
 }
 
 function getTextNodes(element) {
-    const textNodes = [];
-    const walker = document.createTreeWalker(
-        element,
-        NodeFilter.SHOW_TEXT,
-        null,
-        false
-    );
-    
-    let node;
-    while (node = walker.nextNode()) {
-        if (node.textContent.trim()) {
-            textNodes.push(node);
-        }
+  const textNodes = [];
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false,
+  );
+
+  let node = walker.nextNode();
+  while (node) {
+    if (node.textContent.trim()) {
+      textNodes.push(node);
     }
-    return textNodes;
+    node = walker.nextNode();
+  }
+  return textNodes;
 }
 
 // ============================================
@@ -613,109 +627,117 @@ function getTextNodes(element) {
 // ============================================
 
 function openProductModal(productId = null) {
-    editingProductId = productId;
-    pendingImageFile = null;
-    
-    if (productId) {
-        const product = products.find(p => String(p.id) === String(productId));
-        if (product) {
-            modalTitle.textContent = 'Edit Product';
-            inputStyleNumber.value = product.styleNumber || '';
-            inputStyleName.value = product.styleName || '';
-            inputDescription.value = product.description || '';
-            inputColor.value = product.color || '';
-            inputSizeScale.value = product.sizeScale || '';
-            inputUnits.value = product.units || '';
-            inputSeason.value = product.season || '';
-            inputLaunchDate.value = product.launchDate || '';
-            inputVendor.value = product.vendor || '';
-            inputPoBulk.value = product.poBulk || '';
-            inputPoTop.value = product.poTop || '';
-            inputStatus.value = product.status || 'in_production';
-            inputUrgent.checked = product.urgent || false;
-            inputFabric.value = product.fabric || '';
-            inputContent.value = product.content || '';
-            inputFabricApprovalDate.value = product.fabricApprovalDate || '';
-            inputColorApprovalDate.value = product.colorApprovalDate || '';
-            inputTrimsApprovalDate.value = product.trimsApprovalDate || '';
-            inputNotes.value = product.notes || '';
-            inputImageFile.value = '';
-            updateImagePreview(product.imageUrl);
-            // New date fields
-            inputTpReleaseDate.value = product.tpReleaseDate || '';
-            inputPhotoSampleDueDate.value = product.photoSampleDueDate || '';
-            inputApprovalDueDateFabProd.value = product.approvalDueDateFabProd || '';
-            inputTopDate.value = product.topDate || '';
-            inputPassedToRetailDate.value = product.passedToRetailDate || '';
-            inputCancelDate.value = product.cancelDate || '';
-            inputOwnDocUpdate.value = product.ownDocUpdate || '';
-            
-            // Open materials section if any field has data
-            if (product.fabric || product.content || product.fabricApprovalDate || product.colorApprovalDate || product.trimsApprovalDate) {
-                materialsSection.classList.add('open');
-            } else {
-                materialsSection.classList.remove('open');
-            }
-            
-            // Open dates section if any field has data
-            if (product.tpReleaseDate || product.photoSampleDueDate || product.approvalDueDateFabProd || product.topDate || product.passedToRetailDate || product.cancelDate || product.ownDocUpdate) {
-                datesSection.classList.add('open');
-            } else {
-                datesSection.classList.remove('open');
-            }
-        }
-    } else {
-        modalTitle.textContent = 'Add Product';
-        productForm.reset();
-        inputStatus.value = 'in_production';
-        inputUrgent.checked = false;
+  editingProductId = productId;
+  pendingImageFile = null;
+
+  if (productId) {
+    const product = products.find((p) => String(p.id) === String(productId));
+    if (product) {
+      modalTitle.textContent = 'Edit Product';
+      inputStyleNumber.value = product.styleNumber || '';
+      inputStyleName.value = product.styleName || '';
+      inputDescription.value = product.description || '';
+      inputColor.value = product.color || '';
+      inputSizeScale.value = product.sizeScale || '';
+      inputUnits.value = product.units || '';
+      inputSeason.value = product.season || '';
+      inputLaunchDate.value = product.launchDate || '';
+      inputVendor.value = product.vendor || '';
+      inputPoBulk.value = product.poBulk || '';
+      inputPoTop.value = product.poTop || '';
+      inputStatus.value = product.status || 'in_production';
+      inputUrgent.checked = product.urgent || false;
+      inputFabric.value = product.fabric || '';
+      inputContent.value = product.content || '';
+      inputFabricApprovalDate.value = product.fabricApprovalDate || '';
+      inputColorApprovalDate.value = product.colorApprovalDate || '';
+      inputTrimsApprovalDate.value = product.trimsApprovalDate || '';
+      inputNotes.value = product.notes || '';
+      inputImageFile.value = '';
+      updateImagePreview(product.imageUrl);
+      // New date fields
+      inputTpReleaseDate.value = product.tpReleaseDate || '';
+      inputPhotoSampleDueDate.value = product.photoSampleDueDate || '';
+      inputApprovalDueDateFabProd.value = product.approvalDueDateFabProd || '';
+      inputTopDate.value = product.topDate || '';
+      inputPassedToRetailDate.value = product.passedToRetailDate || '';
+      inputCancelDate.value = product.cancelDate || '';
+      inputOwnDocUpdate.value = product.ownDocUpdate || '';
+
+      // Open materials section if any field has data
+      const hasMaterialsData = product.fabric || product.content
+        || product.fabricApprovalDate || product.colorApprovalDate
+        || product.trimsApprovalDate;
+      if (hasMaterialsData) {
+        materialsSection.classList.add('open');
+      } else {
         materialsSection.classList.remove('open');
+      }
+
+      // Open dates section if any field has data
+      const hasDatesData = product.tpReleaseDate || product.photoSampleDueDate
+        || product.approvalDueDateFabProd || product.topDate
+        || product.passedToRetailDate || product.cancelDate || product.ownDocUpdate;
+      if (hasDatesData) {
+        datesSection.classList.add('open');
+      } else {
         datesSection.classList.remove('open');
-        updateImagePreview();
+      }
     }
-    
-    productModal.classList.add('active');
-    inputStyleNumber.focus();
+  } else {
+    modalTitle.textContent = 'Add Product';
+    productForm.reset();
+    inputStatus.value = 'in_production';
+    inputUrgent.checked = false;
+    materialsSection.classList.remove('open');
+    datesSection.classList.remove('open');
+    updateImagePreview();
+  }
+
+  productModal.classList.add('active');
+  inputStyleNumber.focus();
 }
 
 function closeProductModal() {
-    productModal.classList.remove('active');
-    editingProductId = null;
-    productForm.reset();
-    updateImagePreview();
+  productModal.classList.remove('active');
+  editingProductId = null;
+  productForm.reset();
+  updateImagePreview();
 }
 
-function handleImageSelect(e) {
-    const file = e.target.files[0];
-    if (file) {
-        pendingImageFile = file;
-        fileName.textContent = file.name;
-        
-        // Show preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            imagePreview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-        };
-        reader.readAsDataURL(file);
-    }
+function handleImageSelect(evt) {
+  const file = evt.target.files[0];
+  if (file) {
+    pendingImageFile = file;
+    fileName.textContent = file.name;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (loadEvt) => {
+      imagePreview.innerHTML = `<img src="${loadEvt.target.result}" alt="Preview">`;
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
 function updateImagePreview(imageUrl = null) {
-    if (imageUrl) {
-        const fullUrl = getProductImageUrl(imageUrl);
-        imagePreview.innerHTML = `<img src="${escapeHtml(fullUrl)}" alt="Preview" onerror="this.parentElement.innerHTML='<span class=\\'image-preview-placeholder\\'>📷</span>'">`;
-    } else {
-        imagePreview.innerHTML = '<span class="image-preview-placeholder">📷</span>';
-    }
-    fileName.textContent = '';
-    pendingImageFile = null;
+  if (imageUrl) {
+    const fullUrl = getProductImageUrl(imageUrl);
+    const errorHandler = "this.parentElement.innerHTML='<span class=\\'image-preview-placeholder\\'>"
+      + "📷</span>'";
+    imagePreview.innerHTML = `<img src="${escapeHtml(fullUrl)}" alt="Preview" onerror="${errorHandler}">`;
+  } else {
+    imagePreview.innerHTML = '<span class="image-preview-placeholder">📷</span>';
+  }
+  fileName.textContent = '';
+  pendingImageFile = null;
 }
 
 function getProductImageUrl(imagePath) {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
-    const baseUrl = API_BASE.replace('/grizz.biz/grizz-lists', '');
-    return `${baseUrl}${imagePath}`;
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  const baseUrl = API_BASE.replace('/grizz.biz/grizz-lists', '');
+  return `${baseUrl}${imagePath}`;
 }
 
 // ============================================
@@ -723,122 +745,123 @@ function getProductImageUrl(imagePath) {
 // ============================================
 
 async function uploadProductImage(file) {
-    const uploadUrl = `${API_BASE}/lists/${listId}`;
-    
-    try {
-        const formData = new FormData();
-        formData.append('op', 'product_image');
-        formData.append('image', file);
-        
-        const response = await fetch(uploadUrl, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.images && result.images.length > 0) {
-            return result.images[0].path || result.images[0].url;
-        }
-        return null;
-    } catch (error) {
-        console.error('Failed to upload product image:', error);
-        return null;
+  const uploadUrl = `${API_BASE}/lists/${listId}`;
+
+  try {
+    const formData = new FormData();
+    formData.append('op', 'product_image');
+    formData.append('image', file);
+
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    const result = await response.json();
+
+    if (result.images && result.images.length > 0) {
+      return result.images[0].path || result.images[0].url;
+    }
+    return null;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to upload product image:', error);
+    return null;
+  }
 }
 
 async function saveProduct() {
-    const description = inputDescription.value.trim();
-    if (!description) {
-        inputDescription.focus();
-        return;
-    }
-    
-    // Upload image if a new file was selected
-    let imageUrl = '';
-    if (pendingImageFile) {
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Uploading...';
-        imageUrl = await uploadProductImage(pendingImageFile);
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Product';
-    } else if (editingProductId) {
-        // Keep existing image URL when editing
-        const existingProduct = products.find(p => String(p.id) === String(editingProductId));
-        imageUrl = existingProduct?.imageUrl || '';
-    }
-    
-    const productData = {
-        styleNumber: inputStyleNumber.value.trim(),
-        styleName: inputStyleName.value.trim(),
-        description,
-        color: inputColor.value.trim(),
-        sizeScale: inputSizeScale.value,
-        units: inputUnits.value.trim(),
-        imageUrl,
-        season: inputSeason.value,
-        launchDate: inputLaunchDate.value,
-        vendor: inputVendor.value,
-        poBulk: inputPoBulk.value.trim(),
-        poTop: inputPoTop.value.trim(),
-        status: inputStatus.value,
-        urgent: inputUrgent.checked,
-        fabric: inputFabric.value.trim(),
-        content: inputContent.value.trim(),
-        fabricApprovalDate: inputFabricApprovalDate.value,
-        colorApprovalDate: inputColorApprovalDate.value,
-        trimsApprovalDate: inputTrimsApprovalDate.value,
-        notes: inputNotes.value.trim(),
-        // New date fields
-        tpReleaseDate: inputTpReleaseDate.value,
-        photoSampleDueDate: inputPhotoSampleDueDate.value,
-        approvalDueDateFabProd: inputApprovalDueDateFabProd.value,
-        topDate: inputTopDate.value,
-        passedToRetailDate: inputPassedToRetailDate.value,
-        cancelDate: inputCancelDate.value,
-        ownDocUpdate: inputOwnDocUpdate.value
-    };
-    
-    const localEvent = editingProductId
-        ? await addEvent('updated', { id: editingProductId, ...productData })
-        : await addEvent('added', { id: generateId(), ...productData });
-    
-    closeProductModal();
-    
-    // Wait for POST to complete, then fetch fresh data and render
-    await localEvent._postPromise;
-    const changelog = await loadChangelogFromServer({ silent: true });
-    products = replayChangelog(changelog);
-    lastKnownEventCount = changelog.length;
-    renderProducts();
+  const description = inputDescription.value.trim();
+  if (!description) {
+    inputDescription.focus();
+    return;
+  }
+
+  // Upload image if a new file was selected
+  let imageUrl = '';
+  if (pendingImageFile) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Uploading...';
+    imageUrl = await uploadProductImage(pendingImageFile);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Product';
+  } else if (editingProductId) {
+    // Keep existing image URL when editing
+    const existingProduct = products.find((p) => String(p.id) === String(editingProductId));
+    imageUrl = existingProduct?.imageUrl || '';
+  }
+
+  const productData = {
+    styleNumber: inputStyleNumber.value.trim(),
+    styleName: inputStyleName.value.trim(),
+    description,
+    color: inputColor.value.trim(),
+    sizeScale: inputSizeScale.value,
+    units: inputUnits.value.trim(),
+    imageUrl,
+    season: inputSeason.value,
+    launchDate: inputLaunchDate.value,
+    vendor: inputVendor.value,
+    poBulk: inputPoBulk.value.trim(),
+    poTop: inputPoTop.value.trim(),
+    status: inputStatus.value,
+    urgent: inputUrgent.checked,
+    fabric: inputFabric.value.trim(),
+    content: inputContent.value.trim(),
+    fabricApprovalDate: inputFabricApprovalDate.value,
+    colorApprovalDate: inputColorApprovalDate.value,
+    trimsApprovalDate: inputTrimsApprovalDate.value,
+    notes: inputNotes.value.trim(),
+    // New date fields
+    tpReleaseDate: inputTpReleaseDate.value,
+    photoSampleDueDate: inputPhotoSampleDueDate.value,
+    approvalDueDateFabProd: inputApprovalDueDateFabProd.value,
+    topDate: inputTopDate.value,
+    passedToRetailDate: inputPassedToRetailDate.value,
+    cancelDate: inputCancelDate.value,
+    ownDocUpdate: inputOwnDocUpdate.value,
+  };
+
+  const localEvent = editingProductId
+    ? await addEvent('updated', { id: editingProductId, ...productData })
+    : await addEvent('added', { id: generateId(), ...productData });
+
+  closeProductModal();
+
+  // Wait for POST to complete, then fetch fresh data and render
+  await localEvent.postPromise;
+  const changelog = await loadChangelogFromServer({ silent: true });
+  products = replayChangelog(changelog);
+  lastKnownEventCount = changelog.length;
+  renderProducts();
 }
 
 function openDeleteModal(productId) {
-    const product = products.find(p => String(p.id) === String(productId));
-    if (!product) return;
-    
-    productToDelete = productId;
-    deleteProductName.textContent = `"${product.description}"?`;
-    deleteModal.classList.add('active');
+  const product = products.find((p) => String(p.id) === String(productId));
+  if (!product) return;
+
+  productToDelete = productId;
+  deleteProductName.textContent = `"${product.description}"?`;
+  deleteModal.classList.add('active');
 }
 
 function closeDeleteModal() {
-    deleteModal.classList.remove('active');
-    productToDelete = null;
+  deleteModal.classList.remove('active');
+  productToDelete = null;
 }
 
 async function confirmDelete() {
-    if (!productToDelete) return;
-    
-    const id = productToDelete;
-    closeDeleteModal();
-    
-    await addEvent('removed', { id });
-    await syncAndRender();
+  if (!productToDelete) return;
+
+  const id = productToDelete;
+  closeDeleteModal();
+
+  await addEvent('removed', { id });
+  await syncAndRender();
 }
 
 // ============================================
@@ -846,60 +869,58 @@ async function confirmDelete() {
 // ============================================
 
 function formatProtoDate(dateStr) {
-    if (!dateStr) return '';
-    
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    
-    const now = new Date();
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    
-    if (date < sixMonthsAgo) {
-        // Include year for dates older than 6 months
-        return `${month}/${day}/${date.getFullYear()}`;
-    } else {
-        // Just M/D for recent dates
-        return `${month}/${day}`;
-    }
+  if (!dateStr) return '';
+
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  if (date < sixMonthsAgo) {
+    // Include year for dates older than 6 months
+    return `${month}/${day}/${date.getFullYear()}`;
+  }
+  // Just M/D for recent dates
+  return `${month}/${day}`;
 }
 
 function renderProtoSummary(product) {
-    const protos = product.protos || [];
-    
-    if (protos.length === 0) {
-        return `
+  const protos = product.protos || [];
+
+  if (protos.length === 0) {
+    return `
             <span class="proto-badge empty" data-proto-product="${product.id}" title="Add protos">
                 +
             </span>
         `;
-    }
-    
-    // Get the last proto
-    const lastProto = protos[protos.length - 1];
-    const protoLabel = lastProto.name || `Proto ${protos.length}`;
-    
-    // Get the most recent status update from the last proto
-    const lastUpdate = lastProto.updates && lastProto.updates.length > 0 
-        ? lastProto.updates[lastProto.updates.length - 1] 
-        : null;
-    
-    if (!lastUpdate) {
-        return `
+  }
+
+  // Get the last proto
+  const lastProto = protos[protos.length - 1];
+  const protoLabel = lastProto.name || `Proto ${protos.length}`;
+
+  // Get the most recent status update from the last proto
+  const lastUpdate = lastProto.updates && lastProto.updates.length > 0
+    ? lastProto.updates[lastProto.updates.length - 1]
+    : null;
+
+  if (!lastUpdate) {
+    return `
             <div class="proto-summary" data-proto-product="${product.id}" title="Manage protos">
                 <span class="proto-summary-label">${escapeHtml(protoLabel)}</span>
                 <span class="proto-status-tag proto-status-none">No updates</span>
             </div>
         `;
-    }
-    
-    const statusInfo = getProtoStatusInfo(lastUpdate.type);
-    const dateStr = formatProtoDate(lastUpdate.date);
-    
-    return `
+  }
+
+  const statusInfo = getProtoStatusInfo(lastUpdate.type);
+  const dateStr = formatProtoDate(lastUpdate.date);
+
+  return `
         <div class="proto-summary" data-proto-product="${product.id}" title="Manage protos">
             <span class="proto-summary-label">${escapeHtml(protoLabel)}</span>
             <span class="proto-status-tag" style="background: ${statusInfo.color}15; color: ${statusInfo.color}; border-color: ${statusInfo.color};">
@@ -910,92 +931,91 @@ function renderProtoSummary(product) {
 }
 
 function openProtoModal(productId) {
-    const product = products.find(p => String(p.id) === String(productId));
-    if (!product) return;
-    
-    editingProtoProductId = productId;
-    editingProtos = JSON.parse(JSON.stringify(product.protos || [])); // Deep copy
-    
-    protoProductInfo.textContent = `${product.styleNumber || 'No Style#'} - ${product.description || 'No Description'}`;
-    renderProtos();
-    protoModal.classList.add('active');
+  const product = products.find((p) => String(p.id) === String(productId));
+  if (!product) return;
+
+  editingProtoProductId = productId;
+  editingProtos = JSON.parse(JSON.stringify(product.protos || [])); // Deep copy
+
+  protoProductInfo.textContent = `${product.styleNumber || 'No Style#'} - ${product.description || 'No Description'}`;
+  renderProtos();
+  protoModal.classList.add('active');
 }
 
 function closeProtoModal() {
-    protoModal.classList.remove('active');
-    editingProtoProductId = null;
-    editingProtos = [];
-    editingUpdateId = null;
+  protoModal.classList.remove('active');
+  editingProtoProductId = null;
+  editingProtos = [];
+  editingUpdateId = null;
 }
 
 function setEditingUpdate(updateId) {
-    editingUpdateId = updateId;
-    renderProtos();
+  editingUpdateId = updateId;
+  renderProtos();
 }
 
 function addProto() {
-    if (editingProtos.length >= 4) {
-        alert('Maximum of 4 protos allowed per product.');
-        return;
-    }
-    
-    editingProtos.push({
-        id: generateId(),
-        name: '',
-        notes: '',
-        updates: []
-    });
-    renderProtos();
+  if (editingProtos.length >= 4) {
+    // eslint-disable-next-line no-alert
+    alert('Maximum of 4 protos allowed per product.');
+    return;
+  }
+
+  editingProtos.push({
+    id: generateId(),
+    name: '',
+    notes: '',
+    updates: [],
+  });
+  renderProtos();
 }
 
 function removeProto(protoId) {
-    editingProtos = editingProtos.filter(p => p.id != protoId);
-    renderProtos();
+  editingProtos = editingProtos.filter((p) => String(p.id) !== String(protoId));
+  renderProtos();
 }
 
 function addProtoUpdate(protoId) {
-    const proto = editingProtos.find(p => p.id == protoId);
-    if (!proto) return;
-    
-    const newUpdateId = generateId();
-    proto.updates.push({
-        id: newUpdateId,
-        type: 'sent',
-        date: new Date().toISOString().split('T')[0],
-        notes: ''
-    });
-    editingUpdateId = newUpdateId; // Automatically enter edit mode for new update
-    renderProtos();
+  const proto = editingProtos.find((p) => String(p.id) === String(protoId));
+  if (!proto) return;
+
+  const newUpdateId = generateId();
+  proto.updates.push({
+    id: newUpdateId,
+    type: 'sent',
+    date: new Date().toISOString().split('T')[0],
+    notes: '',
+  });
+  editingUpdateId = newUpdateId; // Automatically enter edit mode for new update
+  renderProtos();
 }
 
 function removeProtoUpdate(protoId, updateId) {
-    const proto = editingProtos.find(p => p.id == protoId);
-    if (!proto) return;
-    
-    proto.updates = proto.updates.filter(u => u.id != updateId);
-    renderProtos();
+  const proto = editingProtos.find((p) => String(p.id) === String(protoId));
+  if (!proto) return;
+
+  proto.updates = proto.updates.filter((u) => String(u.id) !== String(updateId));
+  renderProtos();
 }
 
 function renderProtos() {
-    if (editingProtos.length === 0) {
-        protoList.innerHTML = `
+  if (editingProtos.length === 0) {
+    protoList.innerHTML = `
             <div class="empty-state" style="padding: 40px 20px;">
                 <div class="empty-icon">📦</div>
                 <h3 class="empty-title">No protos yet</h3>
                 <p class="empty-text">Add a proto to track its progress</p>
             </div>
         `;
-        return;
-    }
-    
-    const statusOptionsHtml = protoStatusTypes.map(s => 
-        `<option value="${s.value}">${s.label}</option>`
-    ).join('');
-    
-    protoList.innerHTML = editingProtos.map((proto, index) => `
+    return;
+  }
+
+  // Status options built inline in the template below
+
+  protoList.innerHTML = editingProtos.map((proto, protoIdx) => `
         <div class="proto-card" data-proto-id="${proto.id}">
             <div class="proto-header">
-                <span class="proto-number">Proto ${index + 1}</span>
+                <span class="proto-number">Proto ${protoIdx + 1}</span>
                 <input type="text" class="proto-name-input" placeholder="Proto name (optional)" 
                        value="${escapeHtml(proto.name || '')}" data-field="name">
                 <button type="button" class="proto-delete-btn" data-delete-proto="${proto.id}" title="Remove proto">
@@ -1010,18 +1030,20 @@ function renderProtos() {
                        value="${escapeHtml(proto.notes || '')}" data-field="notes" data-proto-id="${proto.id}">
             </div>
             <div class="proto-updates">
-                ${proto.updates.map(update => {
-                    const statusInfo = getProtoStatusInfo(update.type);
-                    const isEditing = editingUpdateId === update.id;
-                    const dateDisplay = update.date ? formatProtoDate(update.date) : '';
-                    
-                    if (isEditing) {
-                        return `
+                ${proto.updates.map((update) => {
+    const statusInfo = getProtoStatusInfo(update.type);
+    const isEditing = editingUpdateId === update.id;
+    const dateDisplay = update.date ? formatProtoDate(update.date) : '';
+
+    if (isEditing) {
+      const statusOpts = protoStatusTypes.map((s) => {
+        const sel = update.type === s.value ? 'selected' : '';
+        return `<option value="${s.value}" ${sel}>${s.label}</option>`;
+      }).join('');
+      return `
                             <div class="proto-update-row editing" data-update-id="${update.id}" style="background: ${statusInfo.color}15; border-color: ${statusInfo.color};">
                                 <select data-field="type" data-update="${update.id}">
-                                    ${protoStatusTypes.map(s => 
-                                        `<option value="${s.value}" ${update.type === s.value ? 'selected' : ''}>${s.label}</option>`
-                                    ).join('')}
+                                    ${statusOpts}
                                 </select>
                                 <input type="date" value="${update.date || ''}" data-field="date" data-update="${update.id}">
                                 <input type="text" placeholder="Notes (optional)" value="${escapeHtml(update.notes || '')}" data-field="notes" data-update="${update.id}">
@@ -1037,21 +1059,22 @@ function renderProtos() {
                                 </button>
                             </div>
                         `;
-                    } else {
-                        return `
-                            <div class="proto-update-row view-mode" data-update-id="${update.id}" data-edit-update="${update.id}" style="background: ${statusInfo.color}15; border-color: ${statusInfo.color};">
+    }
+    const deleteStyle = `color: ${statusInfo.color};`;
+    const rowStyle = `background: ${statusInfo.color}15; border-color: ${statusInfo.color};`;
+    return `
+                            <div class="proto-update-row view-mode" data-update-id="${update.id}" data-edit-update="${update.id}" style="${rowStyle}">
                                 <span class="update-status" style="color: ${statusInfo.color};">${statusInfo.label}</span>
                                 <span class="update-date">${dateDisplay || '—'}</span>
                                 <span class="update-notes">${escapeHtml(update.notes) || '—'}</span>
-                                <button type="button" class="proto-update-delete view-delete" data-delete-update="${update.id}" data-proto="${proto.id}" title="Remove" style="color: ${statusInfo.color};">
+                                <button type="button" class="proto-update-delete view-delete" data-delete-update="${update.id}" data-proto="${proto.id}" title="Remove" style="${deleteStyle}">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M18 6L6 18M6 6l12 12"/>
                                     </svg>
                                 </button>
                             </div>
                         `;
-                    }
-                }).join('')}
+  }).join('')}
             </div>
             <button type="button" class="add-update-btn" data-add-update="${proto.id}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1071,127 +1094,128 @@ function renderProtos() {
             </div>
         </div>
     `).join('');
-    
-    // Attach event listeners
-    protoList.querySelectorAll('.proto-delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => removeProto(btn.dataset.deleteProto));
+
+  // Attach event listeners
+  protoList.querySelectorAll('.proto-delete-btn').forEach((btn) => {
+    btn.addEventListener('click', () => removeProto(btn.dataset.deleteProto));
+  });
+
+  protoList.querySelectorAll('.add-update-btn').forEach((btn) => {
+    btn.addEventListener('click', () => addProtoUpdate(btn.dataset.addUpdate));
+  });
+
+  protoList.querySelectorAll('.proto-update-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeProtoUpdate(btn.dataset.proto, btn.dataset.deleteUpdate);
     });
-    
-    protoList.querySelectorAll('.add-update-btn').forEach(btn => {
-        btn.addEventListener('click', () => addProtoUpdate(btn.dataset.addUpdate));
+  });
+
+  // Click on view-mode row to enter edit mode
+  protoList.querySelectorAll('.proto-update-row.view-mode').forEach((row) => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.proto-update-delete')) return;
+      setEditingUpdate(row.dataset.editUpdate);
     });
-    
-    protoList.querySelectorAll('.proto-update-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            removeProtoUpdate(btn.dataset.proto, btn.dataset.deleteUpdate);
-        });
+  });
+
+  // Done button to exit edit mode
+  protoList.querySelectorAll('.proto-update-done').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingUpdateId = null;
+      renderProtos();
     });
-    
-    // Click on view-mode row to enter edit mode
-    protoList.querySelectorAll('.proto-update-row.view-mode').forEach(row => {
-        row.addEventListener('click', (e) => {
-            if (e.target.closest('.proto-update-delete')) return;
-            setEditingUpdate(row.dataset.editUpdate);
-        });
+  });
+
+  // Cancel button to exit edit mode (same as done, just exits)
+  protoList.querySelectorAll('.proto-update-cancel').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingUpdateId = null;
+      renderProtos();
     });
-    
-    // Done button to exit edit mode
-    protoList.querySelectorAll('.proto-update-done').forEach(btn => {
-        btn.addEventListener('click', () => {
-            editingUpdateId = null;
-            renderProtos();
-        });
+  });
+
+  // Input change handlers
+  protoList.querySelectorAll('.proto-name-input').forEach((input) => {
+    input.addEventListener('input', (e) => {
+      const card = e.target.closest('.proto-card');
+      const { protoId } = card.dataset;
+      const proto = editingProtos.find((p) => String(p.id) === String(protoId));
+      if (proto) proto.name = e.target.value;
     });
-    
-    // Cancel button to exit edit mode (same as done, just exits)
-    protoList.querySelectorAll('.proto-update-cancel').forEach(btn => {
-        btn.addEventListener('click', () => {
-            editingUpdateId = null;
-            renderProtos();
-        });
+  });
+
+  protoList.querySelectorAll('.proto-notes-input').forEach((input) => {
+    input.addEventListener('input', (e) => {
+      const { protoId } = e.target.dataset;
+      const proto = editingProtos.find((p) => String(p.id) === String(protoId));
+      if (proto) proto.notes = e.target.value;
     });
-    
-    // Input change handlers
-    protoList.querySelectorAll('.proto-name-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-            const card = e.target.closest('.proto-card');
-            const protoId = card.dataset.protoId;
-            const proto = editingProtos.find(p => p.id == protoId);
-            if (proto) proto.name = e.target.value;
-        });
+  });
+
+  // Photo sample checkbox handlers
+  protoList.querySelectorAll('.photo-sample-check').forEach((checkbox) => {
+    checkbox.addEventListener('change', (e) => {
+      const protoId = e.target.dataset.proto;
+      const proto = editingProtos.find((p) => String(p.id) === String(protoId));
+      if (proto) {
+        proto.isPhotoSample = e.target.checked;
+        if (!e.target.checked) {
+          proto.passedPhotoSampleDate = '';
+        }
+        renderProtos();
+      }
     });
-    
-    protoList.querySelectorAll('.proto-notes-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-            const protoId = e.target.dataset.protoId;
-            const proto = editingProtos.find(p => p.id == protoId);
-            if (proto) proto.notes = e.target.value;
-        });
+  });
+
+  // Photo sample date handlers
+  protoList.querySelectorAll('.photo-sample-date').forEach((input) => {
+    input.addEventListener('change', (e) => {
+      const protoId = e.target.dataset.proto;
+      const proto = editingProtos.find((p) => String(p.id) === String(protoId));
+      if (proto) {
+        proto.passedPhotoSampleDate = e.target.value;
+      }
     });
-    
-    // Photo sample checkbox handlers
-    protoList.querySelectorAll('.photo-sample-check').forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-            const protoId = e.target.dataset.proto;
-            const proto = editingProtos.find(p => p.id == protoId);
-            if (proto) {
-                proto.isPhotoSample = e.target.checked;
-                if (!e.target.checked) {
-                    proto.passedPhotoSampleDate = '';
-                }
-                renderProtos();
-            }
-        });
+  });
+
+  protoList.querySelectorAll('.proto-update-row select, .proto-update-row input').forEach((input) => {
+    input.addEventListener('change', (e) => {
+      const updateId = e.target.dataset.update;
+      const { field } = e.target.dataset;
+      const card = e.target.closest('.proto-card');
+      const { protoId } = card.dataset;
+
+      const proto = editingProtos.find((p) => String(p.id) === String(protoId));
+      if (!proto) return;
+
+      const update = proto.updates.find((u) => String(u.id) === String(updateId));
+      if (update) update[field] = e.target.value;
     });
-    
-    // Photo sample date handlers
-    protoList.querySelectorAll('.photo-sample-date').forEach(input => {
-        input.addEventListener('change', (e) => {
-            const protoId = e.target.dataset.proto;
-            const proto = editingProtos.find(p => p.id == protoId);
-            if (proto) {
-                proto.passedPhotoSampleDate = e.target.value;
-            }
-        });
-    });
-    
-    protoList.querySelectorAll('.proto-update-row select, .proto-update-row input').forEach(input => {
-        input.addEventListener('change', (e) => {
-            const updateId = e.target.dataset.update;
-            const field = e.target.dataset.field;
-            const card = e.target.closest('.proto-card');
-            const protoId = card.dataset.protoId;
-            
-            const proto = editingProtos.find(p => p.id == protoId);
-            if (!proto) return;
-            
-            const update = proto.updates.find(u => u.id == updateId);
-            if (update) update[field] = e.target.value;
-        });
-    });
+  });
 }
 
 async function saveProtos() {
-    if (!editingProtoProductId) return;
-    
-    saveProtosBtn.disabled = true;
-    saveProtosBtn.textContent = 'Saving...';
-    
-    try {
-        await addEvent('updated', { 
-            id: editingProtoProductId, 
-            protos: JSON.stringify(editingProtos)
-        });
-        
-        closeProtoModal();
-        await syncAndRender();
-    } catch (error) {
-        console.error('Failed to save protos:', error);
-    } finally {
-        saveProtosBtn.disabled = false;
-        saveProtosBtn.textContent = 'Save Changes';
-    }
+  if (!editingProtoProductId) return;
+
+  saveProtosBtn.disabled = true;
+  saveProtosBtn.textContent = 'Saving...';
+
+  try {
+    await addEvent('updated', {
+      id: editingProtoProductId,
+      protos: JSON.stringify(editingProtos),
+    });
+
+    closeProtoModal();
+    await syncAndRender();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to save protos:', error);
+  } finally {
+    saveProtosBtn.disabled = false;
+    saveProtosBtn.textContent = 'Save Changes';
+  }
 }
 
 // ============================================
@@ -1199,47 +1223,47 @@ async function saveProtos() {
 // ============================================
 
 function handleSort(field) {
-    if (currentSort.field === field) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-    } else {
-        currentSort.field = field;
-        currentSort.direction = 'asc';
+  if (currentSort.field === field) {
+    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort.field = field;
+    currentSort.direction = 'asc';
+  }
+
+  // Update column headers
+  document.querySelectorAll('.sortable').forEach((th) => {
+    th.classList.remove('sorted', 'asc', 'desc');
+    if (th.dataset.sort === field) {
+      th.classList.add('sorted', currentSort.direction);
     }
-    
-    // Update column headers
-    document.querySelectorAll('.sortable').forEach(th => {
-        th.classList.remove('sorted', 'asc', 'desc');
-        if (th.dataset.sort === field) {
-            th.classList.add('sorted', currentSort.direction);
-        }
-    });
-    
-    renderProducts();
+  });
+
+  renderProducts();
 }
 
 function getSortedProducts() {
-    if (!currentSort.field) return products;
-    
-    return [...products].sort((a, b) => {
-        let aVal = a[currentSort.field] || '';
-        let bVal = b[currentSort.field] || '';
-        
-        // Handle status sorting by order
-        if (currentSort.field === 'status') {
-            const statusOrder = ['in_production', 'approved_photo_sample', 'bulk_top', 'dropped'];
-            aVal = statusOrder.indexOf(aVal);
-            bVal = statusOrder.indexOf(bVal);
-        }
-        
-        if (typeof aVal === 'string') {
-            aVal = aVal.toLowerCase();
-            bVal = bVal.toLowerCase();
-        }
-        
-        if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
-        return 0;
-    });
+  if (!currentSort.field) return products;
+
+  return [...products].sort((a, b) => {
+    let aVal = a[currentSort.field] || '';
+    let bVal = b[currentSort.field] || '';
+
+    // Handle status sorting by order
+    if (currentSort.field === 'status') {
+      const statusOrder = ['in_production', 'approved_photo_sample', 'bulk_top', 'dropped'];
+      aVal = statusOrder.indexOf(aVal);
+      bVal = statusOrder.indexOf(bVal);
+    }
+
+    if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+
+    if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
+    if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
 }
 
 // ============================================
@@ -1247,14 +1271,13 @@ function getSortedProducts() {
 // ============================================
 
 function renderProducts() {
-    const sortedProducts = getSortedProducts();
-    
-    // Update table count
-    document.getElementById('tableCount').textContent = 
-        `${products.length} product${products.length !== 1 ? 's' : ''}`;
-    
-    if (products.length === 0) {
-        tableWrapper.innerHTML = `
+  const sortedProducts = getSortedProducts();
+
+  // Update table count
+  document.getElementById('tableCount').textContent = `${products.length} product${products.length !== 1 ? 's' : ''}`;
+
+  if (products.length === 0) {
+    tableWrapper.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">📦</div>
                 <h3 class="empty-title">No products yet</h3>
@@ -1267,12 +1290,12 @@ function renderProducts() {
                 </button>
             </div>
         `;
-        return;
-    }
-    
-    // Restore table structure if needed
-    if (!tableWrapper.querySelector('.product-table')) {
-        tableWrapper.innerHTML = `
+    return;
+  }
+
+  // Restore table structure if needed
+  if (!tableWrapper.querySelector('.product-table')) {
+    tableWrapper.innerHTML = `
             <table class="product-table">
                 <thead>
                     <tr>
@@ -1302,22 +1325,22 @@ function renderProducts() {
                 <tbody id="productTableBody"></tbody>
             </table>
         `;
-        
-        // Re-attach sort handlers
-        document.querySelectorAll('.sortable').forEach(th => {
-            th.addEventListener('click', () => handleSort(th.dataset.sort));
-            if (th.dataset.sort === currentSort.field) {
-                th.classList.add('sorted', currentSort.direction);
-            }
-        });
-    }
-    
-    const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
-    
-    tbody.innerHTML = sortedProducts.map(product => {
-        const statusInfo = getStatusInfo(product.status);
-        
-        return `
+
+    // Re-attach sort handlers
+    document.querySelectorAll('.sortable').forEach((th) => {
+      th.addEventListener('click', () => handleSort(th.dataset.sort));
+      if (th.dataset.sort === currentSort.field) {
+        th.classList.add('sorted', currentSort.direction);
+      }
+    });
+  }
+
+  const tbody = document.getElementById('productTableBody') || tableWrapper.querySelector('tbody');
+
+  tbody.innerHTML = sortedProducts.map((product) => {
+    const statusInfo = getStatusInfo(product.status);
+
+    return `
             <tr data-id="${product.id}" class="${product.urgent ? 'urgent' : ''}${selectedProductIds.has(product.id) ? ' selected' : ''}">
                 <td class="checkbox-cell">
                     <label class="table-checkbox" onclick="event.stopPropagation()">
@@ -1326,10 +1349,10 @@ function renderProducts() {
                     </label>
                 </td>
                 <td class="product-image-cell">
-                    ${product.imageUrl 
-                        ? `<img src="${escapeHtml(getProductImageUrl(product.imageUrl))}" alt="${escapeHtml(product.description)}" class="product-image" onerror="this.outerHTML='<div class=\\'product-image-placeholder\\'>📷</div>'">`
-                        : '<div class="product-image-placeholder">📷</div>'
-                    }
+                    ${product.imageUrl
+    ? `<img src="${escapeHtml(getProductImageUrl(product.imageUrl))}" alt="${escapeHtml(product.description)}" class="product-image" onerror="this.outerHTML='<div class=\\'product-image-placeholder\\'>📷</div>'">`
+    : '<div class="product-image-placeholder">📷</div>'
+}
                 </td>
                 <td class="description-cell">
                     <div class="product-name">${escapeHtml(product.description)}</div>
@@ -1370,71 +1393,71 @@ function renderProducts() {
                 </td>
             </tr>
         `;
-    }).join('');
-    
-    // Attach event listeners
-    tbody.querySelectorAll('tr').forEach(row => {
-        row.style.cursor = 'pointer';
-        row.addEventListener('click', (e) => {
-            // Don't trigger if clicking on action buttons
-            if (e.target.closest('.action-btn')) return;
-            const productId = row.dataset.id;
-            openProductModal(productId);
-        });
+  }).join('');
+
+  // Attach event listeners
+  tbody.querySelectorAll('tr').forEach((row) => {
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', (e) => {
+      // Don't trigger if clicking on action buttons
+      if (e.target.closest('.action-btn')) return;
+      const productId = row.dataset.id;
+      openProductModal(productId);
     });
-    
-    tbody.querySelectorAll('.action-btn.edit').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openProductModal(btn.dataset.editId);
-        });
+  });
+
+  tbody.querySelectorAll('.action-btn.edit').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openProductModal(btn.dataset.editId);
     });
-    
-    tbody.querySelectorAll('.action-btn.delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const deleteId = btn.dataset.deleteId;
-            openDeleteModal(deleteId);
-        });
+  });
+
+  tbody.querySelectorAll('.action-btn.delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const { deleteId } = btn.dataset;
+      openDeleteModal(deleteId);
     });
-    
-    // Proto badge/summary click handlers
-    tbody.querySelectorAll('.proto-badge, .proto-summary').forEach(el => {
-        el.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openProtoModal(el.dataset.protoProduct);
-        });
+  });
+
+  // Proto badge/summary click handlers
+  tbody.querySelectorAll('.proto-badge, .proto-summary').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openProtoModal(el.dataset.protoProduct);
     });
-    
-    // Row checkbox handlers
-    tbody.querySelectorAll('.row-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-            const productId = checkbox.dataset.id;
-            toggleProductSelection(productId, e.target.checked);
-        });
+  });
+
+  // Row checkbox handlers
+  tbody.querySelectorAll('.row-checkbox').forEach((checkbox) => {
+    checkbox.addEventListener('change', (e) => {
+      const productId = checkbox.dataset.id;
+      toggleProductSelection(productId, e.target.checked);
     });
-    
-    // Re-attach select all checkbox handler (in case table was rebuilt)
-    const newSelectAllCheckbox = document.getElementById('selectAllCheckbox');
-    if (newSelectAllCheckbox && newSelectAllCheckbox !== selectAllCheckbox) {
-        newSelectAllCheckbox.addEventListener('change', (e) => {
-            const visibleIds = getVisibleProductIds();
-            if (e.target.checked) {
-                visibleIds.forEach(id => selectedProductIds.add(id));
-            } else {
-                visibleIds.forEach(id => selectedProductIds.delete(id));
-            }
-            updateSelectionUI();
-        });
-    }
-    
-    // Reapply search if there's an active search term
-    if (searchTerm) {
-        applySearch();
-    }
-    
-    // Update selection UI to reflect current state
-    updateSelectionUI();
+  });
+
+  // Re-attach select all checkbox handler (in case table was rebuilt)
+  const newSelectAllCheckbox = document.getElementById('selectAllCheckbox');
+  if (newSelectAllCheckbox && newSelectAllCheckbox !== selectAllCheckbox) {
+    newSelectAllCheckbox.addEventListener('change', (e) => {
+      const visibleIds = getVisibleProductIds();
+      if (e.target.checked) {
+        visibleIds.forEach((id) => selectedProductIds.add(id));
+      } else {
+        visibleIds.forEach((id) => selectedProductIds.delete(id));
+      }
+      updateSelectionUI();
+    });
+  }
+
+  // Reapply search if there's an active search term
+  if (searchTerm) {
+    applySearch();
+  }
+
+  // Update selection UI to reflect current state
+  updateSelectionUI();
 }
 
 // ============================================
@@ -1442,31 +1465,31 @@ function renderProducts() {
 // ============================================
 
 function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function truncate(text, maxLength) {
-    if (!text || text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+  if (!text || text.length <= maxLength) return text;
+  return `${text.substring(0, maxLength)}...`;
 }
 
 function formatLaunchMonth(launchDate) {
-    if (!launchDate) return '';
-    const date = new Date(launchDate);
-    if (isNaN(date.getTime())) return '';
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                    'July', 'August', 'September', 'October', 'November', 'December'];
-    return months[date.getMonth()];
+  if (!launchDate) return '';
+  const date = new Date(launchDate);
+  if (Number.isNaN(date.getTime())) return '';
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  return months[date.getMonth()];
 }
 
 function formatDateShort(dateStr) {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
 }
 
 // ============================================
@@ -1474,22 +1497,23 @@ function formatDateShort(dateStr) {
 // ============================================
 
 async function pollForChanges() {
-    if (getIsSyncing()) return;
-    
-    try {
-        setIsSyncing(true);
-        const changelog = await loadChangelogFromServer({ silent: true });
-        setIsSyncing(false);
-        
-        if (changelog.length > lastKnownEventCount) {
-            lastKnownEventCount = changelog.length;
-            products = replayChangelog(changelog);
-            renderProducts();
-        }
-    } catch (error) {
-        setIsSyncing(false);
-        console.error('Poll error:', error);
+  if (getIsSyncing()) return;
+
+  try {
+    setIsSyncing(true);
+    const changelog = await loadChangelogFromServer({ silent: true });
+    setIsSyncing(false);
+
+    if (changelog.length > lastKnownEventCount) {
+      lastKnownEventCount = changelog.length;
+      products = replayChangelog(changelog);
+      renderProducts();
     }
+  } catch (error) {
+    setIsSyncing(false);
+    // eslint-disable-next-line no-console
+    console.error('Poll error:', error);
+  }
 }
 
 // ============================================
@@ -1497,15 +1521,14 @@ async function pollForChanges() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await init();
-    
-    // Update timeline link to include list ID
-    const timelineBtn = document.getElementById('timelineBtn');
-    if (timelineBtn && listId) {
-        timelineBtn.href = `timeline/index.html?list=${listId}`;
-    }
-    
-    // Start polling with focus/blur handling
-    createPoller(pollForChanges, 5000);
-});
+  await init();
 
+  // Update timeline link to include list ID
+  const timelineBtn = document.getElementById('timelineBtn');
+  if (timelineBtn && listId) {
+    timelineBtn.href = `timeline/index.html?list=${listId}`;
+  }
+
+  // Start polling with focus/blur handling
+  createPoller(pollForChanges, 5000);
+});
