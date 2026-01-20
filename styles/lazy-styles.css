@@ -1,4 +1,5 @@
 /* Portfolio Animations & Styles for Isabelle Tate */
+/* stylelint-disable no-descending-specificity */
 
 /* Custom color palette - elegant fashion-forward colors */
 :root {
@@ -16,69 +17,98 @@ html {
 }
 
 /* Fade-in animation for sections */
-@keyframes fadeInUp {
+@keyframes fade-in-up {
   from {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideInLeft {
+@keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
-    transform: translateX(0);
   }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Loading animation for cards - placed before section-specific overrides */
+main .cards > ul > li {
+  opacity: 0;
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+main .cards > ul > li:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+main .cards > ul > li:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+main .cards > ul > li:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+main .cards > ul > li:nth-child(4) {
+  animation-delay: 0.4s;
 }
 
 /* Apply animations to sections */
 main .section {
-  animation: fadeInUp 0.8s ease-out forwards;
+  animation: fade-in-up 0.8s ease-out forwards;
   animation-delay: calc(var(--section-index, 0) * 0.1s);
 }
 
-main .section:nth-child(1) { --section-index: 0; }
-main .section:nth-child(2) { --section-index: 1; }
-main .section:nth-child(3) { --section-index: 2; }
-main .section:nth-child(4) { --section-index: 3; }
-main .section:nth-child(5) { --section-index: 4; }
-main .section:nth-child(6) { --section-index: 5; }
-main .section:nth-child(7) { --section-index: 6; }
+main .section:nth-child(1) {
+  --section-index: 0;
+}
 
-/* Hero Introduction Section */
+main .section:nth-child(2) {
+  --section-index: 1;
+}
+
+main .section:nth-child(3) {
+  --section-index: 2;
+}
+
+main .section:nth-child(4) {
+  --section-index: 3;
+}
+
+main .section:nth-child(5) {
+  --section-index: 4;
+}
+
+main .section:nth-child(6) {
+  --section-index: 5;
+}
+
+main .section:nth-child(7) {
+  --section-index: 6;
+}
+
+/* ==========================================================================
+   HERO SECTION
+   ========================================================================== */
+
 main .section.hero-intro {
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
   color: #fff;
@@ -95,8 +125,9 @@ main .section.hero-intro::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 30% 70%, rgba(201, 168, 124, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 70% 30%, rgba(201, 168, 124, 0.08) 0%, transparent 50%);
+  background:
+    radial-gradient(circle at 30% 70%, rgb(201 168 124 / 10%) 0%, transparent 50%),
+    radial-gradient(circle at 70% 30%, rgb(201 168 124 / 8%) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -106,12 +137,10 @@ main .section.hero-intro h1 {
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 0.25em;
-  animation: fadeIn 1s ease-out;
   background: linear-gradient(90deg, #fff 0%, var(--accent-color) 50%, #fff 100%);
   background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   animation: shimmer 3s linear infinite;
 }
 
@@ -123,7 +152,7 @@ main .section.hero-intro h2 {
   color: var(--accent-color);
   margin-top: 0;
   margin-bottom: 1.5em;
-  animation: fadeIn 1.2s ease-out 0.3s both;
+  animation: fade-in 1.2s ease-out 0.3s both;
 }
 
 main .section.hero-intro p {
@@ -133,7 +162,7 @@ main .section.hero-intro p {
   font-size: 1.1rem;
   line-height: 1.8;
   opacity: 0.9;
-  animation: fadeInUp 1s ease-out 0.5s both;
+  animation: fade-in-up 1s ease-out 0.5s both;
 }
 
 main .section.hero-intro em {
@@ -143,7 +172,7 @@ main .section.hero-intro em {
   letter-spacing: 0.1em;
 }
 
-main .section.hero-intro a.button {
+main .section.hero-intro > div a.button {
   background: var(--accent-color);
   color: var(--dark-bg);
   border: none;
@@ -156,24 +185,27 @@ main .section.hero-intro a.button {
   margin: 8px;
 }
 
-main .section.hero-intro a.button:hover {
+main .section.hero-intro > div a.button:hover {
   background: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(201, 168, 124, 0.3);
+  box-shadow: 0 10px 30px rgb(201 168 124 / 30%);
 }
 
-main .section.hero-intro a.button.secondary {
+main .section.hero-intro > div a.button.secondary {
   background: transparent;
   border: 1px solid var(--accent-color);
   color: var(--accent-color);
 }
 
-main .section.hero-intro a.button.secondary:hover {
+main .section.hero-intro > div a.button.secondary:hover {
   background: var(--accent-color);
   color: var(--dark-bg);
 }
 
-/* About Section */
+/* ==========================================================================
+   ABOUT SECTION
+   ========================================================================== */
+
 main .section.about-section {
   background: var(--accent-light);
   padding: 80px 32px;
@@ -214,7 +246,10 @@ main .section.about-section strong {
   font-weight: 600;
 }
 
-/* Experience Section */
+/* ==========================================================================
+   EXPERIENCE SECTION
+   ========================================================================== */
+
 main .section.experience-section {
   background: #fff;
   padding: 80px 32px;
@@ -239,7 +274,7 @@ main .section.experience-section .cards > ul {
   gap: 24px;
 }
 
-main .section.experience-section .cards > ul > li {
+main .section.experience-section > div .cards > ul > li {
   background: #fafafa;
   border: none;
   border-radius: 8px;
@@ -249,7 +284,7 @@ main .section.experience-section .cards > ul > li {
   overflow: hidden;
 }
 
-main .section.experience-section .cards > ul > li::before {
+main .section.experience-section > div .cards > ul > li::before {
   content: '';
   position: absolute;
   top: 0;
@@ -261,12 +296,12 @@ main .section.experience-section .cards > ul > li::before {
   transition: transform 0.3s ease;
 }
 
-main .section.experience-section .cards > ul > li:hover {
+main .section.experience-section > div .cards > ul > li:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgb(0 0 0 / 10%);
 }
 
-main .section.experience-section .cards > ul > li:hover::before {
+main .section.experience-section > div .cards > ul > li:hover::before {
   transform: scaleY(1);
 }
 
@@ -274,12 +309,12 @@ main .section.experience-section .cards .cards-card-body {
   padding: 28px;
 }
 
-main .section.experience-section .cards .cards-card-body p:first-child {
+main .section.experience-section .cards .cards-card-body > p:first-child {
   font-size: 1.1rem;
   margin-bottom: 0.25em;
 }
 
-main .section.experience-section .cards .cards-card-body p:first-child strong {
+main .section.experience-section .cards .cards-card-body > p:first-child strong {
   color: var(--dark-bg);
 }
 
@@ -289,13 +324,16 @@ main .section.experience-section .cards .cards-card-body em {
   font-weight: 500;
 }
 
-main .section.experience-section .cards .cards-card-body p:nth-child(3) {
+main .section.experience-section .cards .cards-card-body > p:nth-child(3) {
   font-size: 0.85rem;
   color: #888;
   letter-spacing: 0.05em;
 }
 
-/* Skills Section */
+/* ==========================================================================
+   SKILLS SECTION
+   ========================================================================== */
+
 main .section.skills-section {
   background: var(--dark-bg);
   color: #fff;
@@ -325,43 +363,46 @@ main .section.skills-section .columns > div {
 }
 
 main .section.skills-section .columns > div > div {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgb(255 255 255 / 3%);
   padding: 32px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgb(255 255 255 / 8%);
   transition: all 0.3s ease;
 }
 
 main .section.skills-section .columns > div > div:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(255 255 255 / 6%);
   border-color: var(--accent-color);
   transform: translateY(-4px);
 }
 
-main .section.skills-section ul {
+main .section.skills-section .columns > div > div ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-main .section.skills-section li {
+main .section.skills-section .columns > div > div li {
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgb(255 255 255 / 80%);
   transition: all 0.2s ease;
 }
 
-main .section.skills-section li:last-child {
+main .section.skills-section .columns > div > div li:last-child {
   border-bottom: none;
 }
 
-main .section.skills-section li:hover {
+main .section.skills-section .columns > div > div li:hover {
   color: #fff;
   padding-left: 8px;
 }
 
-/* Education Section */
+/* ==========================================================================
+   EDUCATION SECTION
+   ========================================================================== */
+
 main .section.education-section {
   background: #fff;
   padding: 80px 32px;
@@ -382,7 +423,7 @@ main .section.education-section .cards > ul {
   margin: 0 auto;
 }
 
-main .section.education-section .cards > ul > li {
+main .section.education-section > div .cards > ul > li {
   background: linear-gradient(135deg, var(--accent-light) 0%, #fff 100%);
   border: none;
   border-radius: 12px;
@@ -390,21 +431,24 @@ main .section.education-section .cards > ul > li {
   transition: all 0.3s ease;
 }
 
-main .section.education-section .cards > ul > li:hover {
+main .section.education-section > div .cards > ul > li:hover {
   transform: scale(1.02);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 15px 35px rgb(0 0 0 / 8%);
 }
 
 main .section.education-section .cards .cards-card-body {
   padding: 36px;
 }
 
-main .section.education-section .cards .cards-card-body strong {
+main .section.education-section .cards .cards-card-body > p strong {
   font-size: 1.15rem;
   color: var(--dark-bg);
 }
 
-/* Volunteer Section */
+/* ==========================================================================
+   VOLUNTEER SECTION
+   ========================================================================== */
+
 main .section.volunteer-section {
   background: var(--accent-light);
   padding: 60px 32px;
@@ -417,17 +461,20 @@ main .section.volunteer-section h2 {
   text-transform: uppercase;
 }
 
-main .section.volunteer-section p {
+main .section.volunteer-section > div > p {
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
 }
 
-main .section.volunteer-section strong {
+main .section.volunteer-section > div > p > strong {
   color: var(--accent-dark);
 }
 
-/* Contact Section */
+/* ==========================================================================
+   CONTACT SECTION
+   ========================================================================== */
+
 main .section.contact-section {
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
   color: #fff;
@@ -443,12 +490,12 @@ main .section.contact-section h2 {
   font-size: 2rem;
 }
 
-main .section.contact-section p {
-  color: rgba(255, 255, 255, 0.8);
+main .section.contact-section > div > p {
+  color: rgb(255 255 255 / 80%);
   margin-bottom: 2em;
 }
 
-main .section.contact-section a.button {
+main .section.contact-section > div a.button {
   background: var(--accent-color);
   color: var(--dark-bg);
   border: none;
@@ -461,25 +508,28 @@ main .section.contact-section a.button {
   margin: 8px;
 }
 
-main .section.contact-section a.button:hover {
+main .section.contact-section > div a.button:hover {
   background: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(201, 168, 124, 0.3);
+  box-shadow: 0 10px 30px rgb(201 168 124 / 30%);
 }
 
-main .section.contact-section a.button.secondary {
+main .section.contact-section > div a.button.secondary {
   background: transparent;
   border: 1px solid var(--accent-color);
   color: var(--accent-color);
 }
 
-main .section.contact-section a.button.secondary:hover {
+main .section.contact-section > div a.button.secondary:hover {
   background: var(--accent-color);
   color: var(--dark-bg);
 }
 
-/* Mobile Adjustments */
-@media (max-width: 600px) {
+/* ==========================================================================
+   MOBILE ADJUSTMENTS
+   ========================================================================== */
+
+@media (width <= 600px) {
   main .section.hero-intro {
     padding: 80px 24px 60px;
   }
@@ -499,7 +549,10 @@ main .section.contact-section a.button.secondary:hover {
   }
 }
 
-/* Hover effects for links */
+/* ==========================================================================
+   LINK HOVER EFFECTS
+   ========================================================================== */
+
 main a:not(.button) {
   position: relative;
   transition: color 0.3s ease;
@@ -512,21 +565,10 @@ main a:not(.button)::after {
   left: 0;
   width: 0;
   height: 1px;
-  background: currentColor;
+  background: currentcolor;
   transition: width 0.3s ease;
 }
 
 main a:not(.button):hover::after {
   width: 100%;
 }
-
-/* Loading animation for cards */
-main .cards > ul > li {
-  opacity: 0;
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-main .cards > ul > li:nth-child(1) { animation-delay: 0.1s; }
-main .cards > ul > li:nth-child(2) { animation-delay: 0.2s; }
-main .cards > ul > li:nth-child(3) { animation-delay: 0.3s; }
-main .cards > ul > li:nth-child(4) { animation-delay: 0.4s; }
