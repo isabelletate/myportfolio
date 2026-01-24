@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tennis Captain 🎾 - Grizz Lists</title>
+    
+    <!-- PWA / iOS Home Screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Grizz Lists">
+    <meta name="theme-color" content="#0f0f1a">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../icon-180.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <meta property="og:title" content="Tennis Captain 🎾 - Grizz Lists">
+    <meta property="og:description" content="Manage your tennis team: track players, schedule matches, and handle availability.">
+    <meta property="og:image" content="https://www.grizz.biz/grizz-lists/og-image.jpeg">
+    <meta property="og:image:width" content="1200">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <a href="../index.html" class="back-link" title="Back to Grizz Lists">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <h1 class="logo">🎾 <span id="listTitle">Tennis Captain</span></h1>
+                <div class="header-right">
+                    <button class="import-btn" id="importPlayersBtn" title="Import players">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </button>
+                    <div class="sync-indicator" id="syncIndicator" title="Sync status">
+                        <svg class="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 1-9 9m0 0a9 9 0 0 1-9-9m9 9v-3m0-12a9 9 0 0 1 9 9m-9-9a9 9 0 0 0-9 9m9-9v3"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- View Tabs -->
+        <div class="view-tabs">
+            <button class="view-tab active" data-view="matches">
+                <span class="view-icon">📅</span>
+                <span class="view-label">Matches</span>
+            </button>
+            <button class="view-tab" data-view="players">
+                <span class="view-icon">👥</span>
+                <span class="view-label">Players</span>
+            </button>
+        </div>
+
+        <!-- Matches View -->
+        <div class="view-content active" id="matchesView">
+            <p class="view-subtitle">Schedule and manage matches</p>
+            <div class="match-list" id="matchList">
+            </div>
+        </div>
+
+        <!-- Players View -->
+        <div class="view-content" id="playersView">
+            <p class="view-subtitle">Manage your team roster</p>
+            <div class="player-list" id="playerList">
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Button (changes based on current view) -->
+    <div class="add-section">
+        <div class="add-input-wrapper">
+            <button class="add-fab-btn" id="addBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="addBtnText">Add Player</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Player Modal -->
+    <div class="modal" id="playerModal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="playerModalTitle">Add Player</h3>
+            
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-input" id="playerNameInput" placeholder="e.g., John Smith" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">USTA Number (optional)</label>
+                <input type="text" class="form-input" id="playerUstaInput" placeholder="e.g., 123456789" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Email (optional)</label>
+                <input type="email" class="form-input" id="playerEmailInput" placeholder="e.g., john@example.com" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Phone (optional)</label>
+                <input type="tel" class="form-input" id="playerPhoneInput" placeholder="e.g., (555) 123-4567" autocomplete="off">
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelPlayer">Cancel</button>
+                <button class="modal-btn submit" id="submitPlayer" disabled>Add Player</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Match Modal -->
+    <div class="modal" id="matchModal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="matchModalTitle">Add Match</h3>
+            
+            <div class="form-group">
+                <label class="form-label">Opponent / Title</label>
+                <input type="text" class="form-input" id="matchTitleInput" placeholder="e.g., vs. City Club" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-input" id="matchLocationInput" placeholder="e.g., Tennis Center Court 1" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Date & Time</label>
+                <input type="datetime-local" class="form-input" id="matchDateInput">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Match Format</label>
+                <div class="format-selector">
+                    <button class="format-option active" data-format="2singles-2doubles">
+                        <div class="format-name">Standard</div>
+                        <div class="format-desc">2 Singles + 2 Doubles</div>
+                    </button>
+                    <button class="format-option" data-format="3singles-2doubles">
+                        <div class="format-name">Extended</div>
+                        <div class="format-desc">3 Singles + 2 Doubles</div>
+                    </button>
+                    <button class="format-option" data-format="custom">
+                        <div class="format-name">Custom</div>
+                        <div class="format-desc">Set your own</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group" id="customFormatGroup" style="display: none;">
+                <div class="custom-format">
+                    <div class="format-counter">
+                        <label>Singles Matches</label>
+                        <div class="counter-controls">
+                            <button class="counter-btn" data-counter="singles" data-action="dec">-</button>
+                            <span class="counter-value" id="singlesCount">2</span>
+                            <button class="counter-btn" data-counter="singles" data-action="inc">+</button>
+                        </div>
+                    </div>
+                    <div class="format-counter">
+                        <label>Doubles Matches</label>
+                        <div class="counter-controls">
+                            <button class="counter-btn" data-counter="doubles" data-action="dec">-</button>
+                            <span class="counter-value" id="doublesCount">2</span>
+                            <button class="counter-btn" data-counter="doubles" data-action="inc">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelMatch">Cancel</button>
+                <button class="modal-btn submit" id="submitMatch" disabled>Add Match</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lineup Assignment Modal -->
+    <div class="modal modal-large" id="lineupModal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="lineupModalTitle">Assign Lineup</h3>
+            <p class="modal-subtitle" id="lineupModalSubtitle"></p>
+            
+            <div class="lineup-assignment" id="lineupAssignment">
+                <!-- Will be populated dynamically -->
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelLineup">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Position Time Modal -->
+    <div class="modal" id="positionTimeModal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="positionTimeModalTitle">Set Match Time</h3>
+            <p class="modal-subtitle" id="positionTimeModalSubtitle"></p>
+            
+            <div class="form-group">
+                <label class="form-label" for="positionTimeInput">Date & Time</label>
+                <input type="datetime-local" class="form-input" id="positionTimeInput" required>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelPositionTime">Cancel</button>
+                <button class="modal-btn submit" id="submitPositionTime">Set Time</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Availability Modal -->
+    <div class="modal modal-large" id="playerAvailabilityModal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="playerAvailabilityModalTitle">Set Availability</h3>
+            <p class="modal-subtitle" id="playerAvailabilityModalSubtitle">Select which matches this player is available for</p>
+            
+            <div class="availability-matches-list" id="availabilityMatchesList">
+                <!-- Will be populated dynamically -->
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelPlayerAvailability">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Players Modal -->
+    <div class="modal modal-large" id="importModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Import Players</h3>
+            <p class="modal-subtitle">Paste player data below. The system will auto-detect emails, phone numbers, and USTA numbers regardless of order.</p>
+            
+            <div class="form-group">
+                <label class="form-label">Player Data</label>
+                <textarea class="form-textarea" id="importTextarea" placeholder="John Smith, 123456789, john@example.com, (555) 123-4567
+Jane Doe, 987654321, jane@example.com, (555) 987-6543
+Bob Wilson, 555123456, bob@example.com" rows="8"></textarea>
+                <div class="import-hint">
+                    <strong>Supported formats:</strong> CSV (comma-separated) or TSV (tab-separated)<br>
+                    <strong>Auto-detection:</strong> The system will automatically detect emails (has @), phone numbers (has digits/dashes), and USTA numbers<br>
+                    <strong>Required:</strong> Only the first field (name) is required
+                </div>
+            </div>
+            
+            <button class="modal-btn preview" id="previewImport">Preview Import</button>
+            
+            <div class="import-preview" id="importPreview" style="display: none;">
+                <h4 class="preview-title">Preview (<span id="previewCount">0</span> players)</h4>
+                <div class="preview-list" id="previewList">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelImport">Cancel</button>
+                <button class="modal-btn submit" id="confirmImport" style="display: none;">Import Players</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Matches Modal -->
+    <div class="modal modal-large" id="importMatchesModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Import Matches</h3>
+            <p class="modal-subtitle">Paste match schedule below. Expected format: Date, Time, Location, Opponent, Format (tab or comma separated)</p>
+            
+            <div class="form-group">
+                <label class="form-label">Match Data</label>
+                <textarea class="form-textarea" id="importMatchesTextarea" placeholder="Date	Time	Location	Opponent	Format
+1/24/2026	1:30 PM	Cottonwood Country Club	SLTHC-Love All	3 Doubles
+1/31/2026	3:00 PM	Sports Mall	Sports Mall- Team Fun	2 Singles 2 Doubles
+2/7/2026	1:30 PM	Cottonwood Country Club	SLTHC-Smith Shots	3 Doubles" rows="10"></textarea>
+                <div class="import-hint">
+                    <strong>Supported formats:</strong> CSV (comma-separated) or TSV (tab-separated)<br>
+                    <strong>Expected columns:</strong> Date, Time, Location, Opponent, Format (headers are optional)<br>
+                    <strong>Date format:</strong> M/D/YYYY or MM/DD/YYYY<br>
+                    <strong>Match format examples:</strong> "3 Doubles", "2 Singles 2 Doubles", "3S 2D" (defaults to 2S + 2D if omitted)
+                </div>
+            </div>
+            
+            <button class="modal-btn preview" id="previewMatchesImport">Preview Import</button>
+            
+            <div class="import-preview" id="importMatchesPreview" style="display: none;">
+                <h4 class="preview-title">Preview (<span id="previewMatchesCount">0</span> matches)</h4>
+                <div class="preview-list" id="previewMatchesList">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelMatchesImport">Cancel</button>
+                <button class="modal-btn submit" id="confirmMatchesImport" style="display: none;">Import Matches</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../cache-buster.v1.js" data-auto-init></script>
+    <script src="scripts.js" type="module"></script>
+</body>
+</html>
