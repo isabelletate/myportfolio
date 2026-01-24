@@ -211,9 +211,11 @@ const playerList = document.getElementById('playerList');
 const matchList = document.getElementById('matchList');
 const addBtn = document.getElementById('addBtn');
 const addBtnText = document.getElementById('addBtnText');
+const backToGrizzLists = document.getElementById('backToGrizzLists');
 
 // View tabs
 const viewTabs = document.querySelectorAll('.view-tab');
+const viewTabsContainer = document.querySelector('.view-tabs');
 const viewContents = document.querySelectorAll('.view-content');
 
 // Player modal
@@ -263,6 +265,21 @@ const playerAvailabilityModalTitle = document.getElementById('playerAvailability
 const playerAvailabilityModalSubtitle = document.getElementById('playerAvailabilityModalSubtitle');
 const availabilityMatchesList = document.getElementById('availabilityMatchesList');
 const cancelPlayerAvailability = document.getElementById('cancelPlayerAvailability');
+
+// Player details view (not modal)
+const playerDetailsView = document.getElementById('playerDetailsView');
+const playerDetailsName = document.getElementById('playerDetailsName');
+const playerDetailsInfo = document.getElementById('playerDetailsInfo');
+const playerDetailsAssignments = document.getElementById('playerDetailsAssignments');
+const playerDetailsAvailability = document.getElementById('playerDetailsAvailability');
+const editPlayerDetailsBtn = document.getElementById('editPlayerDetailsBtn');
+const backToPlayers = document.getElementById('backToPlayers');
+
+// Menu dropdown
+const menuBtn = document.getElementById('menuBtn');
+const menuDropdown = document.getElementById('menuDropdown');
+const addMatchMenuItem = document.getElementById('addMatchMenuItem');
+const importMatchesMenuItem = document.getElementById('importMatchesMenuItem');
 
 // Import modal
 const importPlayersBtn = document.getElementById('importPlayersBtn');
@@ -337,8 +354,25 @@ function setupEventListeners() {
     });
   });
 
-  // Add button
-  addBtn.addEventListener('click', handleAddClick);
+  // Add button - now unused, all actions are in menu
+  // Keep for potential future use
+  addBtn.style.display = 'none';
+
+  // Menu dropdown
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menuDropdown.classList.toggle('active');
+    menuBtn.classList.toggle('active');
+  });
+
+  // Menu items are dynamically updated by updateMenuForPlayers() and updateMenuForMatches()
+
+  // Close menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+      closeMenuDropdown();
+    }
+  });
 
   // Player modal
   cancelPlayer.addEventListener('click', closePlayerModal);
@@ -432,6 +466,15 @@ function setupEventListeners() {
     if (e.target === playerAvailabilityModal) closePlayerAvailabilityModal();
   });
 
+  // Player details view
+  backToPlayers.addEventListener('click', () => {
+    window.location.hash = '#players';
+  });
+  editPlayerDetailsBtn.addEventListener('click', () => {
+    const playerId = editPlayerDetailsBtn.dataset.playerId;
+    openPlayerModal(playerId);
+  });
+
   // Import modal
   importPlayersBtn.addEventListener('click', openImportModal);
   cancelImport.addEventListener('click', closeImportModal);
@@ -472,6 +515,9 @@ function switchView(view, skipHistory = false) {
       tab.classList.remove('active');
     }
   });
+  
+  // Show/hide tabs container
+  viewTabsContainer.style.display = 'flex';
 
   // Update views
   viewContents.forEach((content) => {
@@ -479,24 +525,79 @@ function switchView(view, skipHistory = false) {
   });
   document.getElementById(`${view}View`).classList.add('active');
 
-  // Update add button text and import button visibility
+  // Update add button and menu visibility
+  importPlayersBtn.style.display = 'none'; // Always hide the old import button
+  backToGrizzLists.style.display = 'flex'; // Show back to grizz lists by default
+  
   if (view === 'players') {
-    addBtnText.textContent = 'Add Player';
-    importPlayersBtn.style.display = 'flex';
+    menuBtn.style.display = 'flex';
+    updateMenuForPlayers();
   } else if (view === 'matches') {
-    addBtnText.textContent = 'Add Match';
-    importPlayersBtn.style.display = 'flex';
-    importPlayersBtn.title = 'Import matches';
-    // Change the icon to upload
-    importPlayersBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="7 10 12 15 17 10"/>
-      <line x1="12" y1="15" x2="12" y2="3"/>
-    </svg>`;
-    importPlayersBtn.onclick = openImportMatchesModal;
+    menuBtn.style.display = 'flex';
+    updateMenuForMatches();
+  } else if (view === 'playerDetails') {
+    // Hide menu for player details view
+    menuBtn.style.display = 'none';
   }
 
   renderCurrentView();
+}
+
+function updateMenuForPlayers() {
+  addMatchMenuItem.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>Add Player</span>
+  `;
+  addMatchMenuItem.onclick = () => {
+    closeMenuDropdown();
+    openPlayerModal();
+  };
+  
+  importMatchesMenuItem.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    <span>Import Players</span>
+  `;
+  importMatchesMenuItem.onclick = () => {
+    closeMenuDropdown();
+    openImportModal();
+  };
+}
+
+function updateMenuForMatches() {
+  addMatchMenuItem.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>Add Match</span>
+  `;
+  addMatchMenuItem.onclick = () => {
+    closeMenuDropdown();
+    openMatchModal();
+  };
+  
+  importMatchesMenuItem.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    <span>Import Matches</span>
+  `;
+  importMatchesMenuItem.onclick = () => {
+    closeMenuDropdown();
+    openImportMatchesModal();
+  };
+}
+
+function closeMenuDropdown() {
+  menuDropdown.classList.remove('active');
+  menuBtn.classList.remove('active');
 }
 
 function renderCurrentView() {
@@ -512,6 +613,7 @@ function handleHashChange() {
   
   // Check if it's a match reference (e.g., #match-123 or #matches/match-123)
   const matchMatch = hash.match(/^(?:matches\/)?match-(.+)$/);
+  const playerMatch = hash.match(/^(?:players\/)?player-(.+)$/);
   
   if (matchMatch) {
     // Switch to matches view and scroll to match
@@ -523,6 +625,10 @@ function handleHashChange() {
     setTimeout(() => {
       scrollToMatch(matchId);
     }, 100);
+  } else if (playerMatch) {
+    // Open player details view
+    const playerId = playerMatch[1];
+    openPlayerDetailsView(playerId);
   } else if (hash === 'matches' || hash === 'players') {
     switchView(hash, true);
   } else if (!hash) {
@@ -549,9 +655,8 @@ function scrollToMatch(matchId) {
 function handleAddClick() {
   if (currentView === 'players') {
     openPlayerModal();
-  } else if (currentView === 'matches') {
-    openMatchModal();
   }
+  // Match adding is now done via menu dropdown
 }
 
 function showImportButton() {
@@ -727,10 +832,243 @@ async function toggleAvailability(matchId, playerId) {
     await writeEventAndRefresh('availability_set', { matchId, playerId });
   }
 
-  // Re-render the availability matches
+  // Re-render the appropriate view
   if (currentAvailabilityPlayerId) {
     renderAvailabilityMatches(currentAvailabilityPlayerId);
+  } else {
+    // Refresh player details availability if that modal is open
+    renderPlayerDetailsAvailability(playerId);
   }
+}
+
+// ============================================
+// PLAYER DETAILS VIEW
+// ============================================
+
+function openPlayerDetailsView(playerId) {
+  const player = players.find((p) => p.id === playerId);
+  if (!player) {
+    // Player not found, go back to players view
+    window.location.hash = '#players';
+    return;
+  }
+
+  // Set player name
+  playerDetailsName.textContent = player.name;
+  editPlayerDetailsBtn.dataset.playerId = playerId;
+
+  // Render player info
+  let infoHtml = '<div class="player-details-info-grid">';
+  
+  if (player.usta) {
+    infoHtml += `
+      <div class="player-detail-item">
+        <div class="player-detail-label">USTA Number</div>
+        <div class="player-detail-value">${escapeHtml(player.usta)}</div>
+      </div>
+    `;
+  }
+  
+  if (player.email) {
+    infoHtml += `
+      <div class="player-detail-item">
+        <div class="player-detail-label">Email</div>
+        <div class="player-detail-value">${escapeHtml(player.email)}</div>
+      </div>
+    `;
+  }
+  
+  if (player.phone) {
+    infoHtml += `
+      <div class="player-detail-item">
+        <div class="player-detail-label">Phone</div>
+        <div class="player-detail-value">${escapeHtml(player.phone)}</div>
+      </div>
+    `;
+  }
+  
+  if (!player.usta && !player.email && !player.phone) {
+    infoHtml += '<div class="player-detail-empty">No additional information</div>';
+  }
+  
+  infoHtml += '</div>';
+  playerDetailsInfo.innerHTML = infoHtml;
+
+  // Render assigned matches and availability
+  renderPlayerDetailsAssignments(playerId);
+  renderPlayerDetailsAvailability(playerId);
+
+  // Show the player details view and update URL
+  currentView = 'playerDetails';
+  window.location.hash = `#player-${playerId}`;
+  
+  // Update view visibility
+  viewContents.forEach((content) => {
+    content.classList.remove('active');
+  });
+  playerDetailsView.classList.add('active');
+  
+  // Update tabs (deactivate all and hide the container)
+  viewTabs.forEach((tab) => {
+    tab.classList.remove('active');
+  });
+  viewTabsContainer.style.display = 'none';
+  
+  // Hide menu, import buttons, and back to grizz lists
+  importPlayersBtn.style.display = 'none';
+  menuBtn.style.display = 'none';
+  backToGrizzLists.style.display = 'none';
+}
+
+function renderPlayerDetailsAssignments(playerId) {
+  // Find all matches where this player is assigned
+  let assignedMatches = [];
+  
+  matches.forEach((match) => {
+    const matchAssign = assignments.get(match.id) || {};
+    let positions = [];
+    
+    Object.entries(matchAssign).forEach(([positionId, positionData]) => {
+      const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+      if (assignedIds.includes(playerId)) {
+        const positionDate = Array.isArray(positionData) ? null : positionData.date;
+        // Get all players for this position
+        const positionPlayers = assignedIds
+          .map(id => players.find(p => p.id === id))
+          .filter(Boolean);
+        positions.push({ positionId, positionDate, players: positionPlayers });
+      }
+    });
+    
+    if (positions.length > 0) {
+      assignedMatches.push({ match, positions });
+    }
+  });
+  
+  if (assignedMatches.length === 0) {
+    playerDetailsAssignments.innerHTML = '<div class="empty-state-small">Not assigned to any matches</div>';
+    return;
+  }
+  
+  // Render in lineup-summary style
+  let html = '';
+  assignedMatches.forEach(({ match, positions }) => {
+    const matchDate = match.date ? new Date(match.date) : null;
+    const dateStr = matchDate ? matchDate.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }) : 'Date TBD';
+    
+    html += `
+      <div class="player-assigned-match">
+        <div class="player-assigned-match-header">
+          <div class="player-assigned-match-title">${escapeHtml(match.title)}</div>
+          <div class="player-assigned-match-date">${dateStr}</div>
+        </div>
+        ${match.location ? `<div class="player-assigned-match-location">${escapeHtml(match.location)}</div>` : ''}
+        <div class="player-assigned-positions">
+          ${positions.map(({ positionId, positionDate, players: positionPlayers }) => {
+            const [type, num] = positionId.split('-');
+            const label = type === 'singles' ? `S${num}` : `D${num}`;
+            
+            // Get display date for position
+            let displayDate = match.date;
+            let isDifferent = false;
+            if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
+              displayDate = positionDate;
+              const d1 = new Date(match.date);
+              const d2 = new Date(positionDate);
+              isDifferent = d1.toDateString() !== d2.toDateString();
+            }
+            
+            const timeStr = displayDate ? new Date(displayDate).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+            }) : '';
+            
+            const dateStr = isDifferent ? (() => {
+              const date = new Date(displayDate);
+              const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+              const month = date.getMonth() + 1;
+              const day = date.getDate();
+              return `${weekday} ${month}/${day}`;
+            })() : '';
+            
+            // Build player names HTML
+            const playerNamesHtml = positionPlayers.map(player => 
+              `<div class="player-assigned-position-player">${escapeHtml(player.name)}</div>`
+            ).join('');
+            
+            return `
+              <div class="player-assigned-position-item">
+                <div class="player-assigned-position-left">
+                  <span class="player-assigned-position-label">${label}</span>
+                  <div class="player-assigned-position-players">
+                    ${playerNamesHtml}
+                  </div>
+                </div>
+                <span class="player-assigned-position-time">
+                  ${dateStr ? `<span class="player-assigned-date-diff">${dateStr}</span>` : ''}
+                  ${timeStr}
+                </span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  });
+  
+  playerDetailsAssignments.innerHTML = html;
+}
+
+function renderPlayerDetailsAvailability(playerId) {
+  if (matches.length === 0) {
+    playerDetailsAvailability.innerHTML = '<div class="empty-state-small">No matches scheduled</div>';
+    return;
+  }
+
+  let html = '';
+  matches.forEach((match) => {
+    const matchAvail = availability.get(match.id) || new Set();
+    const isAvailable = matchAvail.has(playerId);
+    
+    const matchDate = match.date ? new Date(match.date) : null;
+    const dateStr = matchDate ? matchDate.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }) : 'Date TBD';
+
+    html += `
+      <div class="availability-match-item ${isAvailable ? 'available' : ''}" data-match-id="${match.id}">
+        <div class="availability-match-checkbox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="availability-match-info">
+          <div class="availability-match-title">${escapeHtml(match.title)}</div>
+          <div class="availability-match-date">${dateStr}</div>
+          ${match.location ? `<div class="availability-match-location">${escapeHtml(match.location)}</div>` : ''}
+        </div>
+      </div>
+    `;
+  });
+
+  playerDetailsAvailability.innerHTML = html;
+
+  // Add click handlers
+  playerDetailsAvailability.querySelectorAll('.availability-match-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      toggleAvailability(item.dataset.matchId, playerId);
+    });
+  });
 }
 
 function getPlayersHash() {
@@ -760,22 +1098,13 @@ function renderPlayers(force = false) {
   let html = '';
   players.forEach((player, index) => {
     html += `
-      <div class="player-card" style="animation-delay: ${index * 0.05}s">
+      <div class="player-card" style="animation-delay: ${index * 0.05}s" data-player-id="${player.id}">
         <div class="player-header">
           <div class="player-name">${escapeHtml(player.name)}</div>
           <div class="player-actions">
-            <button class="action-btn availability" data-player-id="${player.id}" title="Set availability">
+            <button class="action-btn view-details" data-player-id="${player.id}" title="View details">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </button>
-            <button class="action-btn edit" data-player-id="${player.id}" title="Edit player">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                <path d="M9 18l6-6-6-6"/>
               </svg>
             </button>
           </div>
@@ -810,25 +1139,25 @@ function renderPlayers(force = false) {
             ` : ''}
           </div>
         ` : ''}
-        ${renderPlayerAvailabilitySummary(player.id)}
       </div>
     `;
   });
 
   playerList.innerHTML = html;
 
-  // Add event listeners
-  playerList.querySelectorAll('.availability').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openPlayerAvailabilityModal(btn.dataset.playerId);
+  // Add event listeners - click anywhere on card or the arrow button
+  playerList.querySelectorAll('.player-card').forEach((card) => {
+    const playerId = card.dataset.playerId;
+    card.addEventListener('click', () => {
+      window.location.hash = `#player-${playerId}`;
     });
+    card.style.cursor = 'pointer';
   });
 
-  playerList.querySelectorAll('.edit').forEach((btn) => {
+  playerList.querySelectorAll('.view-details').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      openPlayerModal(btn.dataset.playerId);
+      window.location.hash = `#player-${btn.dataset.playerId}`;
     });
   });
 }
@@ -1063,12 +1392,12 @@ function renderMatchLineupSummary(match) {
           html += `
             <div class="lineup-summary-position">
               <div class="lineup-summary-label">S${i + 1}</div>
-              <div class="lineup-summary-details">
+              <div class="lineup-summary-players">
                 <div class="lineup-summary-player">${escapeHtml(assignedPlayer.name)}</div>
-                <div class="lineup-summary-datetime">
-                  ${dateStr ? `<span class="lineup-summary-date-diff">${dateStr}</span>` : ''}
-                  ${timeStr ? `<div class="lineup-summary-time">${timeStr}</div>` : ''}
-                </div>
+              </div>
+              <div class="lineup-summary-datetime">
+                ${dateStr ? `<span class="lineup-summary-date-diff">${dateStr}</span>` : ''}
+                ${timeStr ? `<span class="lineup-summary-time">${timeStr}</span>` : ''}
               </div>
             </div>
           `;
@@ -1105,31 +1434,23 @@ function renderMatchLineupSummary(match) {
         const dateStr = isDifferent ? formatShortDate(displayDate) : '';
         
         if (assignedPlayers.length > 0) {
-          // Show each player on a separate line
-          assignedPlayers.forEach((player, playerIndex) => {
-            if (playerIndex === 0) {
-              // First player gets the full position layout
-              html += `
-                <div class="lineup-summary-position">
-                  <div class="lineup-summary-label">D${i + 1}</div>
-                  <div class="lineup-summary-details">
-                    <div class="lineup-summary-player">${escapeHtml(player.name)}</div>
-                    <div class="lineup-summary-datetime">
-                      ${dateStr ? `<span class="lineup-summary-date-diff">${dateStr}</span>` : ''}
-                      ${timeStr ? `<div class="lineup-summary-time">${timeStr}</div>` : ''}
-                    </div>
-                  </div>
-                </div>
-              `;
-            } else {
-              // Additional players are indented without label
-              html += `
-                <div class="lineup-summary-position lineup-summary-position-secondary">
-                  <div class="lineup-summary-player">${escapeHtml(player.name)}</div>
-                </div>
-              `;
-            }
-          });
+          // Show all players in a single row
+          const playerNamesHtml = assignedPlayers.map(player => 
+            `<div class="lineup-summary-player">${escapeHtml(player.name)}</div>`
+          ).join('');
+          
+          html += `
+            <div class="lineup-summary-position">
+              <div class="lineup-summary-label">D${i + 1}</div>
+              <div class="lineup-summary-players">
+                ${playerNamesHtml}
+              </div>
+              <div class="lineup-summary-datetime">
+                ${dateStr ? `<span class="lineup-summary-date-diff">${dateStr}</span>` : ''}
+                ${timeStr ? `<span class="lineup-summary-time">${timeStr}</span>` : ''}
+              </div>
+            </div>
+          `;
         }
       }
     }
@@ -1173,9 +1494,36 @@ function renderMatches(force = false) {
       minute: '2-digit',
     }) : 'Date TBD';
     
-    const isPast = matchDate && matchDate < new Date();
-    const statusClass = isPast ? 'completed' : 'upcoming';
-    const statusText = isPast ? 'Completed' : 'Upcoming';
+    // Determine match status based on individual position times
+    const now = new Date();
+    let statusClass = 'upcoming';
+    let statusText = 'Upcoming';
+    
+    if (matchDate) {
+      // Get all position dates for this match
+      const matchAssign = assignments.get(match.id) || {};
+      let earliestStart = matchDate;
+      let latestStart = matchDate;
+      
+      Object.values(matchAssign).forEach((positionData) => {
+        if (!Array.isArray(positionData) && positionData.date) {
+          const posDate = new Date(positionData.date);
+          if (posDate < earliestStart) earliestStart = posDate;
+          if (posDate > latestStart) latestStart = posDate;
+        }
+      });
+      
+      // Match is in progress if current time is between earliest start and 1.5 hours after latest start
+      const matchEndTime = new Date(latestStart.getTime() + 90 * 60 * 1000); // 1h30 = 90 minutes
+      
+      if (now >= earliestStart && now <= matchEndTime) {
+        statusClass = 'in-progress';
+        statusText = 'In Progress';
+      } else if (now > matchEndTime) {
+        statusClass = 'completed';
+        statusText = 'Completed';
+      }
+    }
     
     const matchAvail = availability.get(match.id) || new Set();
     const availableCount = matchAvail.size;
@@ -1186,6 +1534,7 @@ function renderMatches(force = false) {
           <div class="match-title">${escapeHtml(match.title)}</div>
           <div class="match-actions">
             <button class="action-btn lineup" data-match-id="${match.id}" title="Manage lineup">
+              <span class="lineup-count">${availableCount}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
