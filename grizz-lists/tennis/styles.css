@@ -519,6 +519,12 @@ header {
     gap: 12px;
 }
 
+.lineup-summary-position-secondary {
+    padding: 2px 10px 0;
+    margin-left: 46px;
+    margin-top: -10px;
+}
+
 .lineup-summary-player {
     font-size: 0.9rem;
     color: var(--text-light);

@@ -1105,18 +1105,31 @@ function renderMatchLineupSummary(match) {
         const dateStr = isDifferent ? formatShortDate(displayDate) : '';
         
         if (assignedPlayers.length > 0) {
-          html += `
-            <div class="lineup-summary-position">
-              <div class="lineup-summary-label">D${i + 1}</div>
-              <div class="lineup-summary-details">
-                <div class="lineup-summary-player">${assignedPlayers.map((p) => escapeHtml(p.name)).join(' & ')}</div>
-                <div class="lineup-summary-datetime">
-                  ${dateStr ? `<span class="lineup-summary-date-diff">${dateStr}</span>` : ''}
-                  ${timeStr ? `<div class="lineup-summary-time">${timeStr}</div>` : ''}
+          // Show each player on a separate line
+          assignedPlayers.forEach((player, playerIndex) => {
+            if (playerIndex === 0) {
+              // First player gets the full position layout
+              html += `
+                <div class="lineup-summary-position">
+                  <div class="lineup-summary-label">D${i + 1}</div>
+                  <div class="lineup-summary-details">
+                    <div class="lineup-summary-player">${escapeHtml(player.name)}</div>
+                    <div class="lineup-summary-datetime">
+                      ${dateStr ? `<span class="lineup-summary-date-diff">${dateStr}</span>` : ''}
+                      ${timeStr ? `<div class="lineup-summary-time">${timeStr}</div>` : ''}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          `;
+              `;
+            } else {
+              // Additional players are indented without label
+              html += `
+                <div class="lineup-summary-position lineup-summary-position-secondary">
+                  <div class="lineup-summary-player">${escapeHtml(player.name)}</div>
+                </div>
+              `;
+            }
+          });
         }
       }
     }
