@@ -225,6 +225,7 @@ const playerPhoneInput = document.getElementById('playerPhoneInput');
 const playerUstaInput = document.getElementById('playerUstaInput');
 const submitPlayer = document.getElementById('submitPlayer');
 const cancelPlayer = document.getElementById('cancelPlayer');
+const deletePlayerBtn = document.getElementById('deletePlayerBtn');
 
 // Match modal
 const matchModal = document.getElementById('matchModal');
@@ -234,6 +235,7 @@ const matchLocationInput = document.getElementById('matchLocationInput');
 const matchDateInput = document.getElementById('matchDateInput');
 const submitMatch = document.getElementById('submitMatch');
 const cancelMatch = document.getElementById('cancelMatch');
+const deleteMatchBtn = document.getElementById('deleteMatchBtn');
 const formatOptions = document.querySelectorAll('.format-option');
 const customFormatGroup = document.getElementById('customFormatGroup');
 const singlesCount = document.getElementById('singlesCount');
@@ -350,6 +352,12 @@ function setupEventListeners() {
     }
   });
   submitPlayer.addEventListener('click', handlePlayerSubmit);
+  deletePlayerBtn.addEventListener('click', () => {
+    if (editingPlayerId) {
+      deletePlayer(editingPlayerId);
+      closePlayerModal();
+    }
+  });
 
   // Match modal
   cancelMatch.addEventListener('click', closeMatchModal);
@@ -359,6 +367,12 @@ function setupEventListeners() {
   matchTitleInput.addEventListener('input', validateMatchForm);
   matchDateInput.addEventListener('input', validateMatchForm);
   submitMatch.addEventListener('click', handleMatchSubmit);
+  deleteMatchBtn.addEventListener('click', () => {
+    if (editingMatchId) {
+      deleteMatch(editingMatchId);
+      closeMatchModal();
+    }
+  });
   
   // Format selection
   formatOptions.forEach((option) => {
@@ -561,6 +575,7 @@ function openPlayerModal(playerId = null) {
       playerPhoneInput.value = player.phone || '';
       playerUstaInput.value = player.usta || '';
       submitPlayer.textContent = 'Save Changes';
+      deletePlayerBtn.style.display = 'block';
     }
   } else {
     playerModalTitle.textContent = 'Add Player';
@@ -569,6 +584,7 @@ function openPlayerModal(playerId = null) {
     playerPhoneInput.value = '';
     playerUstaInput.value = '';
     submitPlayer.textContent = 'Add Player';
+    deletePlayerBtn.style.display = 'none';
   }
   
   validatePlayerForm();
@@ -762,12 +778,6 @@ function renderPlayers(force = false) {
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
             </button>
-            <button class="action-btn delete" data-player-id="${player.id}" title="Delete player">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
-            </button>
           </div>
         </div>
         ${player.usta || player.email || player.phone ? `
@@ -819,13 +829,6 @@ function renderPlayers(force = false) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       openPlayerModal(btn.dataset.playerId);
-    });
-  });
-
-  playerList.querySelectorAll('.delete').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deletePlayer(btn.dataset.playerId);
     });
   });
 }
@@ -895,6 +898,7 @@ function openMatchModal(matchId = null) {
       }
       
       submitMatch.textContent = 'Save Changes';
+      deleteMatchBtn.style.display = 'block';
     }
   } else {
     matchModalTitle.textContent = 'Add Match';
@@ -913,6 +917,7 @@ function openMatchModal(matchId = null) {
     customFormatGroup.style.display = 'none';
     
     submitMatch.textContent = 'Add Match';
+    deleteMatchBtn.style.display = 'none';
   }
   
   validateMatchForm();
@@ -1167,15 +1172,6 @@ function renderMatches(force = false) {
         <div class="match-header">
           <div class="match-title">${escapeHtml(match.title)}</div>
           <div class="match-actions">
-            <button class="action-btn share" data-match-id="${match.id}" title="Share match link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"/>
-                <circle cx="6" cy="12" r="3"/>
-                <circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-            </button>
             <button class="action-btn lineup" data-match-id="${match.id}" title="Manage lineup">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -1188,12 +1184,6 @@ function renderMatches(force = false) {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-            <button class="action-btn delete" data-match-id="${match.id}" title="Delete match">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               </svg>
             </button>
           </div>
@@ -1242,13 +1232,6 @@ function renderMatches(force = false) {
     });
   });
 
-  matchList.querySelectorAll('.delete').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteMatch(btn.dataset.matchId);
-    });
-  });
-
   matchList.querySelectorAll('.lineup').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1256,27 +1239,26 @@ function renderMatches(force = false) {
     });
   });
 
-  matchList.querySelectorAll('.share').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const matchId = btn.dataset.matchId;
-      const url = `${window.location.origin}${window.location.pathname}${window.location.search}#match-${matchId}`;
+  // Add click handler to match cards to update hash and scroll
+  matchList.querySelectorAll('.match-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      // Don't trigger if clicking on action buttons
+      if (e.target.closest('.action-btn')) return;
       
-      try {
-        await navigator.clipboard.writeText(url);
-        // Show feedback
-        const originalTitle = btn.title;
-        btn.title = 'Link copied!';
-        btn.style.color = 'var(--accent-tennis)';
-        setTimeout(() => {
-          btn.title = originalTitle;
-          btn.style.color = '';
-        }, 2000);
-      } catch (err) {
-        console.error('Failed to copy link:', err);
-        alert('Failed to copy link to clipboard');
-      }
+      const matchId = card.dataset.matchId;
+      // Update hash without triggering hashchange
+      history.pushState({ view: 'matches', matchId }, '', `#match-${matchId}`);
+      
+      // Scroll to position and highlight
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('highlight');
+      setTimeout(() => {
+        card.classList.remove('highlight');
+      }, 2000);
     });
+    
+    // Add cursor pointer style
+    card.style.cursor = 'pointer';
   });
 }
 
