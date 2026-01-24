@@ -918,6 +918,9 @@ function openPlayerDetailsView(playerId) {
   importPlayersBtn.style.display = 'none';
   menuBtn.style.display = 'none';
   backToGrizzLists.style.display = 'none';
+  
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderPlayerDetailsAssignments(playerId) {
@@ -2030,9 +2033,18 @@ function closeImportModal() {
 
 function parseImportData(text) {
   const lines = text.trim().split('\n').filter((line) => line.trim());
-  const players = [];
+  const parsedPlayers = [];
+  
+  // Check if first line looks like a header
+  const firstLine = lines[0];
+  const hasHeader = firstLine.toLowerCase().includes('name') || 
+                    firstLine.toLowerCase().includes('usta') || 
+                    firstLine.toLowerCase().includes('email') || 
+                    firstLine.toLowerCase().includes('cell');
+  
+  const dataLines = hasHeader ? lines.slice(1) : lines;
 
-  lines.forEach((line, index) => {
+  dataLines.forEach((line, index) => {
     // Try to detect delimiter (comma or tab)
     const hasComma = line.includes(',');
     const hasTab = line.includes('\t');
@@ -2047,38 +2059,77 @@ function parseImportData(text) {
       parts = [line.trim()];
     }
 
-    const name = parts[0] || '';
-    
-    // Smart detection: fields 1-3 could be USTA, email, or phone in any order
+    // Expected format: Name, USTA Number, Cell, Email (in that order if we have headers)
+    let name = '';
     let usta = '';
-    let email = '';
     let phone = '';
+    let email = '';
     
-    // Check remaining parts and categorize them
-    for (let i = 1; i < parts.length; i++) {
-      const field = parts[i].trim();
-      if (!field) continue;
+    if (hasHeader && parts.length >= 4) {
+      // If we detected headers, assume positional format: Name, USTA, Cell, Email
+      name = parts[0] || '';
+      usta = (parts[1] || '').replace(/[^\d]/g, ''); // Remove non-digits from USTA
+      phone = parts[2] || '';
+      email = parts[3] || '';
+    } else {
+      // Fallback to smart detection
+      name = parts[0] || '';
       
-      // Check if it looks like an email (contains @ and .)
-      if (field.includes('@') && field.includes('.')) {
-        email = field;
+      // Check remaining parts and categorize them
+      for (let i = 1; i < parts.length; i++) {
+        const field = parts[i].trim();
+        if (!field) continue;
+        
+        // Check if it looks like an email (contains @ and .)
+        if (field.includes('@') && field.includes('.')) {
+          email = field;
+        }
+        // Check if it looks like a phone number (contains digits and common phone chars)
+        else if (/[\d\(\)\-\.\s]/.test(field) && /\d{3,}/.test(field.replace(/\D/g, ''))) {
+          phone = field;
+        }
+        // Otherwise assume it's USTA number (all digits, typically 10 digits)
+        else if (/^\d+$/.test(field)) {
+          usta = field;
+        }
+        // If not clearly identifiable, treat as USTA if it's mostly digits
+        else if (/\d/.test(field)) {
+          if (!usta) usta = field;
+        }
       }
-      // Check if it looks like a phone number (contains digits and common phone chars)
-      else if (/[\d\(\)\-\.\s]/.test(field) && /\d{3,}/.test(field.replace(/\D/g, ''))) {
-        phone = field;
+    }
+    
+    // Check for duplicates in existing players
+    let existingPlayer = null;
+    let duplicateType = null;
+    
+    if (name) {
+      // Check by name (case-insensitive)
+      existingPlayer = players.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if (existingPlayer) {
+        duplicateType = 'name';
       }
-      // Otherwise assume it's USTA number (all digits, typically 10 digits)
-      else if (/^\d+$/.test(field)) {
-        usta = field;
+      
+      // Check by email if no name match
+      if (!existingPlayer && email) {
+        existingPlayer = players.find(p => p.email && p.email.toLowerCase() === email.toLowerCase());
+        if (existingPlayer) {
+          duplicateType = 'email';
+        }
       }
-      // If not clearly identifiable, treat as USTA if it's mostly digits
-      else if (/\d/.test(field)) {
-        if (!usta) usta = field;
+      
+      // Check by phone if no email match
+      if (!existingPlayer && phone) {
+        const normalizedPhone = phone.replace(/\D/g, '');
+        existingPlayer = players.find(p => p.phone && p.phone.replace(/\D/g, '') === normalizedPhone);
+        if (existingPlayer) {
+          duplicateType = 'phone';
+        }
       }
     }
 
     if (name) {
-      players.push({
+      parsedPlayers.push({
         lineNumber: index + 1,
         name,
         usta,
@@ -2086,9 +2137,12 @@ function parseImportData(text) {
         phone,
         valid: true,
         error: null,
+        existingPlayer,
+        duplicateType,
+        isUpdate: !!existingPlayer,
       });
     } else {
-      players.push({
+      parsedPlayers.push({
         lineNumber: index + 1,
         name: '',
         usta: '',
@@ -2096,11 +2150,14 @@ function parseImportData(text) {
         phone: '',
         valid: false,
         error: 'Name is required',
+        existingPlayer: null,
+        duplicateType: null,
+        isUpdate: false,
       });
     }
   });
 
-  return players;
+  return parsedPlayers;
 }
 
 function handlePreviewImport() {
@@ -2115,19 +2172,45 @@ function handlePreviewImport() {
   
   const validPlayers = parsedPlayers.filter((p) => p.valid);
   const invalidPlayers = parsedPlayers.filter((p) => !p.valid);
+  const newPlayers = validPlayers.filter((p) => !p.isUpdate);
+  const updatePlayers = validPlayers.filter((p) => p.isUpdate);
 
   previewCount.textContent = validPlayers.length;
   
   let html = '';
   
-  if (validPlayers.length > 0) {
+  if (newPlayers.length > 0) {
     html += '<div class="preview-section">';
-    validPlayers.forEach((player) => {
+    html += `<p class="preview-section-title">✨ New players (${newPlayers.length}):</p>`;
+    newPlayers.forEach((player) => {
       html += `
         <div class="preview-player valid">
           <div class="preview-player-header">
             <span class="preview-player-name">${escapeHtml(player.name)}</span>
             <span class="preview-line-number">Line ${player.lineNumber}</span>
+          </div>
+          ${player.usta || player.email || player.phone ? `
+            <div class="preview-player-info">
+              ${player.usta ? `<span class="preview-badge">USTA: ${escapeHtml(player.usta)}</span>` : ''}
+              ${player.email ? `<span class="preview-badge">${escapeHtml(player.email)}</span>` : ''}
+              ${player.phone ? `<span class="preview-badge">${escapeHtml(player.phone)}</span>` : ''}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+  
+  if (updatePlayers.length > 0) {
+    html += '<div class="preview-section update-section">';
+    html += `<p class="preview-section-title">🔄 Updates (${updatePlayers.length}):</p>`;
+    updatePlayers.forEach((player) => {
+      html += `
+        <div class="preview-player update">
+          <div class="preview-player-header">
+            <span class="preview-player-name">${escapeHtml(player.name)}</span>
+            <span class="preview-update-badge">Updating (matched by ${player.duplicateType})</span>
           </div>
           ${player.usta || player.email || player.phone ? `
             <div class="preview-player-info">
@@ -2180,19 +2263,30 @@ async function handleConfirmImport() {
   // Import players one at a time to avoid concurrency issues
   for (let i = 0; i < validPlayers.length; i++) {
     const playerData = validPlayers[i];
-    const id = generateId();
     
     // Update button text with progress
     confirmImport.textContent = `Importing... ${i + 1}/${validPlayers.length}`;
     
-    // Write event and fetch latest state
-    await writeEventAndRefresh('player_added', {
-      id,
-      name: playerData.name,
-      email: playerData.email,
-      phone: playerData.phone,
-      usta: playerData.usta,
-    });
+    if (playerData.isUpdate && playerData.existingPlayer) {
+      // Update existing player
+      await writeEventAndRefresh('player_updated', {
+        id: playerData.existingPlayer.id,
+        name: playerData.name,
+        email: playerData.email,
+        phone: playerData.phone,
+        usta: playerData.usta,
+      });
+    } else {
+      // Create new player
+      const id = generateId();
+      await writeEventAndRefresh('player_added', {
+        id,
+        name: playerData.name,
+        email: playerData.email,
+        phone: playerData.phone,
+        usta: playerData.usta,
+      });
+    }
     
     // Wait 500ms to ensure backend processes them sequentially
     if (i < validPlayers.length - 1) {

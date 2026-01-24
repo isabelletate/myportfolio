@@ -554,6 +554,7 @@ header {
     0%, 100% {
         opacity: 1;
     }
+
     50% {
         opacity: 0.7;
     }
@@ -931,6 +932,7 @@ header {
     z-index: 50;
 }
 
+/* stylelint-disable-next-line selector-id-pattern */
 #playerDetailsView.active ~ .add-section {
     display: none;
 }
@@ -1218,8 +1220,33 @@ header {
     margin-bottom: 16px;
 }
 
+.preview-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 4px;
+}
+
+.preview-section.update-section {
+    margin-top: 16px;
+}
+
 .preview-section.error-section {
     margin-top: 16px;
+}
+
+.preview-update-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    background: rgb(255 215 0 / 20%);
+    color: var(--accent-yellow);
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.preview-player.update {
+    background: rgb(255 215 0 / 5%);
+    border-left: 3px solid var(--accent-yellow);
 }
 
 .preview-error-title {
