@@ -1043,7 +1043,7 @@ function renderPlayerDetailsAssignments(playerId) {
             ).join('');
             
             return `
-              <div class="player-assigned-position-item">
+              <div class="player-assigned-position-item" data-match-id="${match.id}" data-position-id="${positionId}">
                 <div class="player-assigned-position-left">
                   <span class="player-assigned-position-label">${label}</span>
                   <div class="player-assigned-position-players">
@@ -1063,6 +1063,18 @@ function renderPlayerDetailsAssignments(playerId) {
   });
   
   playerDetailsAssignments.innerHTML = html;
+  
+  // Add click handlers for calendar export
+  playerDetailsAssignments.querySelectorAll('.player-assigned-position-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      const matchId = item.dataset.matchId;
+      const positionId = item.dataset.positionId;
+      handleAddToCalendar(matchId, positionId);
+    });
+    
+    item.style.cursor = 'pointer';
+    item.title = 'Click to add to calendar';
+  });
 }
 
 function renderPlayerDetailsAvailability(playerId) {
