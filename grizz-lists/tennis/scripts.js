@@ -280,6 +280,8 @@ const menuBtn = document.getElementById('menuBtn');
 const menuDropdown = document.getElementById('menuDropdown');
 const addMatchMenuItem = document.getElementById('addMatchMenuItem');
 const importMatchesMenuItem = document.getElementById('importMatchesMenuItem');
+const exportRosterMenuItem = document.getElementById('exportRosterMenuItem');
+const exportMatchesMenuItem = document.getElementById('exportMatchesMenuItem');
 
 // Import modal
 const importPlayersBtn = document.getElementById('importPlayersBtn');
@@ -567,6 +569,23 @@ function updateMenuForPlayers() {
     closeMenuDropdown();
     openImportModal();
   };
+  
+  exportRosterMenuItem.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <span>Export Roster</span>
+  `;
+  exportRosterMenuItem.style.display = 'flex';
+  exportRosterMenuItem.onclick = () => {
+    closeMenuDropdown();
+    exportRosterToClipboard();
+  };
+  
+  // Hide export matches option on players view
+  exportMatchesMenuItem.style.display = 'none';
 }
 
 function updateMenuForMatches() {
@@ -592,6 +611,24 @@ function updateMenuForMatches() {
   importMatchesMenuItem.onclick = () => {
     closeMenuDropdown();
     openImportMatchesModal();
+  };
+  
+  // Hide export roster option on matches view
+  exportRosterMenuItem.style.display = 'none';
+  
+  // Show export matches option
+  exportMatchesMenuItem.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <span>Export Matches</span>
+  `;
+  exportMatchesMenuItem.style.display = 'flex';
+  exportMatchesMenuItem.onclick = () => {
+    closeMenuDropdown();
+    exportMatchesToClipboard();
   };
 }
 
@@ -2029,6 +2066,173 @@ function openImportModal() {
 function closeImportModal() {
   importModal.classList.remove('active');
   parsedPlayers = [];
+}
+
+function exportRosterToClipboard() {
+  if (players.length === 0) {
+    alert('No players to export');
+    return;
+  }
+  
+  // Create TSV with header
+  let tsv = 'Name\tUSTA Number\tCell\tEmail\n';
+  
+  // Add each player
+  players.forEach((player) => {
+    const name = player.name || '';
+    const usta = player.usta || '';
+    const phone = player.phone || '';
+    const email = player.email || '';
+    tsv += `${name}\t${usta}\t${phone}\t${email}\n`;
+  });
+  
+  // Copy to clipboard
+  navigator.clipboard.writeText(tsv).then(() => {
+    alert(`✓ Copied ${players.length} players to clipboard`);
+  }).catch((err) => {
+    console.error('Failed to copy:', err);
+    alert('Failed to copy to clipboard');
+  });
+}
+
+function exportMatchesToClipboard() {
+  if (matches.length === 0) {
+    alert('No matches to export');
+    return;
+  }
+  
+  // Create TSV with header for team matches
+  let tsv = 'Date\tTime\tLocation\tOpponent\tFormat\n';
+  
+  // Add each match
+  matches.forEach((match) => {
+    // Parse date and extract date/time
+    const matchDate = new Date(match.date);
+    const dateStr = matchDate.toLocaleDateString('en-US', { 
+      month: 'numeric', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    const timeStr = matchDate.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    const location = match.location || '';
+    const opponent = match.title || '';
+    
+    // Build format string from singles/doubles counts
+    let formatParts = [];
+    const singlesCount = match.singles || 0;
+    const doublesCount = match.doubles || 0;
+    
+    if (singlesCount > 0) {
+      formatParts.push(`${singlesCount} Singles`);
+    }
+    if (doublesCount > 0) {
+      formatParts.push(`${doublesCount} Doubles`);
+    }
+    
+    const formatStr = formatParts.join(' ') || '2 Singles 2 Doubles';
+    
+    tsv += `${dateStr}\t${timeStr}\t${location}\t${opponent}\t${formatStr}\n`;
+  });
+  
+  // Add blank lines and header for individual match assignments
+  tsv += '\n\n';
+  tsv += 'Date\tTime\tPosition\tPlayers\tOpponent\tLocation\n';
+  
+  // Add individual match assignments
+  matches.forEach((match) => {
+    const matchAssign = assignments.get(match.id) || {};
+    const location = match.location || '';
+    const opponent = match.title || '';
+    
+    // Process singles positions
+    for (let i = 0; i < match.singles; i++) {
+      const positionId = `singles-${i + 1}`;
+      const positionData = matchAssign[positionId];
+      
+      if (positionData) {
+        const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+        const positionDate = Array.isArray(positionData) ? null : positionData.date;
+        
+        if (assignedIds.length > 0) {
+          const assignedPlayer = players.find((p) => p.id === assignedIds[0]);
+          
+          if (assignedPlayer) {
+            // Use position-specific date/time if available, otherwise use match date
+            let displayDate = match.date;
+            if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
+              displayDate = positionDate;
+            }
+            
+            const date = new Date(displayDate);
+            const dateStr = date.toLocaleDateString('en-US', { 
+              month: 'numeric', 
+              day: 'numeric', 
+              year: 'numeric' 
+            });
+            const timeStr = date.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              hour12: true 
+            });
+            
+            tsv += `${dateStr}\t${timeStr}\tS${i + 1}\t${assignedPlayer.name}\t${opponent}\t${location}\n`;
+          }
+        }
+      }
+    }
+    
+    // Process doubles positions
+    for (let i = 0; i < match.doubles; i++) {
+      const positionId = `doubles-${i + 1}`;
+      const positionData = matchAssign[positionId];
+      
+      if (positionData) {
+        const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+        const positionDate = Array.isArray(positionData) ? null : positionData.date;
+        
+        if (assignedIds.length > 0) {
+          const assignedPlayers = assignedIds.map((pId) => players.find((p) => p.id === pId)).filter(Boolean);
+          
+          if (assignedPlayers.length > 0) {
+            // Use position-specific date/time if available, otherwise use match date
+            let displayDate = match.date;
+            if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
+              displayDate = positionDate;
+            }
+            
+            const date = new Date(displayDate);
+            const dateStr = date.toLocaleDateString('en-US', { 
+              month: 'numeric', 
+              day: 'numeric', 
+              year: 'numeric' 
+            });
+            const timeStr = date.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              hour12: true 
+            });
+            
+            const playerNames = assignedPlayers.map((p) => p.name).join(' / ');
+            
+            tsv += `${dateStr}\t${timeStr}\tD${i + 1}\t${playerNames}\t${opponent}\t${location}\n`;
+          }
+        }
+      }
+    }
+  });
+  
+  // Copy to clipboard
+  navigator.clipboard.writeText(tsv).then(() => {
+    alert(`✓ Copied ${matches.length} matches to clipboard`);
+  }).catch((err) => {
+    console.error('Failed to copy:', err);
+    alert('Failed to copy to clipboard');
+  });
 }
 
 function parseImportData(text) {
