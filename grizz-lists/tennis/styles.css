@@ -617,6 +617,15 @@ header {
     padding: 8px 10px;
     background: rgb(0 0 0 / 20%);
     border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.lineup-summary-position:hover {
+    background: rgb(0 0 0 / 30%);
+}
+
+.lineup-summary-position:active {
+    background: rgb(0 0 0 / 40%);
 }
 
 .lineup-summary-label {

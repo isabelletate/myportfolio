@@ -1430,7 +1430,7 @@ function renderMatchLineupSummary(match) {
         
         if (assignedPlayer) {
           html += `
-            <div class="lineup-summary-position">
+            <div class="lineup-summary-position" data-match-id="${match.id}" data-position-id="${positionId}" data-position-type="singles" data-position-num="${i + 1}">
               <div class="lineup-summary-label">S${i + 1}</div>
               <div class="lineup-summary-players">
                 <div class="lineup-summary-player">${escapeHtml(assignedPlayer.name)}</div>
@@ -1480,7 +1480,7 @@ function renderMatchLineupSummary(match) {
           ).join('');
           
           html += `
-            <div class="lineup-summary-position">
+            <div class="lineup-summary-position" data-match-id="${match.id}" data-position-id="${positionId}" data-position-type="doubles" data-position-num="${i + 1}">
               <div class="lineup-summary-label">D${i + 1}</div>
               <div class="lineup-summary-players">
                 ${playerNamesHtml}
@@ -1646,6 +1646,8 @@ function renderMatches(force = false) {
     card.addEventListener('click', (e) => {
       // Don't trigger if clicking on action buttons
       if (e.target.closest('.action-btn')) return;
+      // Don't trigger if clicking on lineup position
+      if (e.target.closest('.lineup-summary-position')) return;
       
       const matchId = card.dataset.matchId;
       // Update hash without triggering hashchange
@@ -1661,6 +1663,19 @@ function renderMatches(force = false) {
     
     // Add cursor pointer style
     card.style.cursor = 'pointer';
+  });
+  
+  // Add click handler to lineup positions for calendar export
+  matchList.querySelectorAll('.lineup-summary-position').forEach((position) => {
+    position.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const matchId = position.dataset.matchId;
+      const positionId = position.dataset.positionId;
+      handleAddToCalendar(matchId, positionId);
+    });
+    
+    position.style.cursor = 'pointer';
+    position.title = 'Click to add to calendar';
   });
 }
 
@@ -2780,6 +2795,106 @@ async function handleConfirmMatchesImport() {
 // ============================================
 // UTILITIES
 // ============================================
+
+function handleAddToCalendar(matchId, positionId) {
+  const match = matches.find((m) => m.id === matchId);
+  if (!match) return;
+  
+  const matchAssign = assignments.get(matchId) || {};
+  const positionData = matchAssign[positionId];
+  
+  if (!positionData) return;
+  
+  const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+  const positionDate = Array.isArray(positionData) ? null : positionData.date;
+  
+  if (assignedIds.length === 0) return;
+  
+  // Get assigned players
+  const assignedPlayers = assignedIds.map((pId) => players.find((p) => p.id === pId)).filter(Boolean);
+  if (assignedPlayers.length === 0) return;
+  
+  // Use position-specific date/time if available, otherwise use match date
+  let eventDate = match.date;
+  if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
+    eventDate = positionDate;
+  }
+  
+  // Parse position ID to get type and number
+  const [type, num] = positionId.split('-');
+  const positionLabel = type === 'singles' ? `Singles ${num}` : `Doubles ${num}`;
+  
+  const playerNames = assignedPlayers.map((p) => p.name).join(' / ');
+  
+  // Confirm with user
+  if (!confirm(`Add ${positionLabel} match to calendar?\n\n${playerNames}\nvs ${match.title}\n${match.location}\n${new Date(eventDate).toLocaleString()}`)) {
+    return;
+  }
+  
+  // Generate ICS file
+  generateICSFile(match, positionLabel, assignedPlayers, eventDate);
+}
+
+function generateICSFile(match, positionLabel, players, eventDate) {
+  const startDate = new Date(eventDate);
+  
+  // Default to 90 minutes for match duration
+  const endDate = new Date(startDate.getTime() + 90 * 60000);
+  
+  // Format dates for ICS (YYYYMMDDTHHMMSS)
+  const formatICSDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+  };
+  
+  const now = new Date();
+  const timestamp = formatICSDate(now);
+  const dtstart = formatICSDate(startDate);
+  const dtend = formatICSDate(endDate);
+  
+  const playerNames = players.map((p) => p.name).join(' / ');
+  const summary = `Tennis: ${positionLabel} vs ${match.title}`;
+  const description = `${positionLabel}\\nPlayers: ${playerNames}\\nOpponent: ${match.title}`;
+  const location = match.location || '';
+  
+  // Generate unique ID
+  const uid = `tennis-${match.id}-${positionLabel.replace(/\s+/g, '-')}-${timestamp}@tennis-captain`;
+  
+  // Create ICS content
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Tennis Captain//Tennis Match//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${timestamp}`,
+    `DTSTART:${dtstart}`,
+    `DTEND:${dtend}`,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${description}`,
+    `LOCATION:${location}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+  
+  // Create blob and download
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `tennis-${positionLabel.replace(/\s+/g, '-')}-${match.title.replace(/\s+/g, '-')}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
 
 function escapeHtml(text) {
   const div = document.createElement('div');
