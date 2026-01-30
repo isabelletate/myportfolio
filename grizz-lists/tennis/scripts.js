@@ -84,6 +84,7 @@ function replayChangelog(changelog) {
           if (event.email !== undefined) player.email = event.email;
           if (event.phone !== undefined) player.phone = event.phone;
           if (event.usta !== undefined) player.usta = event.usta;
+          if (event.role !== undefined) player.role = event.role;
         }
         break;
 
