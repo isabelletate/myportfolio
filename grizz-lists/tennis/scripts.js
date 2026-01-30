@@ -1213,7 +1213,7 @@ function generateVCard(playerId) {
   if (!player) return;
   
   // Confirm with user
-  if (!confirm(`Download contact card for ${player.name}?`)) {
+  if (!confirm(`Add ${player.name} to contacts?`)) {
     return;
   }
   
@@ -1243,15 +1243,30 @@ function generateVCard(playerId) {
   
   const vcardContent = vcard.join('\r\n');
   
-  // Create blob and download
-  const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `${player.name.replace(/\s+/g, '-')}.vcf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
+  // Detect if mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    // For mobile: Use data URI to open directly in contacts app
+    const dataUri = `data:text/vcard;charset=utf-8,${encodeURIComponent(vcardContent)}`;
+    const link = document.createElement('a');
+    link.href = dataUri;
+    link.download = `${player.name.replace(/\s+/g, '-')}.vcf`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } else {
+    // For desktop: Use blob download
+    const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${player.name.replace(/\s+/g, '-')}.vcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  }
 }
 
 function getPlayersHash() {
