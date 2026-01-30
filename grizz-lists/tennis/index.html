@@ -22,7 +22,7 @@
     <meta property="og:image" content="https://www.grizz.biz/grizz-lists/tennis/og-image.jpeg">
     <meta property="og:image:width" content="1200">
     
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
     <div class="bg-shapes">
@@ -101,6 +101,12 @@
                                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                                 </svg>
                                 <span>Add Contacts...</span>
+                            </button>
+                            <button class="menu-item menu-item-toggle" id="modeToggleMenuItem" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2v20M2 12h20"/>
+                                </svg>
+                                <span id="modeToggleText">Switch to Player Mode</span>
                             </button>
                         </div>
                     </div>
@@ -243,6 +249,14 @@
                 <input type="tel" class="form-input" id="playerPhoneInput" placeholder="e.g., (555) 123-4567" autocomplete="off">
             </div>
             
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <select class="form-input" id="playerRoleInput">
+                    <option value="player">Player</option>
+                    <option value="captain">Team Captain</option>
+                </select>
+            </div>
+            
             <div class="modal-buttons">
                 <button class="modal-btn cancel" id="cancelPlayer">Cancel</button>
                 <button class="modal-btn delete" id="deletePlayerBtn" style="display: none; margin-right: auto;">Delete Player</button>
@@ -330,6 +344,9 @@
             
             <div class="modal-buttons">
                 <button class="modal-btn cancel" id="cancelLineup">Close</button>
+                <button class="modal-btn submit" id="publishLineupBtn" style="margin-left: auto;">
+                    <span id="publishLineupText">Publish Lineup</span>
+                </button>
             </div>
         </div>
     </div>
@@ -439,6 +456,6 @@ Bob Wilson, 555123456, bob@example.com" rows="8"></textarea>
     </div>
 
     <script type="module" src="../cache-buster.v1.js" data-auto-init></script>
-    <script src="scripts.js?v=3" type="module"></script>
+    <script src="scripts.js?v=7" type="module"></script>
 </body>
 </html>

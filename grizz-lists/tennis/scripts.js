@@ -176,6 +176,14 @@ function replayChangelog(changelog) {
         break;
       }
 
+      case 'lineup_published': {
+        const match = matches.get(event.matchId);
+        if (match) {
+          match.lineupPublished = event.published;
+        }
+        break;
+      }
+
       default:
         break;
     }
@@ -202,6 +210,11 @@ let editingPlayerId = null;
 let editingMatchId = null;
 let currentLineupMatchId = null;
 
+// User and permissions
+let userEmail = null; // Set from login/URL params
+let isCaptain = false; // Determined by matching email with captain role
+let captainMode = true; // Toggle for captains, always true for non-captains
+
 // Render hashes to prevent unnecessary re-renders
 let playersRenderHash = '';
 let matchesRenderHash = '';
@@ -225,6 +238,7 @@ const playerNameInput = document.getElementById('playerNameInput');
 const playerEmailInput = document.getElementById('playerEmailInput');
 const playerPhoneInput = document.getElementById('playerPhoneInput');
 const playerUstaInput = document.getElementById('playerUstaInput');
+const playerRoleInput = document.getElementById('playerRoleInput');
 const submitPlayer = document.getElementById('submitPlayer');
 const cancelPlayer = document.getElementById('cancelPlayer');
 const deletePlayerBtn = document.getElementById('deletePlayerBtn');
@@ -250,6 +264,8 @@ const lineupModalTitle = document.getElementById('lineupModalTitle');
 const lineupModalSubtitle = document.getElementById('lineupModalSubtitle');
 const lineupAssignment = document.getElementById('lineupAssignment');
 const cancelLineup = document.getElementById('cancelLineup');
+const publishLineupBtn = document.getElementById('publishLineupBtn');
+const publishLineupText = document.getElementById('publishLineupText');
 
 // Position time modal
 const positionTimeModal = document.getElementById('positionTimeModal');
@@ -283,6 +299,8 @@ const importMatchesMenuItem = document.getElementById('importMatchesMenuItem');
 const exportRosterMenuItem = document.getElementById('exportRosterMenuItem');
 const exportMatchesMenuItem = document.getElementById('exportMatchesMenuItem');
 const addContactsMenuItem = document.getElementById('addContactsMenuItem');
+const modeToggleMenuItem = document.getElementById('modeToggleMenuItem');
+const modeToggleText = document.getElementById('modeToggleText');
 
 // Contacts view
 const contactsView = document.getElementById('contactsView');
@@ -325,6 +343,106 @@ let editingPositionId = null;
 let currentAvailabilityPlayerId = null;
 
 // ============================================
+// PERMISSIONS & MODE
+// ============================================
+
+function checkCaptainStatus() {
+  // Check for testing override in localStorage (set via ?role= query param)
+  const roleOverride = localStorage.getItem('tennis_role_override');
+  
+  if (roleOverride === 'captain') {
+    isCaptain = true;
+    console.log('[Testing Override] Captain mode enabled via localStorage');
+    return;
+  }
+  
+  if (roleOverride === 'player') {
+    isCaptain = false;
+    console.log('[Testing Override] Player mode enabled via localStorage');
+    return;
+  }
+  
+  // Normal email-based checking
+  if (!userEmail) {
+    isCaptain = false;
+    return;
+  }
+  
+  // Check if user email matches any player with captain role
+  const captainPlayer = players.find(p => 
+    p.email && 
+    p.email.toLowerCase() === userEmail.toLowerCase() && 
+    p.role === 'captain'
+  );
+  
+  isCaptain = !!captainPlayer;
+}
+
+function toggleMode() {
+  if (!isCaptain) return; // Only captains can toggle
+  
+  captainMode = !captainMode;
+  
+  // Persist mode preference
+  localStorage.setItem('tennis_captain_mode', captainMode ? 'true' : 'false');
+  
+  updateUIForMode();
+  closeMenuDropdown();
+}
+
+function updateUIForMode() {
+  // Update toggle button text
+  if (isCaptain) {
+    modeToggleMenuItem.style.display = 'flex';
+    modeToggleText.textContent = captainMode ? 'Switch to Player Mode' : 'Switch to Captain Mode';
+  } else {
+    modeToggleMenuItem.style.display = 'none';
+  }
+  
+  const canEditNow = canEdit(); // Use the same logic as canEdit()
+  
+  // Show/hide edit controls based on mode
+  document.querySelectorAll('.edit, .delete, .action-btn.edit').forEach(btn => {
+    btn.style.display = canEditNow ? '' : 'none';
+  });
+  
+  // Hide lineup buttons completely in player mode
+  document.querySelectorAll('.action-btn.lineup').forEach(btn => {
+    btn.style.display = canEditNow ? '' : 'none';
+  });
+  
+  // Show/hide menu items that allow modifications
+  if (currentView === 'players') {
+    // In players view, hide add/import if read-only
+    const addPlayerMenuItem = document.querySelector('[data-action="add-player"]');
+    const importRosterMenuItem = document.querySelector('[data-action="import-roster"]');
+    if (addPlayerMenuItem) addPlayerMenuItem.style.display = canEditNow ? 'flex' : 'none';
+    if (importRosterMenuItem) importRosterMenuItem.style.display = canEditNow ? 'flex' : 'none';
+  } else if (currentView === 'matches') {
+    // In matches view, hide add/import if read-only
+    addMatchMenuItem.style.display = canEditNow ? 'flex' : 'none';
+    importMatchesMenuItem.style.display = canEditNow ? 'flex' : 'none';
+  }
+  
+  // Force re-render to update lineup visibility
+  if (currentView === 'players') {
+    renderPlayers(true); // Force render
+  } else if (currentView === 'matches') {
+    renderMatches(true); // Force render
+  } else if (currentView === 'playerDetails') {
+    // Re-render player details if open
+    const playerId = window.location.hash.match(/#player-(.+)$/);
+    if (playerId) {
+      renderPlayerDetailsAssignments(playerId[1]);
+    }
+  }
+}
+
+function canEdit() {
+  return captainMode && isCaptain;
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 
@@ -349,6 +467,39 @@ async function init() {
 
   // Track this list as recently accessed
   addToRecentLists(listId, metadata.name, 'tennis');
+
+  // Get user email from URL params or metadata
+  const urlParams = new URLSearchParams(window.location.search);
+  userEmail = urlParams.get('email') || metadata.userEmail || null;
+  
+  // Check for role override query param (for testing)
+  const roleParam = urlParams.get('role');
+  if (roleParam !== null) {
+    if (roleParam === 'captain') {
+      localStorage.setItem('tennis_role_override', 'captain');
+      console.log('[Testing] Role override set to: captain');
+    } else if (roleParam === 'player') {
+      localStorage.setItem('tennis_role_override', 'player');
+      console.log('[Testing] Role override set to: player');
+    } else if (roleParam === '') {
+      localStorage.removeItem('tennis_role_override');
+      console.log('[Testing] Role override cleared');
+    }
+  }
+  
+  // Check if user is a captain
+  checkCaptainStatus();
+  
+  // Load captain mode preference (for captains only)
+  if (isCaptain) {
+    const savedMode = localStorage.getItem('tennis_captain_mode');
+    if (savedMode !== null) {
+      captainMode = savedMode === 'true';
+    }
+  }
+  
+  // Update UI based on mode
+  updateUIForMode();
 
   renderCurrentView();
 }
@@ -460,6 +611,7 @@ function setupEventListeners() {
   lineupModal.addEventListener('click', (e) => {
     if (e.target === lineupModal) closeLineupModal();
   });
+  publishLineupBtn.addEventListener('click', handlePublishLineup);
 
   // Position time modal
   cancelPositionTime.addEventListener('click', closePositionTimeModal);
@@ -485,6 +637,9 @@ function setupEventListeners() {
     const playerId = editPlayerDetailsBtn.dataset.playerId;
     openPlayerModal(playerId);
   });
+  
+  // Mode toggle
+  modeToggleMenuItem.addEventListener('click', toggleMode);
 
   // Import modal
   importPlayersBtn.addEventListener('click', openImportModal);
@@ -602,6 +757,9 @@ function updateMenuForPlayers() {
     closeMenuDropdown();
     openContactsView();
   };
+  
+  // Update mode toggle visibility
+  updateUIForMode();
 }
 
 function updateMenuForMatches() {
@@ -649,6 +807,9 @@ function updateMenuForMatches() {
   
   // Hide add contacts option on matches view
   addContactsMenuItem.style.display = 'none';
+  
+  // Update mode toggle visibility
+  updateUIForMode();
 }
 
 function closeMenuDropdown() {
@@ -728,6 +889,11 @@ function showImportButton() {
 }
 
 function openPlayerModal(playerId = null) {
+  if (!canEdit()) {
+    alert('You must be in Captain Mode to edit players');
+    return;
+  }
+  
   editingPlayerId = playerId;
   
   if (playerId) {
@@ -738,6 +904,7 @@ function openPlayerModal(playerId = null) {
       playerEmailInput.value = player.email || '';
       playerPhoneInput.value = player.phone || '';
       playerUstaInput.value = player.usta || '';
+      playerRoleInput.value = player.role || 'player';
       submitPlayer.textContent = 'Save Changes';
       deletePlayerBtn.style.display = 'block';
     }
@@ -747,6 +914,7 @@ function openPlayerModal(playerId = null) {
     playerEmailInput.value = '';
     playerPhoneInput.value = '';
     playerUstaInput.value = '';
+    playerRoleInput.value = 'player';
     submitPlayer.textContent = 'Add Player';
     deletePlayerBtn.style.display = 'none';
   }
@@ -773,6 +941,7 @@ async function handlePlayerSubmit() {
   const email = playerEmailInput.value.trim();
   const phone = playerPhoneInput.value.trim();
   const usta = playerUstaInput.value.trim();
+  const role = playerRoleInput.value;
 
   if (editingPlayerId) {
     // Update existing player
@@ -782,6 +951,7 @@ async function handlePlayerSubmit() {
       email,
       phone,
       usta,
+      role,
     });
   } else {
     // Add new player
@@ -792,6 +962,7 @@ async function handlePlayerSubmit() {
       email,
       phone,
       usta,
+      role,
     });
   }
 
@@ -919,6 +1090,16 @@ function openPlayerDetailsView(playerId) {
   // Render player info
   let infoHtml = '<div class="player-details-info-grid">';
   
+  if (player.role) {
+    const roleDisplay = player.role === 'captain' ? 'Team Captain' : 'Player';
+    infoHtml += `
+      <div class="player-detail-item">
+        <div class="player-detail-label">Role</div>
+        <div class="player-detail-value">${escapeHtml(roleDisplay)}</div>
+      </div>
+    `;
+  }
+  
   if (player.usta) {
     infoHtml += `
       <div class="player-detail-item">
@@ -946,7 +1127,7 @@ function openPlayerDetailsView(playerId) {
     `;
   }
   
-  if (!player.usta && !player.email && !player.phone) {
+  if (!player.role && !player.usta && !player.email && !player.phone) {
     infoHtml += '<div class="player-detail-empty">No additional information</div>';
   }
   
@@ -978,6 +1159,9 @@ function openPlayerDetailsView(playerId) {
   menuBtn.style.display = 'none';
   backToGrizzLists.style.display = 'none';
   
+  // Update UI based on mode (hide edit button in player mode)
+  updateUIForMode();
+  
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -987,6 +1171,12 @@ function renderPlayerDetailsAssignments(playerId) {
   let assignedMatches = [];
   
   matches.forEach((match) => {
+    // Skip unpublished lineups for players
+    const isPublished = match.lineupPublished || false;
+    if (!canEdit() && !isPublished) {
+      return; // Skip this match
+    }
+    
     const matchAssign = assignments.get(match.id) || {};
     let positions = [];
     
@@ -1388,6 +1578,11 @@ function renderPlayerAvailabilitySummary(playerId) {
 // ============================================
 
 function openMatchModal(matchId = null) {
+  if (!canEdit()) {
+    alert('You must be in Captain Mode to edit matches');
+    return;
+  }
+  
   editingMatchId = matchId;
   
   if (matchId) {
@@ -1534,12 +1729,47 @@ function renderMatchLineupSummary(match) {
   
   // Check if any positions are assigned
   const hasAssignments = Object.keys(matchAssign).length > 0;
+  
+  // Check if lineup is published
+  const isPublished = match.lineupPublished || false;
+  
+  // For unpublished lineups in player mode, show available players instead
+  if (!canEdit() && !isPublished && hasAssignments) {
+    const matchAvail = availability.get(match.id) || new Set();
+    if (matchAvail.size > 0) {
+      const availablePlayers = Array.from(matchAvail)
+        .map(pId => players.find(p => p.id === pId))
+        .filter(Boolean)
+        .map(p => p.name)
+        .sort();
+      
+      let html = '<div class="lineup-summary draft-available">';
+      html += '<div class="lineup-summary-header">Available Players <span style="opacity: 0.6; font-size: 0.85rem;">(Draft)</span></div>';
+      html += '<div style="padding: 0.75rem; color: var(--text-muted); line-height: 1.6;">';
+      html += escapeHtml(availablePlayers.join(', '));
+      html += '</div>';
+      html += '</div>';
+      return html;
+    }
+    // No assignments and not published - hide from players
+    return '';
+  }
+  
   if (!hasAssignments) {
     return '';
   }
   
+  // Hide lineup from players if not published (only captains can see unpublished lineups)
+  if (!canEdit() && !isPublished) {
+    return '';
+  }
+  
   let html = '<div class="lineup-summary">';
-  html += '<div class="lineup-summary-header">Assigned Lineup</div>';
+  html += '<div class="lineup-summary-header">Assigned Lineup';
+  if (!isPublished && canEdit()) {
+    html += ' <span style="opacity: 0.6; font-size: 0.85rem;">(Draft)</span>';
+  }
+  html += '</div>';
   html += '<div class="lineup-summary-positions">';
   
   // Helper to check if dates are on different days
@@ -1731,6 +1961,7 @@ function renderMatches(force = false) {
         <div class="match-header">
           <div class="match-title">${escapeHtml(match.title)}</div>
           <div class="match-actions">
+            ${canEdit() ? `
             <button class="action-btn lineup" data-match-id="${match.id}" title="Manage lineup">
               <span class="lineup-count">${availableCount}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1746,6 +1977,14 @@ function renderMatches(force = false) {
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
             </button>
+            ` : `
+            <span class="available-count-badge">${availableCount} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg></span>
+            `}
           </div>
         </div>
         
@@ -1795,6 +2034,7 @@ function renderMatches(force = false) {
   matchList.querySelectorAll('.lineup').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (btn.disabled) return; // Don't open if disabled
       openLineupModal(btn.dataset.matchId);
     });
   });
@@ -1845,12 +2085,18 @@ function renderMatches(force = false) {
 // ============================================
 
 function openLineupModal(matchId) {
+  // Check is now done at button level - button is disabled in player mode
   currentLineupMatchId = matchId;
   const match = matches.find((m) => m.id === matchId);
   if (!match) return;
 
   lineupModalTitle.textContent = `Assign Lineup`;
   lineupModalSubtitle.textContent = `${match.title} - ${match.date ? new Date(match.date).toLocaleDateString() : 'Date TBD'}`;
+
+  // Update publish button state
+  const isPublished = match.lineupPublished || false;
+  publishLineupText.textContent = isPublished ? 'Unpublish Lineup' : 'Publish Lineup';
+  publishLineupBtn.className = isPublished ? 'modal-btn' : 'modal-btn submit';
 
   renderLineupAssignments(matchId);
   lineupModal.classList.add('active');
@@ -1861,6 +2107,38 @@ function closeLineupModal() {
   currentLineupMatchId = null;
   
   // Refresh the current view
+  renderCurrentView();
+}
+
+async function handlePublishLineup() {
+  if (!currentLineupMatchId) return;
+  
+  const match = matches.find((m) => m.id === currentLineupMatchId);
+  if (!match) return;
+  
+  const isPublished = match.lineupPublished || false;
+  const newState = !isPublished;
+  
+  // Confirm action
+  const action = newState ? 'publish' : 'unpublish';
+  if (!confirm(`${newState ? 'Publish' : 'Unpublish'} lineup for ${match.title}?\n\n${newState ? 'Players will be able to see assigned positions.' : 'Lineup will be hidden from players.'}`)) {
+    return;
+  }
+  
+  // Update match with published state
+  await writeEventAndRefresh('lineup_published', {
+    matchId: currentLineupMatchId,
+    published: newState,
+  });
+  
+  // Update local state
+  match.lineupPublished = newState;
+  
+  // Update button state
+  publishLineupText.textContent = newState ? 'Unpublish Lineup' : 'Publish Lineup';
+  publishLineupBtn.className = newState ? 'modal-btn' : 'modal-btn submit';
+  
+  // Refresh view
   renderCurrentView();
 }
 
@@ -2228,6 +2506,11 @@ function formatDateTime(dateStr) {
 // ============================================
 
 function openImportModal() {
+  if (!canEdit()) {
+    alert('You must be in Captain Mode to import players');
+    return;
+  }
+  
   importTextarea.value = '';
   importPreview.style.display = 'none';
   confirmImport.style.display = 'none';
@@ -2248,7 +2531,7 @@ function exportRosterToClipboard() {
   }
   
   // Create TSV with header
-  let tsv = 'Name\tUSTA Number\tCell\tEmail\n';
+  let tsv = 'Name\tUSTA Number\tCell\tEmail\tRole\n';
   
   // Add each player
   players.forEach((player) => {
@@ -2256,7 +2539,8 @@ function exportRosterToClipboard() {
     const usta = player.usta || '';
     const phone = player.phone || '';
     const email = player.email || '';
-    tsv += `${name}\t${usta}\t${phone}\t${email}\n`;
+    const role = player.role === 'captain' ? 'Team Captain' : 'Player';
+    tsv += `${name}\t${usta}\t${phone}\t${email}\t${role}\n`;
   });
   
   // Copy to clipboard
@@ -2436,18 +2720,27 @@ function parseImportData(text) {
       parts = [line.trim()];
     }
 
-    // Expected format: Name, USTA Number, Cell, Email (in that order if we have headers)
+    // Expected format: Name, USTA Number, Cell, Email, Role (in that order if we have headers)
     let name = '';
     let usta = '';
     let phone = '';
     let email = '';
+    let role = 'player'; // Default role
     
     if (hasHeader && parts.length >= 4) {
-      // If we detected headers, assume positional format: Name, USTA, Cell, Email
+      // If we detected headers, assume positional format: Name, USTA, Cell, Email, Role (optional)
       name = parts[0] || '';
       usta = (parts[1] || '').replace(/[^\d]/g, ''); // Remove non-digits from USTA
       phone = parts[2] || '';
       email = parts[3] || '';
+      
+      // Check for role in 5th column
+      if (parts.length >= 5 && parts[4]) {
+        const roleValue = parts[4].toLowerCase();
+        if (roleValue.includes('captain')) {
+          role = 'captain';
+        }
+      }
     } else {
       // Fallback to smart detection
       name = parts[0] || '';
@@ -2512,6 +2805,7 @@ function parseImportData(text) {
         usta,
         email,
         phone,
+        role,
         valid: true,
         error: null,
         existingPlayer,
@@ -2525,6 +2819,7 @@ function parseImportData(text) {
         usta: '',
         email: '',
         phone: '',
+        role: 'player',
         valid: false,
         error: 'Name is required',
         existingPlayer: null,
@@ -2652,6 +2947,7 @@ async function handleConfirmImport() {
         email: playerData.email,
         phone: playerData.phone,
         usta: playerData.usta,
+        role: playerData.role || 'player',
       });
     } else {
       // Create new player
@@ -2662,6 +2958,7 @@ async function handleConfirmImport() {
         email: playerData.email,
         phone: playerData.phone,
         usta: playerData.usta,
+        role: playerData.role || 'player',
       });
     }
     
@@ -2690,6 +2987,11 @@ async function handleConfirmImport() {
 // ============================================
 
 function openImportMatchesModal() {
+  if (!canEdit()) {
+    alert('You must be in Captain Mode to import matches');
+    return;
+  }
+  
   importMatchesTextarea.value = '';
   importMatchesPreview.style.display = 'none';
   confirmMatchesImport.style.display = 'none';
