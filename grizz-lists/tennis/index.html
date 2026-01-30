@@ -93,6 +93,15 @@
                                 </svg>
                                 <span>Export Matches</span>
                             </button>
+                            <button class="menu-item" id="addContactsMenuItem">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                <span>Add Contacts...</span>
+                            </button>
                         </div>
                     </div>
                     <div class="sync-indicator" id="syncIndicator" title="Sync status">
@@ -169,6 +178,30 @@
                 <div class="availability-matches-list" id="playerDetailsAvailability">
                     <!-- Will be populated dynamically -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contacts View -->
+    <div class="view-content" id="contactsView">
+        <div class="container">
+            <div class="player-details-back">
+                <button class="back-btn" id="backToPlayersFromContacts">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Back to Players</span>
+                </button>
+            </div>
+            
+            <div class="player-details-header">
+                <h2 class="player-details-name">Add Contacts</h2>
+            </div>
+
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Click on a player to download their contact card.</p>
+
+            <div id="contactsList" class="contacts-list">
+                <!-- Will be populated dynamically -->
             </div>
         </div>
     </div>

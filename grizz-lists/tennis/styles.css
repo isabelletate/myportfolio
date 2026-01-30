@@ -1867,3 +1867,61 @@ header {
     padding: 2px 8px;
     border-radius: 4px;
 }
+
+/* ============================================
+   CONTACTS VIEW
+   ============================================ */
+
+.contacts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: rgb(158 255 0 / 10%);
+    border: 1px solid rgb(158 255 0 / 30%);
+    border-radius: 12px;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.contact-item:hover {
+    background: rgb(158 255 0 / 20%);
+    border-color: rgb(158 255 0 / 40%);
+    transform: translateY(-2px);
+}
+
+.contact-item:active {
+    background: rgb(158 255 0 / 30%);
+    border-color: rgb(158 255 0 / 50%);
+    transform: translateY(0);
+}
+
+.contact-info {
+    flex: 1;
+}
+
+.contact-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.contact-detail {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.contact-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-green);
+    flex-shrink: 0;
+    margin-left: 12px;
+}

@@ -282,6 +282,12 @@ const addMatchMenuItem = document.getElementById('addMatchMenuItem');
 const importMatchesMenuItem = document.getElementById('importMatchesMenuItem');
 const exportRosterMenuItem = document.getElementById('exportRosterMenuItem');
 const exportMatchesMenuItem = document.getElementById('exportMatchesMenuItem');
+const addContactsMenuItem = document.getElementById('addContactsMenuItem');
+
+// Contacts view
+const contactsView = document.getElementById('contactsView');
+const contactsList = document.getElementById('contactsList');
+const backToPlayersFromContacts = document.getElementById('backToPlayersFromContacts');
 
 // Import modal
 const importPlayersBtn = document.getElementById('importPlayersBtn');
@@ -472,6 +478,9 @@ function setupEventListeners() {
   backToPlayers.addEventListener('click', () => {
     window.location.hash = '#players';
   });
+  backToPlayersFromContacts.addEventListener('click', () => {
+    window.location.hash = '#players';
+  });
   editPlayerDetailsBtn.addEventListener('click', () => {
     const playerId = editPlayerDetailsBtn.dataset.playerId;
     openPlayerModal(playerId);
@@ -586,6 +595,13 @@ function updateMenuForPlayers() {
   
   // Hide export matches option on players view
   exportMatchesMenuItem.style.display = 'none';
+  
+  // Show add contacts option
+  addContactsMenuItem.style.display = 'flex';
+  addContactsMenuItem.onclick = () => {
+    closeMenuDropdown();
+    openContactsView();
+  };
 }
 
 function updateMenuForMatches() {
@@ -630,6 +646,9 @@ function updateMenuForMatches() {
     closeMenuDropdown();
     exportMatchesToClipboard();
   };
+  
+  // Hide add contacts option on matches view
+  addContactsMenuItem.style.display = 'none';
 }
 
 function closeMenuDropdown() {
@@ -666,6 +685,9 @@ function handleHashChange() {
     // Open player details view
     const playerId = playerMatch[1];
     openPlayerDetailsView(playerId);
+  } else if (hash === 'contacts') {
+    // Open contacts view
+    openContactsView();
   } else if (hash === 'matches' || hash === 'players') {
     switchView(hash, true);
   } else if (!hash) {
@@ -1121,6 +1143,115 @@ function renderPlayerDetailsAvailability(playerId) {
       toggleAvailability(item.dataset.matchId, playerId);
     });
   });
+}
+
+// ============================================
+// CONTACTS VIEW
+// ============================================
+
+function openContactsView() {
+  currentView = 'contacts';
+  window.location.hash = '#contacts';
+  
+  // Hide all view contents
+  matchesView.classList.remove('active');
+  playersView.classList.remove('active');
+  playerDetailsView.classList.remove('active');
+  contactsView.classList.add('active');
+  
+  // Hide menu and tabs
+  menuBtn.style.display = 'none';
+  viewTabsContainer.style.display = 'none';
+  backToGrizzLists.style.display = 'none';
+  
+  // Render contacts
+  renderContacts();
+  
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderContacts() {
+  if (players.length === 0) {
+    contactsList.innerHTML = '<div class="empty-state-small">No players in roster</div>';
+    return;
+  }
+  
+  let html = '';
+  players.forEach((player) => {
+    html += `
+      <div class="contact-item" data-player-id="${player.id}">
+        <div class="contact-info">
+          <div class="contact-name">${escapeHtml(player.name)}</div>
+          ${player.email ? `<div class="contact-detail">${escapeHtml(player.email)}</div>` : ''}
+          ${player.phone ? `<div class="contact-detail">${escapeHtml(player.phone)}</div>` : ''}
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="contact-icon">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
+    `;
+  });
+  
+  contactsList.innerHTML = html;
+  
+  // Add click handlers
+  contactsList.querySelectorAll('.contact-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      const playerId = item.dataset.playerId;
+      generateVCard(playerId);
+    });
+    
+    item.style.cursor = 'pointer';
+  });
+}
+
+function generateVCard(playerId) {
+  const player = players.find((p) => p.id === playerId);
+  if (!player) return;
+  
+  // Confirm with user
+  if (!confirm(`Download contact card for ${player.name}?`)) {
+    return;
+  }
+  
+  // Generate vCard content
+  const vcard = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${player.name}`,
+    `N:${player.name.split(' ').reverse().join(';')};;;`, // Last;First
+  ];
+  
+  if (player.email) {
+    vcard.push(`EMAIL;TYPE=INTERNET:${player.email}`);
+  }
+  
+  if (player.phone) {
+    // Clean phone number
+    const cleanPhone = player.phone.replace(/[^\d+]/g, '');
+    vcard.push(`TEL;TYPE=CELL:${cleanPhone}`);
+  }
+  
+  if (player.usta) {
+    vcard.push(`NOTE:USTA: ${player.usta}`);
+  }
+  
+  vcard.push('END:VCARD');
+  
+  const vcardContent = vcard.join('\r\n');
+  
+  // Create blob and download
+  const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${player.name.replace(/\s+/g, '-')}.vcf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
 }
 
 function getPlayersHash() {
