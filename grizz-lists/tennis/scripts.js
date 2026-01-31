@@ -348,26 +348,38 @@ let currentAvailabilityPlayerId = null;
 // ============================================
 
 function checkCaptainStatus() {
+  console.log('🔍 [Captain Check] Starting captain status check...');
+  console.log('🔍 [Captain Check] User email:', userEmail);
+  
   // Check for testing override in localStorage (set via ?role= query param)
   const roleOverride = localStorage.getItem('tennis_role_override');
   
   if (roleOverride === 'captain') {
     isCaptain = true;
-    console.log('[Testing Override] Captain mode enabled via localStorage');
+    console.log('✅ [Testing Override] Captain mode enabled via localStorage');
     return;
   }
   
   if (roleOverride === 'player') {
     isCaptain = false;
-    console.log('[Testing Override] Player mode enabled via localStorage');
+    console.log('👤 [Testing Override] Player mode enabled via localStorage');
     return;
   }
   
   // Normal email-based checking
   if (!userEmail) {
     isCaptain = false;
+    console.log('❌ [Captain Check] No user email found, defaulting to player mode');
     return;
   }
+  
+  // Debug: Show all players with captain role
+  const allCaptains = players.filter(p => p.role === 'captain');
+  console.log('🔍 [Captain Check] Players with captain role:', allCaptains.map(p => ({
+    name: p.name,
+    email: p.email,
+    role: p.role
+  })));
   
   // Check if user email matches any player with captain role
   const captainPlayer = players.find(p => 
@@ -377,6 +389,17 @@ function checkCaptainStatus() {
   );
   
   isCaptain = !!captainPlayer;
+  
+  if (isCaptain) {
+    console.log('✅ [Captain Check] User is a captain! Matched player:', {
+      name: captainPlayer.name,
+      email: captainPlayer.email,
+      role: captainPlayer.role
+    });
+  } else {
+    console.log('❌ [Captain Check] User is not a captain');
+    console.log('🔍 [Captain Check] User email not found in captain list or no matching role');
+  }
 }
 
 function toggleMode() {
@@ -469,22 +492,29 @@ async function init() {
   // Track this list as recently accessed
   addToRecentLists(listId, metadata.name, 'tennis');
 
-  // Get user email from URL params or metadata
+  // Get user email from URL params, localStorage, or metadata
   const urlParams = new URLSearchParams(window.location.search);
-  userEmail = urlParams.get('email') || metadata.userEmail || null;
+  const localStorageEmail = localStorage.getItem('grizzLists_userEmail');
+  userEmail = urlParams.get('email') || localStorageEmail || metadata.userEmail || null;
+  
+  console.log('📧 [Init] User email detection:');
+  console.log('  - URL param email:', urlParams.get('email'));
+  console.log('  - localStorage email:', localStorageEmail);
+  console.log('  - Metadata email:', metadata.userEmail);
+  console.log('  - Final userEmail:', userEmail);
   
   // Check for role override query param (for testing)
   const roleParam = urlParams.get('role');
   if (roleParam !== null) {
     if (roleParam === 'captain') {
       localStorage.setItem('tennis_role_override', 'captain');
-      console.log('[Testing] Role override set to: captain');
+      console.log('🧪 [Testing] Role override set to: captain');
     } else if (roleParam === 'player') {
       localStorage.setItem('tennis_role_override', 'player');
-      console.log('[Testing] Role override set to: player');
+      console.log('🧪 [Testing] Role override set to: player');
     } else if (roleParam === '') {
       localStorage.removeItem('tennis_role_override');
-      console.log('[Testing] Role override cleared');
+      console.log('🧪 [Testing] Role override cleared');
     }
   }
   
@@ -497,7 +527,10 @@ async function init() {
     if (savedMode !== null) {
       captainMode = savedMode === 'true';
     }
+    console.log('⚙️ [Init] Captain mode preference loaded:', captainMode);
   }
+  
+  console.log('🎯 [Init] Final state - isCaptain:', isCaptain, '| captainMode:', captainMode);
   
   // Update UI based on mode
   updateUIForMode();
