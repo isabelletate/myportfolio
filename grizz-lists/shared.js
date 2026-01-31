@@ -784,6 +784,24 @@ export function createListManager() {
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }
 
+  // Add an existing list to the user's account (for syncing lists found in localStorage)
+  async function addExistingList(id, metadata) {
+    const event = { op: 'list_added', id };
+    const tempTs = new Date().toISOString();
+
+    userListsCache.push({ ...event, ts: tempTs });
+
+    // Cache the metadata
+    if (metadata) {
+      listsMetadataCache.set(id, metadata);
+    }
+
+    saveListsLocal();
+    await postUserListEvent(event);
+
+    return true;
+  }
+
   return {
     loadListsFromServer,
     saveListsLocal,
@@ -791,6 +809,7 @@ export function createListManager() {
     deleteList,
     getLists,
     loadListMetadata,
+    addExistingList,
     getCache: () => userListsCache,
   };
 }

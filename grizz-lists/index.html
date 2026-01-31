@@ -1071,11 +1071,40 @@
             // Load "my lists" from API
             const myLists = await listManager.loadListsFromServer();
             
+            // Sync: Add any lists from localStorage that aren't in the user's account
+            await syncLocalListsToAccount(recentLists, myLists);
+            
+            // Reload my lists after sync (in case we added any)
+            const updatedMyLists = listManager.getLists();
+            
             // Merge: recent lists first, then add my lists that aren't in recent
             const recentIds = new Set(recentLists.map(l => l.id));
-            const additionalMyLists = myLists.filter(l => !recentIds.has(l.id));
+            const additionalMyLists = updatedMyLists.filter(l => !recentIds.has(l.id));
             
             renderLists(recentLists, additionalMyLists);
+        }
+
+        // Sync lists from localStorage to the user's account
+        async function syncLocalListsToAccount(recentLists, myLists) {
+            const myListIds = new Set(myLists.map(l => l.id));
+            const listsToSync = recentLists.filter(l => !myListIds.has(l.id));
+            
+            if (listsToSync.length === 0) {
+                return; // Nothing to sync
+            }
+            
+            // Add each local list to the user's account
+            for (const list of listsToSync) {
+                try {
+                    // Load the list's metadata to verify it exists
+                    const metadata = await listManager.loadListMetadata(list.id);
+                    
+                    // Add this list to the user's account
+                    await listManager.addExistingList(list.id, metadata);
+                } catch (error) {
+                    console.error(`Failed to sync list ${list.id}:`, error);
+                }
+            }
         }
 
         function renderWelcomeState() {
