@@ -359,6 +359,19 @@
             background: linear-gradient(135deg, #9eff00, var(--accent-yellow));
         }
 
+        /* Goals Card Styling */
+        .list-card.goals::before {
+            background: linear-gradient(180deg, var(--accent-yellow), var(--accent-orange));
+        }
+
+        .list-card.goals:hover {
+            border-color: rgba(255, 201, 60, 0.3);
+        }
+
+        .list-card.goals .card-icon {
+            background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange));
+        }
+
         .card-icon {
             width: 48px;
             height: 48px;
@@ -688,6 +701,11 @@
             background: rgba(158, 255, 0, 0.1);
         }
 
+        .type-option.selected.goals {
+            border-color: var(--accent-yellow);
+            background: rgba(255, 201, 60, 0.15);
+        }
+
         .type-option-icon {
             font-size: 2rem;
             margin-bottom: 8px;
@@ -892,6 +910,10 @@
                         <div class="type-option-icon">🎾</div>
                         <div class="type-option-name">Tennis</div>
                     </div>
+                    <div class="type-option" data-type="goals">
+                        <div class="type-option-icon">🎯</div>
+                        <div class="type-option-name">Goal planner</div>
+                    </div>
                 </div>
             </div>
             
@@ -988,7 +1010,7 @@
                     e.stopPropagation();
                     const clickedOption = e.currentTarget;
                     const type = clickedOption.dataset.type;
-                    typeOptions.forEach(o => o.classList.remove('selected', 'shopping', 'planner', 'tracker', 'tennis'));
+                    typeOptions.forEach(o => o.classList.remove('selected', 'shopping', 'planner', 'tracker', 'tennis', 'goals'));
                     clickedOption.classList.add('selected', type);
                     selectedType = type;
                 });
@@ -1164,11 +1186,11 @@
         }
 
         function renderListCard(list, index) {
-            const icons = { shopping: '🛒', planner: '📋', tracker: '📦', tennis: '🎾' };
-            const typeNames = { shopping: 'Shopping List', planner: 'Daily Planner', tracker: 'Product Tracker', tennis: 'Tennis Captain' };
+            const icons = { shopping: '🛒', planner: '📋', tracker: '📦', tennis: '🎾', goals: '🎯' };
+            const typeNames = { shopping: 'Shopping List', planner: 'Daily Planner', tracker: 'Product Tracker', tennis: 'Tennis Captain', goals: 'Goal planner' };
             const icon = icons[list.type] || '📋';
             const typeName = typeNames[list.type] || 'List';
-            const paths = { shopping: 'shopping', planner: 'planner', tracker: 'tracker', tennis: 'tennis' };
+            const paths = { shopping: 'shopping', planner: 'planner', tracker: 'tracker', tennis: 'tennis', goals: 'goals' };
             const href = `${paths[list.type] || 'shopping'}/index.html?list=${list.id}`;
             
             // Get hero image URL if available
@@ -1228,7 +1250,7 @@
             submitCreate.disabled = true;
             
             // Reset type selection
-            typeOptions.forEach(o => o.classList.remove('selected', 'shopping', 'planner', 'tracker', 'tennis'));
+            typeOptions.forEach(o => o.classList.remove('selected', 'shopping', 'planner', 'tracker', 'tennis', 'goals'));
             const shoppingOption = document.querySelector('[data-type="shopping"]');
             shoppingOption.classList.add('selected', 'shopping');
             selectedType = 'shopping';
@@ -1248,7 +1270,7 @@
             
             // Navigate directly to the new list instead of reloading
             // This avoids race conditions with eventual consistency
-            const paths = { shopping: 'shopping', planner: 'planner', tracker: 'tracker', tennis: 'tennis' };
+            const paths = { shopping: 'shopping', planner: 'planner', tracker: 'tracker', tennis: 'tennis', goals: 'goals' };
             const path = paths[selectedType] || 'shopping';
             window.location.href = `${path}/index.html?list=${newList.id}`;
         }
