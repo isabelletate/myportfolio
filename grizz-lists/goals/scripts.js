@@ -36,7 +36,8 @@ function replayChangelog(changelog) {
         id: event.id,
         text: event.text,
         dueDate: event.dueDate || null,
-        completed: false
+        completed: false,
+        tasks: []
     });
 
     const { itemsMap, order, sortedEvents } = replayChangelogBase(changelog, itemFactory);
@@ -64,6 +65,36 @@ function replayChangelog(changelog) {
                     if (idx > -1) order.splice(idx, 1);
                 }
                 break;
+            case 'sub_added':
+                {
+                    const goal = Array.from(itemsMap.values()).find(g => String(g.id) === String(event.goalId));
+                    if (goal && goal.tasks) {
+                        goal.tasks.push({ id: event.id, text: event.text || '', completed: false });
+                    }
+                }
+                break;
+            case 'sub_checked':
+                {
+                    const goal = Array.from(itemsMap.values()).find(g => String(g.id) === String(event.goalId));
+                    const task = goal?.tasks?.find(t => String(t.id) === String(event.id));
+                    if (task) task.completed = true;
+                }
+                break;
+            case 'sub_unchecked':
+                {
+                    const goal = Array.from(itemsMap.values()).find(g => String(g.id) === String(event.goalId));
+                    const task = goal?.tasks?.find(t => String(t.id) === String(event.id));
+                    if (task) task.completed = false;
+                }
+                break;
+            case 'sub_removed':
+                {
+                    const goal = Array.from(itemsMap.values()).find(g => String(g.id) === String(event.goalId));
+                    if (goal?.tasks) {
+                        goal.tasks = goal.tasks.filter(t => String(t.id) !== String(event.id));
+                    }
+                }
+                break;
         }
     }
 
@@ -75,7 +106,7 @@ function replayChangelog(changelog) {
 // ============================================
 
 let goals = [];
-let draggedGoalId = null;
+let expandedGoalIds = new Set();
 
 const goalList = document.getElementById('goalList');
 const addInput = document.getElementById('addInput');
@@ -137,7 +168,7 @@ function addGoal() {
     const dueDate = addDueInput.value.trim() || null;
     const id = generateId();
 
-    const goal = { id, text, dueDate, completed: false };
+    const goal = { id, text, dueDate, completed: false, tasks: [] };
     store.addEvent('added', { id, text, dueDate });
     goals.push(goal);
 
@@ -173,6 +204,54 @@ function deleteGoal(id) {
     }
 }
 
+function toggleExpand(goalId) {
+    if (expandedGoalIds.has(goalId)) {
+        expandedGoalIds.delete(goalId);
+    } else {
+        expandedGoalIds.add(goalId);
+    }
+    renderGoals();
+}
+
+function addSubTask(goalId, text) {
+    const goal = goals.find(g => g.id == goalId);
+    if (!goal || !text?.trim()) return;
+    if (!goal.tasks) goal.tasks = [];
+    const id = generateId();
+    goal.tasks.push({ id, text: text.trim(), completed: false });
+    store.addEvent('sub_added', { goalId, id, text: text.trim() });
+    expandedGoalIds.add(String(goalId));
+    renderGoals();
+    updateProgress();
+}
+
+function toggleSubTask(goalId, taskId) {
+    const goal = goals.find(g => g.id == goalId);
+    const task = goal?.tasks?.find(t => t.id == taskId);
+    if (!task) return;
+    const wasCompleted = task.completed;
+    task.completed = !wasCompleted;
+    store.addEvent(wasCompleted ? 'sub_unchecked' : 'sub_checked', { goalId, id: taskId });
+    const el = document.querySelector(`[data-goal-id="${goalId}"][data-task-id="${taskId}"]`);
+    if (el) el.classList.toggle('completed', task.completed);
+    updateProgress();
+}
+
+function deleteSubTask(goalId, taskId) {
+    const goal = goals.find(g => g.id == goalId);
+    if (!goal?.tasks) return;
+    const el = document.querySelector(`[data-goal-id="${goalId}"][data-task-id="${taskId}"]`);
+    if (el) {
+        el.classList.add('removing');
+        setTimeout(() => {
+            goal.tasks = goal.tasks.filter(t => t.id != taskId);
+            store.addEvent('sub_removed', { goalId, id: taskId });
+            renderGoals();
+            updateProgress();
+        }, 200);
+    }
+}
+
 async function clearCompletedGoals() {
     const completed = goals.filter(g => g.completed);
     if (completed.length === 0) return;
@@ -205,21 +284,56 @@ function updateProgress() {
 }
 
 function createGoalHTML(goal) {
+    const tasks = goal.tasks || [];
+    const isExpanded = expandedGoalIds.has(String(goal.id));
+    const taskCount = tasks.length;
+    const taskCountHtml = taskCount > 0
+        ? `<span class="goal-task-count">${tasks.filter(t => t.completed).length}/${taskCount}</span>`
+        : '';
     const dueHtml = goal.dueDate
         ? `<span class="goal-due">${escapeHtml(goal.dueDate)}</span>`
         : '';
-    return `
-        <div class="goal-item ${goal.completed ? 'completed' : ''}" data-id="${goal.id}">
-            <div class="goal-check" aria-label="Toggle complete"></div>
-            <div class="goal-content">
-                <span class="goal-text">${escapeHtml(goal.text)}</span>
-                ${dueHtml}
+    let subHtml = '';
+    if (isExpanded) {
+        const taskItems = tasks.map(t => `
+            <div class="subtask-item ${t.completed ? 'completed' : ''}" data-goal-id="${goal.id}" data-task-id="${t.id}">
+                <div class="subtask-check" aria-label="Toggle"></div>
+                <span class="subtask-text">${escapeHtml(t.text)}</span>
+                <button class="subtask-delete" aria-label="Delete">×</button>
             </div>
-            <button class="goal-delete" aria-label="Delete goal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
+        `).join('');
+        subHtml = `
+            <div class="goal-subtasks">
+                <div class="subtask-list">${taskItems}</div>
+                <div class="subtask-add">
+                    <input type="text" class="subtask-input" placeholder="Add sub-task..." data-goal-id="${goal.id}">
+                    <button class="subtask-add-btn" data-goal-id="${goal.id}">Add</button>
+                </div>
+            </div>
+        `;
+    }
+    return `
+        <div class="goal-item ${goal.completed ? 'completed' : ''} ${isExpanded ? 'expanded' : ''}" data-id="${goal.id}">
+            <div class="goal-row">
+                <div class="goal-check" aria-label="Toggle complete"></div>
+                <div class="goal-content">
+                    <span class="goal-text">${escapeHtml(goal.text)}</span>
+                    ${dueHtml}
+                    ${taskCountHtml}
+                </div>
+                <button class="goal-expand" aria-label="Expand sub-tasks" data-goal-id="${goal.id}" title="Sub-tasks">
+                    <svg class="expand-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    ${taskCount > 0 ? `<span class="expand-badge">${taskCount}</span>` : ''}
+                </button>
+                <button class="goal-delete" aria-label="Delete goal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            ${subHtml}
         </div>
     `;
 }
@@ -265,12 +379,49 @@ function renderGoals() {
             e.stopPropagation();
             toggleGoal(id);
         });
-        el.addEventListener('click', (e) => {
-            if (!e.target.closest('.goal-delete')) toggleGoal(id);
+        el.querySelector('.goal-content').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleGoal(id);
         });
+        const expandBtn = el.querySelector('.goal-expand');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleExpand(id);
+            });
+        }
         el.querySelector('.goal-delete').addEventListener('click', (e) => {
             e.stopPropagation();
             deleteGoal(id);
+        });
+
+        el.querySelectorAll('.subtask-item').forEach(sub => {
+            const goalId = sub.dataset.goalId;
+            const taskId = sub.dataset.taskId;
+            sub.querySelector('.subtask-check').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleSubTask(goalId, taskId);
+            });
+            sub.addEventListener('click', (e) => {
+                if (!e.target.closest('.subtask-delete')) toggleSubTask(goalId, taskId);
+            });
+            sub.querySelector('.subtask-delete').addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteSubTask(goalId, taskId);
+            });
+        });
+
+        el.querySelectorAll('.subtask-add').forEach(addRow => {
+            const goalId = addRow.querySelector('.subtask-input')?.dataset.goalId;
+            const input = addRow.querySelector('.subtask-input');
+            const addBtn = addRow.querySelector('.subtask-add-btn');
+            if (!input || !goalId) return;
+            const doAdd = () => {
+                addSubTask(goalId, input.value);
+                input.value = '';
+            };
+            input.addEventListener('keypress', (e) => { if (e.key === 'Enter') doAdd(); });
+            addBtn?.addEventListener('click', doAdd);
         });
     });
 }
@@ -282,7 +433,10 @@ function renderGoals() {
 let lastGoalsHash = '';
 
 function getGoalsHash() {
-    return goals.map(g => `${g.id}:${g.text}:${g.completed}`).join('|');
+    return goals.map(g => {
+        const tasksStr = (g.tasks || []).map(t => `${t.id}:${t.completed}`).join(',');
+        return `${g.id}:${g.text}:${g.completed}:${tasksStr}`;
+    }).join('|');
 }
 
 async function pollForChanges() {
@@ -292,8 +446,10 @@ async function pollForChanges() {
         const changelog = await store.loadChangelogFromServer({ silent: true });
         store.setIsSyncing(false);
         const newGoals = replayChangelog(changelog);
-        const newHash = getGoalsHash();
-        const nextHash = newGoals.map(g => `${g.id}:${g.text}:${g.completed}`).join('|');
+        const nextHash = newGoals.map(g => {
+            const tasksStr = (g.tasks || []).map(t => `${t.id}:${t.completed}`).join(',');
+            return `${g.id}:${g.text}:${g.completed}:${tasksStr}`;
+        }).join('|');
         if (nextHash !== lastGoalsHash) {
             lastGoalsHash = nextHash;
             goals = newGoals;
