@@ -1076,6 +1076,19 @@ header {
     margin-bottom: 8px;
 }
 
+.confirm-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.confirm-text {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-align: center;
+}
+
 .modal-subtitle {
     font-size: 0.9rem;
     color: var(--text-muted);

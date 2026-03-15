@@ -10,6 +10,8 @@ import {
   getListIdFromUrl,
   addToRecentLists,
   generateId,
+  setUserEmail,
+  hasUserEmail,
 } from '../shared.js';
 
 // ============================================
@@ -328,6 +330,13 @@ const previewMatchesList = document.getElementById('previewMatchesList');
 const previewMatchesCount = document.getElementById('previewMatchesCount');
 const confirmMatchesImport = document.getElementById('confirmMatchesImport');
 const cancelMatchesImport = document.getElementById('cancelMatchesImport');
+
+// Email / Login modal (same as grizzlist overview)
+const emailModal = document.getElementById('emailModal');
+const emailInput = document.getElementById('emailInput');
+const submitEmail = document.getElementById('submitEmail');
+const loginLogoutMenuItem = document.getElementById('loginLogoutMenuItem');
+const loginLogoutMenuItemText = document.getElementById('loginLogoutMenuItemText');
 
 let parsedPlayers = [];
 let parsedMatches = [];
@@ -691,6 +700,72 @@ function setupEventListeners() {
   });
   previewMatchesImport.addEventListener('click', handlePreviewMatchesImport);
   confirmMatchesImport.addEventListener('click', handleConfirmMatchesImport);
+
+  // Email / Login modal (same behavior as grizzlist overview)
+  if (emailInput) {
+    emailInput.addEventListener('input', () => {
+      const email = emailInput.value.trim();
+      submitEmail.disabled = !email || !isValidEmail(email);
+    });
+    emailInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !submitEmail.disabled) handleEmailSubmit();
+    });
+  }
+  if (submitEmail) submitEmail.addEventListener('click', handleEmailSubmit);
+  if (emailModal) {
+    emailModal.addEventListener('click', (e) => {
+      if (e.target === emailModal) closeEmailModal();
+    });
+  }
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function openEmailModal() {
+  if (!emailModal || !emailInput || !submitEmail) return;
+  emailModal.classList.add('active');
+  emailInput.value = '';
+  emailInput.focus();
+  submitEmail.disabled = true;
+}
+
+function closeEmailModal() {
+  if (emailModal) emailModal.classList.remove('active');
+}
+
+function handleEmailSubmit() {
+  if (!emailInput || !submitEmail) return;
+  const email = emailInput.value.trim();
+  if (!email || !isValidEmail(email)) return;
+  setUserEmail(email);
+  userEmail = email;
+  checkCaptainStatus();
+  updateUIForMode();
+  closeEmailModal();
+  updateLoginLogoutMenuItem();
+}
+
+function handleLogout() {
+  localStorage.removeItem('grizzLists_userEmail');
+  userEmail = null;
+  checkCaptainStatus();
+  updateUIForMode();
+  closeMenuDropdown();
+  updateLoginLogoutMenuItem();
+}
+
+function updateLoginLogoutMenuItem() {
+  if (!loginLogoutMenuItem || !loginLogoutMenuItemText) return;
+  const loggedIn = hasUserEmail();
+  loginLogoutMenuItemText.textContent = loggedIn ? 'Logout' : 'Login';
+  loginLogoutMenuItem.style.display = 'flex';
+  loginLogoutMenuItem.onclick = () => {
+    closeMenuDropdown();
+    if (loggedIn) handleLogout();
+    else openEmailModal();
+  };
 }
 
 // ============================================
@@ -791,7 +866,9 @@ function updateMenuForPlayers() {
     closeMenuDropdown();
     openContactsView();
   };
-  
+
+  updateLoginLogoutMenuItem();
+
   // Update mode toggle visibility
   updateUIForMode();
 }
@@ -841,7 +918,9 @@ function updateMenuForMatches() {
   
   // Hide add contacts option on matches view
   addContactsMenuItem.style.display = 'none';
-  
+
+  updateLoginLogoutMenuItem();
+
   // Update mode toggle visibility
   updateUIForMode();
 }

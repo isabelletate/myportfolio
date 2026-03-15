@@ -108,6 +108,14 @@
                                 </svg>
                                 <span id="modeToggleText">Switch to Player Mode</span>
                             </button>
+                            <button class="menu-item" id="loginLogoutMenuItem">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                    <polyline points="10 17 15 12 10 7"/>
+                                    <line x1="15" y1="12" x2="3" y2="12"/>
+                                </svg>
+                                <span id="loginLogoutMenuItemText">Login</span>
+                            </button>
                         </div>
                     </div>
                     <div class="sync-indicator" id="syncIndicator" title="Sync status">
@@ -451,6 +459,21 @@ Bob Wilson, 555123456, bob@example.com" rows="8"></textarea>
             <div class="modal-buttons">
                 <button class="modal-btn cancel" id="cancelMatchesImport">Cancel</button>
                 <button class="modal-btn submit" id="confirmMatchesImport" style="display: none;">Import Matches</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email / Login Modal (same as grizzlist overview) -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content">
+            <div class="confirm-icon">👋</div>
+            <h3 class="modal-title">Welcome to Grizz Lists!</h3>
+            <p class="confirm-text">Enter your email to sync your lists across devices</p>
+            <div class="form-group" style="margin-top: 20px;">
+                <input type="email" class="form-input" id="emailInput" placeholder="your@email.com" autocomplete="email">
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn submit" id="submitEmail" disabled>Get Started</button>
             </div>
         </div>
     </div>
