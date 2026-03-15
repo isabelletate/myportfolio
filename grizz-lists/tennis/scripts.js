@@ -740,20 +740,14 @@ function handleEmailSubmit() {
   const email = emailInput.value.trim();
   if (!email || !isValidEmail(email)) return;
   setUserEmail(email);
-  userEmail = email;
-  checkCaptainStatus();
-  updateUIForMode();
   closeEmailModal();
-  updateLoginLogoutMenuItem();
+  window.location.reload();
 }
 
 function handleLogout() {
   localStorage.removeItem('grizzLists_userEmail');
-  userEmail = null;
-  checkCaptainStatus();
-  updateUIForMode();
   closeMenuDropdown();
-  updateLoginLogoutMenuItem();
+  window.location.reload();
 }
 
 function updateLoginLogoutMenuItem() {
