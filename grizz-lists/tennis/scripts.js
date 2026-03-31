@@ -1169,6 +1169,10 @@ async function toggleAvailability(matchId, playerId) {
     await writeEventAndRefresh('availability_set', { matchId, playerId });
   }
 
+  if (currentView === 'players') {
+    renderPlayers(true);
+  }
+
   // Re-render the appropriate view
   if (currentAvailabilityPlayerId) {
     renderAvailabilityMatches(currentAvailabilityPlayerId);
@@ -1567,7 +1571,12 @@ function generateVCard(playerId) {
 }
 
 function getPlayersHash() {
-  return players.map((p) => `${p.id}:${p.name}:${p.email}:${p.phone}:${p.usta}`).join('|');
+  const playerPart = players.map((p) => `${p.id}:${p.name}:${p.email}:${p.phone}:${p.usta}`).join('|');
+  const availPart = [...availability.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([matchId, playerSet]) => `${matchId}:${[...playerSet].sort().join(',')}`)
+    .join(';');
+  return `${playerPart}|${availPart}`;
 }
 
 function renderPlayers(force = false) {
@@ -1595,7 +1604,10 @@ function renderPlayers(force = false) {
     html += `
       <div class="player-card" style="animation-delay: ${index * 0.05}s" data-player-id="${player.id}">
         <div class="player-header">
-          <div class="player-name">${escapeHtml(player.name)}</div>
+          <div class="player-name-wrap">
+            <span class="player-name">${escapeHtml(player.name)}</span>
+            ${renderPlayerAvailabilityTag(player.id)}
+          </div>
           <div class="player-actions">
             <button class="action-btn view-details" data-player-id="${player.id}" title="View details">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1657,27 +1669,14 @@ function renderPlayers(force = false) {
   });
 }
 
-function renderPlayerAvailabilitySummary(playerId) {
-  // Count how many matches this player is available for
+function renderPlayerAvailabilityTag(playerId) {
   let availableCount = 0;
   availability.forEach((playerSet) => {
-    if (playerSet.has(playerId)) {
-      availableCount++;
-    }
+    if (playerSet.has(playerId)) availableCount += 1;
   });
-  
-  if (availableCount === 0 && matches.length === 0) {
-    return '';
-  }
-  
-  return `
-    <div class="player-availability-summary">
-      <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
-      <span>Available for ${availableCount}/${matches.length} match${matches.length !== 1 ? 'es' : ''}</span>
-    </div>
-  `;
+  if (availableCount === 0) return '';
+  const label = availableCount === 1 ? '1 match' : `${availableCount} matches`;
+  return `<span class="player-avail-tag" title="Available for ${label}">${availableCount}</span>`;
 }
 
 // ============================================
