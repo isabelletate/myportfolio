@@ -1,13 +1,13 @@
+/* eslint-disable */
 // ============================================
 // TENNIS CAPTAIN - Manage Players & Matches
 // ============================================
 
-/* eslint-disable no-use-before-define */
-
 import {
   createEventStore,
-  replayChangelogBase,
+  createListManager,
   getListIdFromUrl,
+  getHeroImageUrl,
   addToRecentLists,
   generateId,
   setUserEmail,
@@ -20,33 +20,32 @@ import {
 
 const listId = getListIdFromUrl();
 
-// If no list ID, redirect to main page
-if (!listId) {
-  window.location.href = '../index.html';
+// ============================================
+// EVENT STORE (only when opening a specific list)
+// ============================================
+
+let store = null;
+if (listId) {
+  store = createEventStore('tennis', listId);
 }
-
-// ============================================
-// EVENT STORE
-// ============================================
-
-const store = createEventStore('tennis', listId);
 
 // Helper to write event and fetch latest state
 async function writeEventAndRefresh(op, data) {
+  if (!store) return false;
   try {
     // Post the event synchronously
     await store.postEvent({ op, ...data });
-    
+
     // Fetch the latest state from server
     const changelog = await store.loadChangelogFromServer({ silent: true });
-    
+
     // Replay the changelog to update local state
     const state = replayChangelog(changelog);
     players = state.players;
     matches = state.matches;
     availability = state.availability;
     assignments = state.assignments;
-    
+
     return true;
   } catch (error) {
     console.error('Failed to write event:', error);
@@ -63,7 +62,7 @@ function replayChangelog(changelog) {
   const matches = new Map();
   const availability = new Map(); // matchId -> Set of playerIds
   const assignments = new Map(); // matchId -> { positionId -> [playerIds] }
-  
+
   const sortedEvents = [...changelog].sort((a, b) => (a.ts || '').localeCompare(b.ts || ''));
 
   sortedEvents.forEach((event) => {
@@ -149,8 +148,8 @@ function replayChangelog(changelog) {
           if (!matchAssign[event.positionId]) {
             matchAssign[event.positionId] = { players: [], date: null };
           }
-          const playerIds = typeof event.playerIds === 'string' 
-            ? JSON.parse(event.playerIds) 
+          const playerIds = typeof event.playerIds === 'string'
+            ? JSON.parse(event.playerIds)
             : event.playerIds;
           matchAssign[event.positionId].players = playerIds;
           if (event.date !== undefined) {
@@ -225,8 +224,9 @@ let matchesRenderHash = '';
 // DOM Elements
 const playerList = document.getElementById('playerList');
 const matchList = document.getElementById('matchList');
+const matchesView = document.getElementById('matchesView');
+const playersView = document.getElementById('playersView');
 const addBtn = document.getElementById('addBtn');
-const addBtnText = document.getElementById('addBtnText');
 const backToGrizzLists = document.getElementById('backToGrizzLists');
 
 // View tabs
@@ -280,8 +280,6 @@ const cancelPositionTime = document.getElementById('cancelPositionTime');
 
 // Player availability modal
 const playerAvailabilityModal = document.getElementById('playerAvailabilityModal');
-const playerAvailabilityModalTitle = document.getElementById('playerAvailabilityModalTitle');
-const playerAvailabilityModalSubtitle = document.getElementById('playerAvailabilityModalSubtitle');
 const availabilityMatchesList = document.getElementById('availabilityMatchesList');
 const cancelPlayerAvailability = document.getElementById('cancelPlayerAvailability');
 
@@ -359,51 +357,49 @@ let currentAvailabilityPlayerId = null;
 function checkCaptainStatus() {
   console.log('🔍 [Captain Check] Starting captain status check...');
   console.log('🔍 [Captain Check] User email:', userEmail);
-  
+
   // Check for testing override in localStorage (set via ?role= query param)
   const roleOverride = localStorage.getItem('tennis_role_override');
-  
+
   if (roleOverride === 'captain') {
     isCaptain = true;
     console.log('✅ [Testing Override] Captain mode enabled via localStorage');
     return;
   }
-  
+
   if (roleOverride === 'player') {
     isCaptain = false;
     console.log('👤 [Testing Override] Player mode enabled via localStorage');
     return;
   }
-  
+
   // Normal email-based checking
   if (!userEmail) {
     isCaptain = false;
     console.log('❌ [Captain Check] No user email found, defaulting to player mode');
     return;
   }
-  
+
   // Debug: Show all players with captain role
-  const allCaptains = players.filter(p => p.role === 'captain');
-  console.log('🔍 [Captain Check] Players with captain role:', allCaptains.map(p => ({
+  const allCaptains = players.filter((p) => p.role === 'captain');
+  console.log('🔍 [Captain Check] Players with captain role:', allCaptains.map((p) => ({
     name: p.name,
     email: p.email,
-    role: p.role
+    role: p.role,
   })));
-  
+
   // Check if user email matches any player with captain role
-  const captainPlayer = players.find(p => 
-    p.email && 
-    p.email.toLowerCase() === userEmail.toLowerCase() && 
-    p.role === 'captain'
-  );
-  
+  const captainPlayer = players.find((p) => p.email
+    && p.email.toLowerCase() === userEmail.toLowerCase()
+    && p.role === 'captain');
+
   isCaptain = !!captainPlayer;
-  
+
   if (isCaptain) {
     console.log('✅ [Captain Check] User is a captain! Matched player:', {
       name: captainPlayer.name,
       email: captainPlayer.email,
-      role: captainPlayer.role
+      role: captainPlayer.role,
     });
   } else {
     console.log('❌ [Captain Check] User is not a captain');
@@ -413,12 +409,12 @@ function checkCaptainStatus() {
 
 function toggleMode() {
   if (!isCaptain) return; // Only captains can toggle
-  
+
   captainMode = !captainMode;
-  
+
   // Persist mode preference
   localStorage.setItem('tennis_captain_mode', captainMode ? 'true' : 'false');
-  
+
   updateUIForMode();
   closeMenuDropdown();
 }
@@ -431,19 +427,19 @@ function updateUIForMode() {
   } else {
     modeToggleMenuItem.style.display = 'none';
   }
-  
+
   const canEditNow = canEdit(); // Use the same logic as canEdit()
-  
+
   // Show/hide edit controls based on mode
-  document.querySelectorAll('.edit, .delete, .action-btn.edit').forEach(btn => {
+  document.querySelectorAll('.edit, .delete, .action-btn.edit').forEach((btn) => {
     btn.style.display = canEditNow ? '' : 'none';
   });
-  
+
   // Hide lineup buttons completely in player mode
-  document.querySelectorAll('.action-btn.lineup').forEach(btn => {
+  document.querySelectorAll('.action-btn.lineup').forEach((btn) => {
     btn.style.display = canEditNow ? '' : 'none';
   });
-  
+
   // Show/hide menu items that allow modifications
   if (currentView === 'players') {
     // In players view, hide add/import if read-only
@@ -456,7 +452,7 @@ function updateUIForMode() {
     addMatchMenuItem.style.display = canEditNow ? 'flex' : 'none';
     importMatchesMenuItem.style.display = canEditNow ? 'flex' : 'none';
   }
-  
+
   // Force re-render to update lineup visibility
   if (currentView === 'players') {
     renderPlayers(true); // Force render
@@ -484,7 +480,7 @@ async function init() {
 
   const changelog = await store.loadChangelogFromServer();
   const state = replayChangelog(changelog);
-  
+
   players = state.players;
   matches = state.matches;
   availability = state.availability;
@@ -505,13 +501,13 @@ async function init() {
   const urlParams = new URLSearchParams(window.location.search);
   const localStorageEmail = localStorage.getItem('grizzLists_userEmail');
   userEmail = urlParams.get('email') || localStorageEmail || metadata.userEmail || null;
-  
+
   console.log('📧 [Init] User email detection:');
   console.log('  - URL param email:', urlParams.get('email'));
   console.log('  - localStorage email:', localStorageEmail);
   console.log('  - Metadata email:', metadata.userEmail);
   console.log('  - Final userEmail:', userEmail);
-  
+
   // Check for role override query param (for testing)
   const roleParam = urlParams.get('role');
   if (roleParam !== null) {
@@ -526,10 +522,10 @@ async function init() {
       console.log('🧪 [Testing] Role override cleared');
     }
   }
-  
+
   // Check if user is a captain
   checkCaptainStatus();
-  
+
   // Load captain mode preference (for captains only)
   if (isCaptain) {
     const savedMode = localStorage.getItem('tennis_captain_mode');
@@ -538,9 +534,9 @@ async function init() {
     }
     console.log('⚙️ [Init] Captain mode preference loaded:', captainMode);
   }
-  
+
   console.log('🎯 [Init] Final state - isCaptain:', isCaptain, '| captainMode:', captainMode);
-  
+
   // Update UI based on mode
   updateUIForMode();
 
@@ -551,7 +547,7 @@ function setupEventListeners() {
   // View tabs
   viewTabs.forEach((tab) => {
     tab.addEventListener('click', () => {
-      const view = tab.dataset.view;
+      const { view } = tab.dataset;
       switchView(view);
     });
   });
@@ -609,14 +605,14 @@ function setupEventListeners() {
       closeMatchModal();
     }
   });
-  
+
   // Format selection
   formatOptions.forEach((option) => {
     option.addEventListener('click', () => {
       formatOptions.forEach((o) => o.classList.remove('active'));
       option.classList.add('active');
       selectedFormat = option.dataset.format;
-      
+
       if (selectedFormat === 'custom') {
         customFormatGroup.style.display = 'block';
       } else {
@@ -628,9 +624,9 @@ function setupEventListeners() {
   // Counter buttons
   counterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const counter = btn.dataset.counter;
-      const action = btn.dataset.action;
-      
+      const { counter } = btn.dataset;
+      const { action } = btn.dataset;
+
       if (counter === 'singles') {
         if (action === 'inc' && customSingles < 6) {
           customSingles++;
@@ -677,10 +673,10 @@ function setupEventListeners() {
     window.location.hash = '#players';
   });
   editPlayerDetailsBtn.addEventListener('click', () => {
-    const playerId = editPlayerDetailsBtn.dataset.playerId;
+    const { playerId } = editPlayerDetailsBtn.dataset;
     openPlayerModal(playerId);
   });
-  
+
   // Mode toggle
   modeToggleMenuItem.addEventListener('click', toggleMode);
 
@@ -763,19 +759,125 @@ function updateLoginLogoutMenuItem() {
 }
 
 // ============================================
+// NO LIST ID — PICKER (PWA launch / homescreen)
+// ============================================
+
+async function initTennisListPicker() {
+  setupEventListeners();
+
+  const mainApp = document.getElementById('tennisMainApp');
+  const picker = document.getElementById('tennisListPicker');
+  const listsContainer = document.getElementById('tennisListsContainer');
+  const hint = document.getElementById('tennisPickerHint');
+  const loginBtn = document.getElementById('tennisPickerLoginBtn');
+  const logoutBtn = document.getElementById('tennisPickerLogoutBtn');
+
+  if (mainApp) mainApp.style.display = 'none';
+  if (picker) picker.hidden = false;
+
+  document.title = 'Tennis Captain 🎾 - Grizz Lists';
+
+  if (loginBtn) {
+    loginBtn.onclick = () => openEmailModal();
+  }
+  if (logoutBtn) {
+    logoutBtn.onclick = () => {
+      localStorage.removeItem('grizzLists_userEmail');
+      window.location.reload();
+    };
+  }
+
+  if (!listsContainer || !hint) return;
+
+  if (!hasUserEmail()) {
+    hint.textContent = 'Sign in with your email to see and open your tennis lists.';
+    listsContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-emoji">🔐</div>
+        <p class="empty-text">Log in to continue</p>
+        <p class="empty-hint">Your email is only used to sync lists across devices.</p>
+      </div>`;
+    if (loginBtn) loginBtn.hidden = false;
+    if (logoutBtn) logoutBtn.hidden = true;
+    return;
+  }
+
+  if (loginBtn) loginBtn.hidden = true;
+  if (logoutBtn) logoutBtn.hidden = false;
+
+  hint.textContent = 'Loading your tennis lists…';
+  listsContainer.innerHTML = '';
+
+  const listManager = createListManager();
+
+  try {
+    const allLists = await listManager.loadListsFromServer();
+    const tennisLists = allLists.filter((l) => l.type === 'tennis');
+
+    hint.textContent = tennisLists.length
+      ? 'Choose a list to open.'
+      : 'You don\'t have any tennis lists yet.';
+
+    if (tennisLists.length === 0) {
+      listsContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-emoji">🎾</div>
+          <p class="empty-text">No tennis lists yet</p>
+          <p class="empty-hint">Create one from Grizz Lists, then open it here.</p>
+        </div>`;
+      return;
+    }
+
+    let html = '';
+    tennisLists.forEach((list, index) => {
+      const heroImageUrl = list.heroImage ? getHeroImageUrl(list.id, list.heroImage) : null;
+      const heroImageHtml = heroImageUrl
+        ? `<div class="tennis-picker-card-hero"><img src="${heroImageUrl}" alt="" loading="lazy"></div>`
+        : '';
+      const hasHeroClass = heroImageUrl ? ' has-hero' : '';
+      html += `
+        <a href="index.html?list=${encodeURIComponent(list.id)}" class="tennis-picker-card tennis${hasHeroClass}" style="animation-delay: ${index * 0.05}s">
+          ${heroImageHtml}
+          <div class="tennis-picker-card-icon">🎾</div>
+          <div class="tennis-picker-card-body">
+            <h3 class="tennis-picker-card-title">${escapeHtml(list.name)}</h3>
+            <p class="tennis-picker-card-meta">Tennis Captain</p>
+          </div>
+          <div class="tennis-picker-card-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </a>`;
+    });
+    listsContainer.innerHTML = html;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Tennis list picker load failed:', error);
+    hint.textContent = 'Could not load your lists. Check your connection and try again.';
+    listsContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-emoji">⚠️</div>
+        <p class="empty-text">Something went wrong</p>
+        <p class="empty-hint">Pull to refresh or try again in a moment.</p>
+      </div>`;
+  }
+}
+
+// ============================================
 // VIEW SWITCHING
 // ============================================
 
 function switchView(view, skipHistory = false) {
   currentView = view;
-  
+
   // Update URL hash
   if (!skipHistory) {
     const newHash = view === 'matches' ? '' : view;
     const url = newHash ? `#${newHash}` : window.location.pathname + window.location.search;
     history.pushState({ view }, '', url);
   }
-  
+
   // Update tabs
   viewTabs.forEach((tab) => {
     if (tab.dataset.view === view) {
@@ -784,7 +886,7 @@ function switchView(view, skipHistory = false) {
       tab.classList.remove('active');
     }
   });
-  
+
   // Show/hide tabs container
   viewTabsContainer.style.display = 'flex';
 
@@ -797,7 +899,7 @@ function switchView(view, skipHistory = false) {
   // Update add button and menu visibility
   importPlayersBtn.style.display = 'none'; // Always hide the old import button
   backToGrizzLists.style.display = 'flex'; // Show back to grizz lists by default
-  
+
   if (view === 'players') {
     menuBtn.style.display = 'flex';
     updateMenuForPlayers();
@@ -823,7 +925,7 @@ function updateMenuForPlayers() {
     closeMenuDropdown();
     openPlayerModal();
   };
-  
+
   importMatchesMenuItem.innerHTML = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -836,7 +938,7 @@ function updateMenuForPlayers() {
     closeMenuDropdown();
     openImportModal();
   };
-  
+
   exportRosterMenuItem.innerHTML = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -850,10 +952,10 @@ function updateMenuForPlayers() {
     closeMenuDropdown();
     exportRosterToClipboard();
   };
-  
+
   // Hide export matches option on players view
   exportMatchesMenuItem.style.display = 'none';
-  
+
   // Show add contacts option
   addContactsMenuItem.style.display = 'flex';
   addContactsMenuItem.onclick = () => {
@@ -878,7 +980,7 @@ function updateMenuForMatches() {
     closeMenuDropdown();
     openMatchModal();
   };
-  
+
   importMatchesMenuItem.innerHTML = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -891,10 +993,10 @@ function updateMenuForMatches() {
     closeMenuDropdown();
     openImportMatchesModal();
   };
-  
+
   // Hide export roster option on matches view
   exportRosterMenuItem.style.display = 'none';
-  
+
   // Show export matches option
   exportMatchesMenuItem.innerHTML = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -909,7 +1011,7 @@ function updateMenuForMatches() {
     closeMenuDropdown();
     exportMatchesToClipboard();
   };
-  
+
   // Hide add contacts option on matches view
   addContactsMenuItem.style.display = 'none';
 
@@ -934,11 +1036,11 @@ function renderCurrentView() {
 
 function handleHashChange() {
   const hash = window.location.hash.slice(1); // Remove #
-  
+
   // Check if it's a match reference (e.g., #match-123 or #matches/match-123)
   const matchMatch = hash.match(/^(?:matches\/)?match-(.+)$/);
   const playerMatch = hash.match(/^(?:players\/)?player-(.+)$/);
-  
+
   if (matchMatch) {
     // Switch to matches view and scroll to match
     const matchId = matchMatch[1];
@@ -979,30 +1081,14 @@ function scrollToMatch(matchId) {
 // PLAYER OPERATIONS
 // ============================================
 
-function handleAddClick() {
-  if (currentView === 'players') {
-    openPlayerModal();
-  }
-  // Match adding is now done via menu dropdown
-}
-
-function showImportButton() {
-  // Show import button based on current view
-  if (currentView === 'players') {
-    importPlayersBtn.style.display = 'flex';
-  } else {
-    importPlayersBtn.style.display = 'none';
-  }
-}
-
 function openPlayerModal(playerId = null) {
   if (!canEdit()) {
     alert('You must be in Captain Mode to edit players');
     return;
   }
-  
+
   editingPlayerId = playerId;
-  
+
   if (playerId) {
     const player = players.find((p) => p.id === playerId);
     if (player) {
@@ -1025,7 +1111,7 @@ function openPlayerModal(playerId = null) {
     submitPlayer.textContent = 'Add Player';
     deletePlayerBtn.style.display = 'none';
   }
-  
+
   validatePlayerForm();
   playerModal.classList.add('active');
   playerNameInput.focus();
@@ -1081,25 +1167,13 @@ async function deletePlayer(id) {
   if (!confirm('Are you sure you want to delete this player?')) return;
 
   await writeEventAndRefresh('player_removed', { id });
-  
+
   renderPlayers(true);
 }
 
 // ============================================
 // PLAYER AVAILABILITY
 // ============================================
-
-function openPlayerAvailabilityModal(playerId) {
-  currentAvailabilityPlayerId = playerId;
-  
-  const player = players.find((p) => p.id === playerId);
-  if (!player) return;
-  
-  playerAvailabilityModalTitle.textContent = `${player.name} - Match Availability`;
-  
-  renderAvailabilityMatches(playerId);
-  playerAvailabilityModal.classList.add('active');
-}
 
 function closePlayerAvailabilityModal() {
   playerAvailabilityModal.classList.remove('active');
@@ -1116,12 +1190,12 @@ function renderAvailabilityMatches(playerId) {
     `;
     return;
   }
-  
+
   let html = '';
   matches.forEach((match) => {
     const matchAvail = availability.get(match.id) || new Set();
     const isAvailable = matchAvail.has(playerId);
-    
+
     const matchDate = match.date ? new Date(match.date) : null;
     const dateStr = matchDate ? matchDate.toLocaleString('en-US', {
       weekday: 'short',
@@ -1130,7 +1204,7 @@ function renderAvailabilityMatches(playerId) {
       hour: 'numeric',
       minute: '2-digit',
     }) : 'Date TBD';
-    
+
     html += `
       <div class="availability-match-item ${isAvailable ? 'available' : ''}" data-match-id="${match.id}">
         <div class="availability-match-checkbox">
@@ -1148,9 +1222,9 @@ function renderAvailabilityMatches(playerId) {
       </div>
     `;
   });
-  
+
   availabilityMatchesList.innerHTML = html;
-  
+
   // Add event listeners
   availabilityMatchesList.querySelectorAll('.availability-match-item').forEach((item) => {
     item.addEventListener('click', () => {
@@ -1200,7 +1274,7 @@ function openPlayerDetailsView(playerId) {
 
   // Render player info
   let infoHtml = '<div class="player-details-info-grid">';
-  
+
   if (player.role) {
     const roleDisplay = player.role === 'captain' ? 'Team Captain' : 'Player';
     infoHtml += `
@@ -1210,7 +1284,7 @@ function openPlayerDetailsView(playerId) {
       </div>
     `;
   }
-  
+
   if (player.usta) {
     infoHtml += `
       <div class="player-detail-item">
@@ -1219,7 +1293,7 @@ function openPlayerDetailsView(playerId) {
       </div>
     `;
   }
-  
+
   if (player.email) {
     infoHtml += `
       <div class="player-detail-item">
@@ -1228,7 +1302,7 @@ function openPlayerDetailsView(playerId) {
       </div>
     `;
   }
-  
+
   if (player.phone) {
     infoHtml += `
       <div class="player-detail-item">
@@ -1237,11 +1311,11 @@ function openPlayerDetailsView(playerId) {
       </div>
     `;
   }
-  
+
   if (!player.role && !player.usta && !player.email && !player.phone) {
     infoHtml += '<div class="player-detail-empty">No additional information</div>';
   }
-  
+
   infoHtml += '</div>';
   playerDetailsInfo.innerHTML = infoHtml;
 
@@ -1252,67 +1326,67 @@ function openPlayerDetailsView(playerId) {
   // Show the player details view and update URL
   currentView = 'playerDetails';
   window.location.hash = `#player-${playerId}`;
-  
+
   // Update view visibility
   viewContents.forEach((content) => {
     content.classList.remove('active');
   });
   playerDetailsView.classList.add('active');
-  
+
   // Update tabs (deactivate all and hide the container)
   viewTabs.forEach((tab) => {
     tab.classList.remove('active');
   });
   viewTabsContainer.style.display = 'none';
-  
+
   // Hide menu, import buttons, and back to grizz lists
   importPlayersBtn.style.display = 'none';
   menuBtn.style.display = 'none';
   backToGrizzLists.style.display = 'none';
-  
+
   // Update UI based on mode (hide edit button in player mode)
   updateUIForMode();
-  
+
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderPlayerDetailsAssignments(playerId) {
   // Find all matches where this player is assigned
-  let assignedMatches = [];
-  
+  const assignedMatches = [];
+
   matches.forEach((match) => {
     // Skip unpublished lineups for players
     const isPublished = match.lineupPublished || false;
     if (!canEdit() && !isPublished) {
       return; // Skip this match
     }
-    
+
     const matchAssign = assignments.get(match.id) || {};
-    let positions = [];
-    
+    const positions = [];
+
     Object.entries(matchAssign).forEach(([positionId, positionData]) => {
       const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
       if (assignedIds.includes(playerId)) {
         const positionDate = Array.isArray(positionData) ? null : positionData.date;
         // Get all players for this position
         const positionPlayers = assignedIds
-          .map(id => players.find(p => p.id === id))
+          .map((id) => players.find((p) => p.id === id))
           .filter(Boolean);
         positions.push({ positionId, positionDate, players: positionPlayers });
       }
     });
-    
+
     if (positions.length > 0) {
       assignedMatches.push({ match, positions });
     }
   });
-  
+
   if (assignedMatches.length === 0) {
     playerDetailsAssignments.innerHTML = '<div class="empty-state-small">Not assigned to any matches</div>';
     return;
   }
-  
+
   // Render in lineup-summary style
   let html = '';
   assignedMatches.forEach(({ match, positions }) => {
@@ -1324,7 +1398,7 @@ function renderPlayerDetailsAssignments(playerId) {
       hour: 'numeric',
       minute: '2-digit',
     }) : 'Date TBD';
-    
+
     html += `
       <div class="player-assigned-match">
         <div class="player-assigned-match-header">
@@ -1334,38 +1408,36 @@ function renderPlayerDetailsAssignments(playerId) {
         ${match.location ? `<div class="player-assigned-match-location">${escapeHtml(match.location)}</div>` : ''}
         <div class="player-assigned-positions">
           ${positions.map(({ positionId, positionDate, players: positionPlayers }) => {
-            const [type, num] = positionId.split('-');
-            const label = type === 'singles' ? `S${num}` : `D${num}`;
-            
-            // Get display date for position
-            let displayDate = match.date;
-            let isDifferent = false;
-            if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
-              displayDate = positionDate;
-              const d1 = new Date(match.date);
-              const d2 = new Date(positionDate);
-              isDifferent = d1.toDateString() !== d2.toDateString();
-            }
-            
-            const timeStr = displayDate ? new Date(displayDate).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-            }) : '';
-            
-            const dateStr = isDifferent ? (() => {
-              const date = new Date(displayDate);
-              const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
-              const month = date.getMonth() + 1;
-              const day = date.getDate();
-              return `${weekday} ${month}/${day}`;
-            })() : '';
-            
-            // Build player names HTML
-            const playerNamesHtml = positionPlayers.map(player => 
-              `<div class="player-assigned-position-player">${escapeHtml(player.name)}</div>`
-            ).join('');
-            
-            return `
+    const [type, num] = positionId.split('-');
+    const label = type === 'singles' ? `S${num}` : `D${num}`;
+
+    // Get display date for position
+    let displayDate = match.date;
+    let isDifferent = false;
+    if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
+      displayDate = positionDate;
+      const d1 = new Date(match.date);
+      const d2 = new Date(positionDate);
+      isDifferent = d1.toDateString() !== d2.toDateString();
+    }
+
+    const timeStr = displayDate ? new Date(displayDate).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }) : '';
+
+    const dateStr = isDifferent ? (() => {
+      const date = new Date(displayDate);
+      const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${weekday} ${month}/${day}`;
+    })() : '';
+
+    // Build player names HTML
+    const playerNamesHtml = positionPlayers.map((player) => `<div class="player-assigned-position-player">${escapeHtml(player.name)}</div>`).join('');
+
+    return `
               <div class="player-assigned-position-item" data-match-id="${match.id}" data-position-id="${positionId}">
                 <div class="player-assigned-position-left">
                   <span class="player-assigned-position-label">${label}</span>
@@ -1379,22 +1451,22 @@ function renderPlayerDetailsAssignments(playerId) {
                 </span>
               </div>
             `;
-          }).join('')}
+  }).join('')}
         </div>
       </div>
     `;
   });
-  
+
   playerDetailsAssignments.innerHTML = html;
-  
+
   // Add click handlers for calendar export
   playerDetailsAssignments.querySelectorAll('.player-assigned-position-item').forEach((item) => {
     item.addEventListener('click', () => {
-      const matchId = item.dataset.matchId;
-      const positionId = item.dataset.positionId;
+      const { matchId } = item.dataset;
+      const { positionId } = item.dataset;
       handleAddToCalendar(matchId, positionId);
     });
-    
+
     item.style.cursor = 'pointer';
     item.title = 'Click to add to calendar';
   });
@@ -1410,7 +1482,7 @@ function renderPlayerDetailsAvailability(playerId) {
   matches.forEach((match) => {
     const matchAvail = availability.get(match.id) || new Set();
     const isAvailable = matchAvail.has(playerId);
-    
+
     const matchDate = match.date ? new Date(match.date) : null;
     const dateStr = matchDate ? matchDate.toLocaleString('en-US', {
       weekday: 'short',
@@ -1453,21 +1525,21 @@ function renderPlayerDetailsAvailability(playerId) {
 function openContactsView() {
   currentView = 'contacts';
   window.location.hash = '#contacts';
-  
+
   // Hide all view contents
   matchesView.classList.remove('active');
   playersView.classList.remove('active');
   playerDetailsView.classList.remove('active');
   contactsView.classList.add('active');
-  
+
   // Hide menu and tabs
   menuBtn.style.display = 'none';
   viewTabsContainer.style.display = 'none';
   backToGrizzLists.style.display = 'none';
-  
+
   // Render contacts
   renderContacts();
-  
+
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1477,7 +1549,7 @@ function renderContacts() {
     contactsList.innerHTML = '<div class="empty-state-small">No players in roster</div>';
     return;
   }
-  
+
   let html = '';
   players.forEach((player) => {
     html += `
@@ -1495,16 +1567,16 @@ function renderContacts() {
       </div>
     `;
   });
-  
+
   contactsList.innerHTML = html;
-  
+
   // Add click handlers
   contactsList.querySelectorAll('.contact-item').forEach((item) => {
     item.addEventListener('click', () => {
-      const playerId = item.dataset.playerId;
+      const { playerId } = item.dataset;
       generateVCard(playerId);
     });
-    
+
     item.style.cursor = 'pointer';
   });
 }
@@ -1512,12 +1584,12 @@ function renderContacts() {
 function generateVCard(playerId) {
   const player = players.find((p) => p.id === playerId);
   if (!player) return;
-  
+
   // Confirm with user
   if (!confirm(`Add ${player.name} to contacts?`)) {
     return;
   }
-  
+
   // Generate vCard content
   const vcard = [
     'BEGIN:VCARD',
@@ -1525,28 +1597,28 @@ function generateVCard(playerId) {
     `FN:${player.name}`,
     `N:${player.name.split(' ').reverse().join(';')};;;`, // Last;First
   ];
-  
+
   if (player.email) {
     vcard.push(`EMAIL;TYPE=INTERNET:${player.email}`);
   }
-  
+
   if (player.phone) {
     // Clean phone number
     const cleanPhone = player.phone.replace(/[^\d+]/g, '');
     vcard.push(`TEL;TYPE=CELL:${cleanPhone}`);
   }
-  
+
   if (player.usta) {
     vcard.push(`NOTE:USTA: ${player.usta}`);
   }
-  
+
   vcard.push('END:VCARD');
-  
+
   const vcardContent = vcard.join('\r\n');
-  
+
   // Detect if mobile device
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  
+
   if (isMobile) {
     // For mobile: Use data URI to open directly in contacts app
     const dataUri = `data:text/vcard;charset=utf-8,${encodeURIComponent(vcardContent)}`;
@@ -1581,7 +1653,7 @@ function getPlayersHash() {
 
 function renderPlayers(force = false) {
   const currentHash = getPlayersHash();
-  
+
   // Skip render if nothing changed (unless forced)
   if (!force && currentHash === playersRenderHash) {
     return;
@@ -1654,7 +1726,7 @@ function renderPlayers(force = false) {
 
   // Add event listeners - click anywhere on card or the arrow button
   playerList.querySelectorAll('.player-card').forEach((card) => {
-    const playerId = card.dataset.playerId;
+    const { playerId } = card.dataset;
     card.addEventListener('click', () => {
       window.location.hash = `#player-${playerId}`;
     });
@@ -1688,9 +1760,9 @@ function openMatchModal(matchId = null) {
     alert('You must be in Captain Mode to edit matches');
     return;
   }
-  
+
   editingMatchId = matchId;
-  
+
   if (matchId) {
     const match = matches.find((m) => m.id === matchId);
     if (match) {
@@ -1698,13 +1770,13 @@ function openMatchModal(matchId = null) {
       matchTitleInput.value = match.title;
       matchLocationInput.value = match.location || '';
       matchDateInput.value = match.date || '';
-      
+
       // Set format based on match
       customSingles = match.singles;
       customDoubles = match.doubles;
       singlesCount.textContent = customSingles;
       doublesCount.textContent = customDoubles;
-      
+
       if (match.singles === 2 && match.doubles === 2) {
         selectedFormat = '2singles-2doubles';
         formatOptions[0].classList.add('active');
@@ -1724,7 +1796,7 @@ function openMatchModal(matchId = null) {
         formatOptions[2].classList.add('active');
         customFormatGroup.style.display = 'block';
       }
-      
+
       submitMatch.textContent = 'Save Changes';
       deleteMatchBtn.style.display = 'block';
     }
@@ -1733,21 +1805,21 @@ function openMatchModal(matchId = null) {
     matchTitleInput.value = '';
     matchLocationInput.value = '';
     matchDateInput.value = '';
-    
+
     selectedFormat = '2singles-2doubles';
     customSingles = 2;
     customDoubles = 2;
     singlesCount.textContent = customSingles;
     doublesCount.textContent = customDoubles;
-    
+
     formatOptions.forEach((o) => o.classList.remove('active'));
     formatOptions[0].classList.add('active');
     customFormatGroup.style.display = 'none';
-    
+
     submitMatch.textContent = 'Add Match';
     deleteMatchBtn.style.display = 'none';
   }
-  
+
   validateMatchForm();
   matchModal.classList.add('active');
   matchTitleInput.focus();
@@ -1768,12 +1840,12 @@ async function handleMatchSubmit() {
   const title = matchTitleInput.value.trim();
   const location = matchLocationInput.value.trim();
   const date = matchDateInput.value.trim();
-  
+
   if (!title || !date) return;
 
   let singles = 2;
   let doubles = 2;
-  
+
   if (selectedFormat === '2singles-2doubles') {
     singles = 2;
     doubles = 2;
@@ -1832,23 +1904,23 @@ function getMatchesHash() {
 
 function renderMatchLineupSummary(match) {
   const matchAssign = assignments.get(match.id) || {};
-  
+
   // Check if any positions are assigned
   const hasAssignments = Object.keys(matchAssign).length > 0;
-  
+
   // Check if lineup is published
   const isPublished = match.lineupPublished || false;
-  
+
   // For unpublished lineups in player mode, show available players instead
   if (!canEdit() && !isPublished && hasAssignments) {
     const matchAvail = availability.get(match.id) || new Set();
     if (matchAvail.size > 0) {
       const availablePlayers = Array.from(matchAvail)
-        .map(pId => players.find(p => p.id === pId))
+        .map((pId) => players.find((p) => p.id === pId))
         .filter(Boolean)
-        .map(p => p.name)
+        .map((p) => p.name)
         .sort();
-      
+
       let html = '<div class="lineup-summary draft-available">';
       html += '<div class="lineup-summary-header">Available Players <span style="opacity: 0.6; font-size: 0.85rem;">(Draft)</span></div>';
       html += '<div style="padding: 0.75rem; color: var(--text-muted); line-height: 1.6;">';
@@ -1860,16 +1932,16 @@ function renderMatchLineupSummary(match) {
     // No assignments and not published - hide from players
     return '';
   }
-  
+
   if (!hasAssignments) {
     return '';
   }
-  
+
   // Hide lineup from players if not published (only captains can see unpublished lineups)
   if (!canEdit() && !isPublished) {
     return '';
   }
-  
+
   let html = '<div class="lineup-summary">';
   html += '<div class="lineup-summary-header">Assigned Lineup';
   if (!isPublished && canEdit()) {
@@ -1877,7 +1949,7 @@ function renderMatchLineupSummary(match) {
   }
   html += '</div>';
   html += '<div class="lineup-summary-positions">';
-  
+
   // Helper to check if dates are on different days
   const isDifferentDay = (date1, date2) => {
     if (!date1 || !date2) return false;
@@ -1885,7 +1957,7 @@ function renderMatchLineupSummary(match) {
     const d2 = new Date(date2);
     return d1.toDateString() !== d2.toDateString();
   };
-  
+
   // Helper to format date as "Wed 1/28"
   const formatShortDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -1894,19 +1966,19 @@ function renderMatchLineupSummary(match) {
     const day = date.getDate();
     return `${weekday} ${month}/${day}`;
   };
-  
+
   // Render singles assignments
   for (let i = 0; i < match.singles; i++) {
     const positionId = `singles-${i + 1}`;
     const positionData = matchAssign[positionId];
-    
+
     if (positionData) {
       const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
       const positionDate = Array.isArray(positionData) ? null : positionData.date;
-      
+
       if (assignedIds.length > 0) {
         const assignedPlayer = players.find((p) => p.id === assignedIds[0]);
-        
+
         // Get display date
         let displayDate = match.date;
         let isDifferent = false;
@@ -1914,14 +1986,14 @@ function renderMatchLineupSummary(match) {
           displayDate = positionDate;
           isDifferent = isDifferentDay(match.date, positionDate);
         }
-        
+
         const timeStr = displayDate ? new Date(displayDate).toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
         }) : '';
-        
+
         const dateStr = isDifferent ? formatShortDate(displayDate) : '';
-        
+
         if (assignedPlayer) {
           html += `
             <div class="lineup-summary-position" data-match-id="${match.id}" data-position-id="${positionId}" data-position-type="singles" data-position-num="${i + 1}">
@@ -1939,19 +2011,19 @@ function renderMatchLineupSummary(match) {
       }
     }
   }
-  
+
   // Render doubles assignments
   for (let i = 0; i < match.doubles; i++) {
     const positionId = `doubles-${i + 1}`;
     const positionData = matchAssign[positionId];
-    
+
     if (positionData) {
       const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
       const positionDate = Array.isArray(positionData) ? null : positionData.date;
-      
+
       if (assignedIds.length > 0) {
         const assignedPlayers = assignedIds.map((pId) => players.find((p) => p.id === pId)).filter(Boolean);
-        
+
         // Get display date
         let displayDate = match.date;
         let isDifferent = false;
@@ -1959,20 +2031,18 @@ function renderMatchLineupSummary(match) {
           displayDate = positionDate;
           isDifferent = isDifferentDay(match.date, positionDate);
         }
-        
+
         const timeStr = displayDate ? new Date(displayDate).toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
         }) : '';
-        
+
         const dateStr = isDifferent ? formatShortDate(displayDate) : '';
-        
+
         if (assignedPlayers.length > 0) {
           // Show all players in a single row
-          const playerNamesHtml = assignedPlayers.map(player => 
-            `<div class="lineup-summary-player">${escapeHtml(player.name)}</div>`
-          ).join('');
-          
+          const playerNamesHtml = assignedPlayers.map((player) => `<div class="lineup-summary-player">${escapeHtml(player.name)}</div>`).join('');
+
           html += `
             <div class="lineup-summary-position" data-match-id="${match.id}" data-position-id="${positionId}" data-position-type="doubles" data-position-num="${i + 1}">
               <div class="lineup-summary-label">D${i + 1}</div>
@@ -1989,14 +2059,14 @@ function renderMatchLineupSummary(match) {
       }
     }
   }
-  
+
   html += '</div></div>';
   return html;
 }
 
 function renderMatches(force = false) {
   const currentHash = getMatchesHash();
-  
+
   // Skip render if nothing changed (unless forced)
   if (!force && currentHash === matchesRenderHash) {
     return;
@@ -2016,7 +2086,7 @@ function renderMatches(force = false) {
 
   // Get current user's player ID (if they exist)
   // For simplicity, we'll show all players' availability
-  
+
   let html = '';
   matches.forEach((match, index) => {
     const matchDate = match.date ? new Date(match.date) : null;
@@ -2027,18 +2097,18 @@ function renderMatches(force = false) {
       hour: 'numeric',
       minute: '2-digit',
     }) : 'Date TBD';
-    
+
     // Determine match status based on individual position times
     const now = new Date();
     let statusClass = 'upcoming';
     let statusText = 'Upcoming';
-    
+
     if (matchDate) {
       // Get all position dates for this match
       const matchAssign = assignments.get(match.id) || {};
       let earliestStart = matchDate;
       let latestStart = matchDate;
-      
+
       Object.values(matchAssign).forEach((positionData) => {
         if (!Array.isArray(positionData) && positionData.date) {
           const posDate = new Date(positionData.date);
@@ -2046,10 +2116,10 @@ function renderMatches(force = false) {
           if (posDate > latestStart) latestStart = posDate;
         }
       });
-      
+
       // Match is in progress if current time is between earliest start and 1.5 hours after latest start
       const matchEndTime = new Date(latestStart.getTime() + 90 * 60 * 1000); // 1h30 = 90 minutes
-      
+
       if (now >= earliestStart && now <= matchEndTime) {
         statusClass = 'in-progress';
         statusText = 'In Progress';
@@ -2058,10 +2128,10 @@ function renderMatches(force = false) {
         statusText = 'Completed';
       }
     }
-    
+
     const matchAvail = availability.get(match.id) || new Set();
     const availableCount = matchAvail.size;
-    
+
     html += `
       <div class="match-card" style="animation-delay: ${index * 0.05}s" data-match-id="${match.id}">
         <div class="match-header">
@@ -2152,11 +2222,11 @@ function renderMatches(force = false) {
       if (e.target.closest('.action-btn')) return;
       // Don't trigger if clicking on lineup position
       if (e.target.closest('.lineup-summary-position')) return;
-      
-      const matchId = card.dataset.matchId;
+
+      const { matchId } = card.dataset;
       // Update hash without triggering hashchange
       history.pushState({ view: 'matches', matchId }, '', `#match-${matchId}`);
-      
+
       // Scroll to position and highlight
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
       card.classList.add('highlight');
@@ -2164,20 +2234,20 @@ function renderMatches(force = false) {
         card.classList.remove('highlight');
       }, 2000);
     });
-    
+
     // Add cursor pointer style
     card.style.cursor = 'pointer';
   });
-  
+
   // Add click handler to lineup positions for calendar export
   matchList.querySelectorAll('.lineup-summary-position').forEach((position) => {
     position.addEventListener('click', (e) => {
       e.stopPropagation();
-      const matchId = position.dataset.matchId;
-      const positionId = position.dataset.positionId;
+      const { matchId } = position.dataset;
+      const { positionId } = position.dataset;
       handleAddToCalendar(matchId, positionId);
     });
-    
+
     position.style.cursor = 'pointer';
     position.title = 'Click to add to calendar';
   });
@@ -2196,7 +2266,7 @@ function openLineupModal(matchId) {
   const match = matches.find((m) => m.id === matchId);
   if (!match) return;
 
-  lineupModalTitle.textContent = `Assign Lineup`;
+  lineupModalTitle.textContent = 'Assign Lineup';
   lineupModalSubtitle.textContent = `${match.title} - ${match.date ? new Date(match.date).toLocaleDateString() : 'Date TBD'}`;
 
   // Update publish button state
@@ -2211,39 +2281,37 @@ function openLineupModal(matchId) {
 function closeLineupModal() {
   lineupModal.classList.remove('active');
   currentLineupMatchId = null;
-  
+
   // Refresh the current view
   renderCurrentView();
 }
 
 async function handlePublishLineup() {
   if (!currentLineupMatchId) return;
-  
+
   const match = matches.find((m) => m.id === currentLineupMatchId);
   if (!match) return;
-  
+
   const isPublished = match.lineupPublished || false;
   const newState = !isPublished;
-  
-  // Confirm action
-  const action = newState ? 'publish' : 'unpublish';
+
   if (!confirm(`${newState ? 'Publish' : 'Unpublish'} lineup for ${match.title}?\n\n${newState ? 'Players will be able to see assigned positions.' : 'Lineup will be hidden from players.'}`)) {
     return;
   }
-  
+
   // Update match with published state
   await writeEventAndRefresh('lineup_published', {
     matchId: currentLineupMatchId,
     published: newState,
   });
-  
+
   // Update local state
   match.lineupPublished = newState;
-  
+
   // Update button state
   publishLineupText.textContent = newState ? 'Unpublish Lineup' : 'Publish Lineup';
   publishLineupBtn.className = newState ? 'modal-btn' : 'modal-btn submit';
-  
+
   // Refresh view
   renderCurrentView();
 }
@@ -2254,7 +2322,7 @@ function renderLineupAssignments(matchId) {
 
   const matchAvail = availability.get(matchId) || new Set();
   const matchAssign = assignments.get(matchId) || {};
-  
+
   // Get available players who aren't already assigned
   const assignedPlayerIds = new Set();
   Object.values(matchAssign).forEach((data) => {
@@ -2271,13 +2339,13 @@ function renderLineupAssignments(matchId) {
     const assignedIds = Array.isArray(matchAssign[positionId]) ? matchAssign[positionId] : positionData.players;
     const positionDate = Array.isArray(matchAssign[positionId]) ? null : positionData.date;
     const assignedPlayer = assignedIds.length > 0 ? players.find((p) => p.id === assignedIds[0]) : null;
-    
+
     // Always fall back to match date if position date is invalid
     let displayDate = match.date;
     if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
       displayDate = positionDate;
     }
-    
+
     const dateStr = displayDate ? new Date(displayDate).toLocaleString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -2285,7 +2353,7 @@ function renderLineupAssignments(matchId) {
       hour: 'numeric',
       minute: '2-digit',
     }) : 'Time TBD';
-    
+
     html += `
       <div class="lineup-position">
         <div class="position-header">
@@ -2337,13 +2405,13 @@ function renderLineupAssignments(matchId) {
     const assignedIds = Array.isArray(matchAssign[positionId]) ? matchAssign[positionId] : positionData.players;
     const positionDate = Array.isArray(matchAssign[positionId]) ? null : positionData.date;
     const assignedPlayers = assignedIds.map((pId) => players.find((p) => p.id === pId)).filter(Boolean);
-    
+
     // Always fall back to match date if position date is invalid
     let displayDate = match.date;
     if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
       displayDate = positionDate;
     }
-    
+
     const dateStr = displayDate ? new Date(displayDate).toLocaleString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -2351,7 +2419,7 @@ function renderLineupAssignments(matchId) {
       hour: 'numeric',
       minute: '2-digit',
     }) : 'Time TBD';
-    
+
     html += `
       <div class="lineup-position">
         <div class="position-header">
@@ -2418,16 +2486,14 @@ function renderLineupAssignments(matchId) {
   lineupAssignment.querySelectorAll('.time-edit-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const positionId = btn.dataset.position;
-      const currentDate = btn.dataset.currentDate;
+      const { currentDate } = btn.dataset;
       openPositionTimeModal(matchId, positionId, currentDate);
     });
   });
 }
 
 function renderAvailablePlayers(matchId, positionId, matchAvail, assignedPlayerIds) {
-  const availablePlayers = players.filter((p) => 
-    matchAvail.has(p.id) && !assignedPlayerIds.has(p.id)
-  );
+  const availablePlayers = players.filter((p) => matchAvail.has(p.id) && !assignedPlayerIds.has(p.id));
 
   if (availablePlayers.length === 0) {
     return `
@@ -2462,11 +2528,11 @@ async function assignPlayer(matchId, positionId, playerId) {
   }
 
   const isDoubles = positionId.startsWith('doubles');
-  
+
   if (isDoubles && matchAssign[positionId].players.length >= 2) {
     return; // Already full
   }
-  
+
   if (!isDoubles && matchAssign[positionId].players.length >= 1) {
     return; // Singles already assigned
   }
@@ -2518,12 +2584,12 @@ function openPositionTimeModal(matchId, positionId, currentDate) {
 
   const defaultDate = currentDate || match.date;
   const positionLabel = positionId.replace('-', ' ').toUpperCase();
-  
+
   positionTimeModalTitle.textContent = `Set Time for ${positionLabel}`;
   positionTimeModalSubtitle.textContent = `Default: ${formatDateTime(match.date)}`;
-  
+
   positionTimeInput.value = defaultDate || '';
-  
+
   positionTimeModal.classList.add('active');
   positionTimeInput.focus();
 }
@@ -2536,9 +2602,9 @@ function closePositionTimeModal() {
 
 async function handlePositionTimeSubmit() {
   if (!editingPositionMatchId || !editingPositionId) return;
-  
+
   const date = positionTimeInput.value.trim();
-  
+
   // If no date entered, use the team match date as default
   if (!date) {
     const match = matches.find((m) => m.id === editingPositionMatchId);
@@ -2556,7 +2622,7 @@ async function handlePositionTimeSubmit() {
 async function setPositionTime(matchId, positionId, date) {
   const matchAssign = assignments.get(matchId);
   if (!matchAssign) return;
-  
+
   // Get the match to use as fallback
   const match = matches.find((m) => m.id === matchId);
   if (!match) return;
@@ -2616,7 +2682,7 @@ function openImportModal() {
     alert('You must be in Captain Mode to import players');
     return;
   }
-  
+
   importTextarea.value = '';
   importPreview.style.display = 'none';
   confirmImport.style.display = 'none';
@@ -2635,10 +2701,10 @@ function exportRosterToClipboard() {
     alert('No players to export');
     return;
   }
-  
+
   // Create TSV with header
   let tsv = 'Name\tUSTA Number\tCell\tEmail\tRole\n';
-  
+
   // Add each player
   players.forEach((player) => {
     const name = player.name || '';
@@ -2648,7 +2714,7 @@ function exportRosterToClipboard() {
     const role = player.role === 'captain' ? 'Team Captain' : 'Player';
     tsv += `${name}\t${usta}\t${phone}\t${email}\t${role}\n`;
   });
-  
+
   // Copy to clipboard
   navigator.clipboard.writeText(tsv).then(() => {
     alert(`✓ Copied ${players.length} players to clipboard`);
@@ -2663,132 +2729,132 @@ function exportMatchesToClipboard() {
     alert('No matches to export');
     return;
   }
-  
+
   // Create TSV with header for team matches
   let tsv = 'Date\tTime\tLocation\tOpponent\tFormat\n';
-  
+
   // Add each match
   matches.forEach((match) => {
     // Parse date and extract date/time
     const matchDate = new Date(match.date);
-    const dateStr = matchDate.toLocaleDateString('en-US', { 
-      month: 'numeric', 
-      day: 'numeric', 
-      year: 'numeric' 
+    const dateStr = matchDate.toLocaleDateString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
     });
-    const timeStr = matchDate.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+    const timeStr = matchDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: true 
+      hour12: true,
     });
-    
+
     const location = match.location || '';
     const opponent = match.title || '';
-    
+
     // Build format string from singles/doubles counts
-    let formatParts = [];
+    const formatParts = [];
     const singlesCount = match.singles || 0;
     const doublesCount = match.doubles || 0;
-    
+
     if (singlesCount > 0) {
       formatParts.push(`${singlesCount} Singles`);
     }
     if (doublesCount > 0) {
       formatParts.push(`${doublesCount} Doubles`);
     }
-    
+
     const formatStr = formatParts.join(' ') || '2 Singles 2 Doubles';
-    
+
     tsv += `${dateStr}\t${timeStr}\t${location}\t${opponent}\t${formatStr}\n`;
   });
-  
+
   // Add blank lines and header for individual match assignments
   tsv += '\n\n';
   tsv += 'Date\tTime\tPosition\tPlayers\tOpponent\tLocation\n';
-  
+
   // Add individual match assignments
   matches.forEach((match) => {
     const matchAssign = assignments.get(match.id) || {};
     const location = match.location || '';
     const opponent = match.title || '';
-    
+
     // Process singles positions
     for (let i = 0; i < match.singles; i++) {
       const positionId = `singles-${i + 1}`;
       const positionData = matchAssign[positionId];
-      
+
       if (positionData) {
         const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
         const positionDate = Array.isArray(positionData) ? null : positionData.date;
-        
+
         if (assignedIds.length > 0) {
           const assignedPlayer = players.find((p) => p.id === assignedIds[0]);
-          
+
           if (assignedPlayer) {
             // Use position-specific date/time if available, otherwise use match date
             let displayDate = match.date;
             if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
               displayDate = positionDate;
             }
-            
+
             const date = new Date(displayDate);
-            const dateStr = date.toLocaleDateString('en-US', { 
-              month: 'numeric', 
-              day: 'numeric', 
-              year: 'numeric' 
+            const dateStr = date.toLocaleDateString('en-US', {
+              month: 'numeric',
+              day: 'numeric',
+              year: 'numeric',
             });
-            const timeStr = date.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
+            const timeStr = date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
               minute: '2-digit',
-              hour12: true 
+              hour12: true,
             });
-            
+
             tsv += `${dateStr}\t${timeStr}\tS${i + 1}\t${assignedPlayer.name}\t${opponent}\t${location}\n`;
           }
         }
       }
     }
-    
+
     // Process doubles positions
     for (let i = 0; i < match.doubles; i++) {
       const positionId = `doubles-${i + 1}`;
       const positionData = matchAssign[positionId];
-      
+
       if (positionData) {
         const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
         const positionDate = Array.isArray(positionData) ? null : positionData.date;
-        
+
         if (assignedIds.length > 0) {
           const assignedPlayers = assignedIds.map((pId) => players.find((p) => p.id === pId)).filter(Boolean);
-          
+
           if (assignedPlayers.length > 0) {
             // Use position-specific date/time if available, otherwise use match date
             let displayDate = match.date;
             if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
               displayDate = positionDate;
             }
-            
+
             const date = new Date(displayDate);
-            const dateStr = date.toLocaleDateString('en-US', { 
-              month: 'numeric', 
-              day: 'numeric', 
-              year: 'numeric' 
+            const dateStr = date.toLocaleDateString('en-US', {
+              month: 'numeric',
+              day: 'numeric',
+              year: 'numeric',
             });
-            const timeStr = date.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
+            const timeStr = date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
               minute: '2-digit',
-              hour12: true 
+              hour12: true,
             });
-            
+
             const playerNames = assignedPlayers.map((p) => p.name).join(' / ');
-            
+
             tsv += `${dateStr}\t${timeStr}\tD${i + 1}\t${playerNames}\t${opponent}\t${location}\n`;
           }
         }
       }
     }
   });
-  
+
   // Copy to clipboard
   navigator.clipboard.writeText(tsv).then(() => {
     alert(`✓ Copied ${matches.length} matches to clipboard`);
@@ -2801,21 +2867,21 @@ function exportMatchesToClipboard() {
 function parseImportData(text) {
   const lines = text.trim().split('\n').filter((line) => line.trim());
   const parsedPlayers = [];
-  
+
   // Check if first line looks like a header
   const firstLine = lines[0];
-  const hasHeader = firstLine.toLowerCase().includes('name') || 
-                    firstLine.toLowerCase().includes('usta') || 
-                    firstLine.toLowerCase().includes('email') || 
-                    firstLine.toLowerCase().includes('cell');
-  
+  const hasHeader = firstLine.toLowerCase().includes('name')
+                    || firstLine.toLowerCase().includes('usta')
+                    || firstLine.toLowerCase().includes('email')
+                    || firstLine.toLowerCase().includes('cell');
+
   const dataLines = hasHeader ? lines.slice(1) : lines;
 
   dataLines.forEach((line, index) => {
     // Try to detect delimiter (comma or tab)
     const hasComma = line.includes(',');
     const hasTab = line.includes('\t');
-    
+
     let parts;
     if (hasTab) {
       parts = line.split('\t').map((p) => p.trim());
@@ -2832,14 +2898,14 @@ function parseImportData(text) {
     let phone = '';
     let email = '';
     let role = 'player'; // Default role
-    
+
     if (hasHeader && parts.length >= 4) {
       // If we detected headers, assume positional format: Name, USTA, Cell, Email, Role (optional)
       name = parts[0] || '';
       usta = (parts[1] || '').replace(/[^\d]/g, ''); // Remove non-digits from USTA
       phone = parts[2] || '';
       email = parts[3] || '';
-      
+
       // Check for role in 5th column
       if (parts.length >= 5 && parts[4]) {
         const roleValue = parts[4].toLowerCase();
@@ -2850,12 +2916,12 @@ function parseImportData(text) {
     } else {
       // Fallback to smart detection
       name = parts[0] || '';
-      
+
       // Check remaining parts and categorize them
       for (let i = 1; i < parts.length; i++) {
         const field = parts[i].trim();
         if (!field) continue;
-        
+
         // Check if it looks like an email (contains @ and .)
         if (field.includes('@') && field.includes('.')) {
           email = field;
@@ -2874,30 +2940,30 @@ function parseImportData(text) {
         }
       }
     }
-    
+
     // Check for duplicates in existing players
     let existingPlayer = null;
     let duplicateType = null;
-    
+
     if (name) {
       // Check by name (case-insensitive)
-      existingPlayer = players.find(p => p.name.toLowerCase() === name.toLowerCase());
+      existingPlayer = players.find((p) => p.name.toLowerCase() === name.toLowerCase());
       if (existingPlayer) {
         duplicateType = 'name';
       }
-      
+
       // Check by email if no name match
       if (!existingPlayer && email) {
-        existingPlayer = players.find(p => p.email && p.email.toLowerCase() === email.toLowerCase());
+        existingPlayer = players.find((p) => p.email && p.email.toLowerCase() === email.toLowerCase());
         if (existingPlayer) {
           duplicateType = 'email';
         }
       }
-      
+
       // Check by phone if no email match
       if (!existingPlayer && phone) {
         const normalizedPhone = phone.replace(/\D/g, '');
-        existingPlayer = players.find(p => p.phone && p.phone.replace(/\D/g, '') === normalizedPhone);
+        existingPlayer = players.find((p) => p.phone && p.phone.replace(/\D/g, '') === normalizedPhone);
         if (existingPlayer) {
           duplicateType = 'phone';
         }
@@ -2940,23 +3006,23 @@ function parseImportData(text) {
 
 function handlePreviewImport() {
   const text = importTextarea.value.trim();
-  
+
   if (!text) {
     alert('Please paste player data first');
     return;
   }
 
   parsedPlayers = parseImportData(text);
-  
+
   const validPlayers = parsedPlayers.filter((p) => p.valid);
   const invalidPlayers = parsedPlayers.filter((p) => !p.valid);
   const newPlayers = validPlayers.filter((p) => !p.isUpdate);
   const updatePlayers = validPlayers.filter((p) => p.isUpdate);
 
   previewCount.textContent = validPlayers.length;
-  
+
   let html = '';
-  
+
   if (newPlayers.length > 0) {
     html += '<div class="preview-section">';
     html += `<p class="preview-section-title">✨ New players (${newPlayers.length}):</p>`;
@@ -2979,7 +3045,7 @@ function handlePreviewImport() {
     });
     html += '</div>';
   }
-  
+
   if (updatePlayers.length > 0) {
     html += '<div class="preview-section update-section">';
     html += `<p class="preview-section-title">🔄 Updates (${updatePlayers.length}):</p>`;
@@ -3019,7 +3085,7 @@ function handlePreviewImport() {
 
   previewList.innerHTML = html;
   importPreview.style.display = 'block';
-  
+
   if (validPlayers.length > 0) {
     confirmImport.style.display = 'block';
   } else {
@@ -3029,7 +3095,7 @@ function handlePreviewImport() {
 
 async function handleConfirmImport() {
   const validPlayers = parsedPlayers.filter((p) => p.valid);
-  
+
   if (validPlayers.length === 0) {
     return;
   }
@@ -3041,10 +3107,10 @@ async function handleConfirmImport() {
   // Import players one at a time to avoid concurrency issues
   for (let i = 0; i < validPlayers.length; i++) {
     const playerData = validPlayers[i];
-    
+
     // Update button text with progress
     confirmImport.textContent = `Importing... ${i + 1}/${validPlayers.length}`;
-    
+
     if (playerData.isUpdate && playerData.existingPlayer) {
       // Update existing player
       await writeEventAndRefresh('player_updated', {
@@ -3067,10 +3133,10 @@ async function handleConfirmImport() {
         role: playerData.role || 'player',
       });
     }
-    
+
     // Wait 500ms to ensure backend processes them sequentially
     if (i < validPlayers.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 
@@ -3079,7 +3145,7 @@ async function handleConfirmImport() {
   confirmImport.textContent = 'Import Players';
 
   closeImportModal();
-  
+
   // Switch to players view and render
   switchView('players');
   renderPlayers(true);
@@ -3097,7 +3163,7 @@ function openImportMatchesModal() {
     alert('You must be in Captain Mode to import matches');
     return;
   }
-  
+
   importMatchesTextarea.value = '';
   importMatchesPreview.style.display = 'none';
   confirmMatchesImport.style.display = 'none';
@@ -3114,7 +3180,7 @@ function closeImportMatchesModal() {
 function parseMatchImportData(text) {
   const lines = text.trim().split('\n').filter((line) => line.trim());
   const matchesParsed = [];
-  
+
   // Check if first line looks like headers (contains "Date" or "Time" or "Location" or "Opponent")
   let startIndex = 0;
   if (lines.length > 0) {
@@ -3127,10 +3193,10 @@ function parseMatchImportData(text) {
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    
+
     // Try to detect delimiter (comma or tab)
     const hasTab = line.includes('\t');
-    
+
     let parts;
     if (hasTab) {
       parts = line.split('\t').map((p) => p.trim());
@@ -3147,24 +3213,24 @@ function parseMatchImportData(text) {
     // Parse format string (e.g., "3 Doubles", "2 Singles 2 Doubles", "3S 2D")
     let singles = 0;
     let doubles = 0;
-    
+
     if (formatStr) {
       // Try to match patterns like "3 Doubles", "2 Singles", "3S 2D", etc.
       const singlesMatch = formatStr.match(/(\d+)\s*S(?:ingles)?/i);
       const doublesMatch = formatStr.match(/(\d+)\s*D(?:oubles)?/i);
-      
+
       if (singlesMatch) {
         singles = parseInt(singlesMatch[1]);
       }
       if (doublesMatch) {
         doubles = parseInt(doublesMatch[1]);
       }
-      
+
       // If no explicit singles/doubles found, check for just a number + "Doubles" or "Singles"
       if (singles === 0 && doubles === 0) {
         const justDoublesMatch = formatStr.match(/(\d+)\s+Doubles/i);
         const justSinglesMatch = formatStr.match(/(\d+)\s+Singles/i);
-        
+
         if (justDoublesMatch) {
           doubles = parseInt(justDoublesMatch[1]);
         } else if (justSinglesMatch) {
@@ -3172,7 +3238,7 @@ function parseMatchImportData(text) {
         }
       }
     }
-    
+
     // Default to 2 singles + 2 doubles if no format specified
     if (singles === 0 && doubles === 0) {
       singles = 2;
@@ -3189,18 +3255,18 @@ function parseMatchImportData(text) {
           const month = dateParts[0].padStart(2, '0');
           const day = dateParts[1].padStart(2, '0');
           const year = dateParts[2];
-          
+
           // Parse time (H:MM AM/PM or HH:MM AM/PM)
           let hour = 12;
           let minute = 0;
-          
+
           if (time) {
             const timeMatch = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
             if (timeMatch) {
               hour = parseInt(timeMatch[1]);
               minute = parseInt(timeMatch[2]);
               const period = timeMatch[3].toUpperCase();
-              
+
               // Convert to 24-hour format
               if (period === 'PM' && hour !== 12) {
                 hour += 12;
@@ -3209,7 +3275,7 @@ function parseMatchImportData(text) {
               }
             }
           }
-          
+
           // Format as datetime-local string (YYYY-MM-DDTHH:MM)
           const hourStr = hour.toString().padStart(2, '0');
           const minuteStr = minute.toString().padStart(2, '0');
@@ -3222,11 +3288,11 @@ function parseMatchImportData(text) {
       matchesParsed.push({
         lineNumber: i + 1,
         title: opponent,
-        location: location,
+        location,
         date: dateTime,
         dateDisplay: `${date} ${time}`,
-        singles: singles,
-        doubles: doubles,
+        singles,
+        doubles,
         formatDisplay: formatStr || `${singles} Singles + ${doubles} Doubles`,
         valid: !!dateTime,
         error: dateTime ? null : 'Could not parse date',
@@ -3252,21 +3318,21 @@ function parseMatchImportData(text) {
 
 function handlePreviewMatchesImport() {
   const text = importMatchesTextarea.value.trim();
-  
+
   if (!text) {
     alert('Please paste match data first');
     return;
   }
 
   parsedMatches = parseMatchImportData(text);
-  
+
   const validMatches = parsedMatches.filter((m) => m.valid);
   const invalidMatches = parsedMatches.filter((m) => !m.valid);
 
   previewMatchesCount.textContent = validMatches.length;
-  
+
   let html = '';
-  
+
   if (validMatches.length > 0) {
     html += '<div class="preview-section">';
     validMatches.forEach((match) => {
@@ -3303,7 +3369,7 @@ function handlePreviewMatchesImport() {
 
   previewMatchesList.innerHTML = html;
   importMatchesPreview.style.display = 'block';
-  
+
   if (validMatches.length > 0) {
     confirmMatchesImport.style.display = 'block';
   } else {
@@ -3313,7 +3379,7 @@ function handlePreviewMatchesImport() {
 
 async function handleConfirmMatchesImport() {
   const validMatches = parsedMatches.filter((m) => m.valid);
-  
+
   if (validMatches.length === 0) {
     return;
   }
@@ -3326,9 +3392,9 @@ async function handleConfirmMatchesImport() {
   for (let i = 0; i < validMatches.length; i++) {
     const matchData = validMatches[i];
     const id = generateId();
-    
+
     confirmMatchesImport.textContent = `Importing... ${i + 1}/${validMatches.length}`;
-    
+
     // Write event and fetch latest state
     await writeEventAndRefresh('match_added', {
       id,
@@ -3338,10 +3404,10 @@ async function handleConfirmMatchesImport() {
       singles: matchData.singles,
       doubles: matchData.doubles,
     });
-    
+
     // Wait 500ms before next match
     if (i < validMatches.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 
@@ -3350,7 +3416,7 @@ async function handleConfirmMatchesImport() {
   confirmMatchesImport.textContent = 'Import Matches';
 
   closeImportMatchesModal();
-  
+
   // Switch to matches view and render
   switchView('matches');
   renderMatches(true);
@@ -3365,48 +3431,48 @@ async function handleConfirmMatchesImport() {
 function handleAddToCalendar(matchId, positionId) {
   const match = matches.find((m) => m.id === matchId);
   if (!match) return;
-  
+
   const matchAssign = assignments.get(matchId) || {};
   const positionData = matchAssign[positionId];
-  
+
   if (!positionData) return;
-  
+
   const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
   const positionDate = Array.isArray(positionData) ? null : positionData.date;
-  
+
   if (assignedIds.length === 0) return;
-  
+
   // Get assigned players
   const assignedPlayers = assignedIds.map((pId) => players.find((p) => p.id === pId)).filter(Boolean);
   if (assignedPlayers.length === 0) return;
-  
+
   // Use position-specific date/time if available, otherwise use match date
   let eventDate = match.date;
   if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
     eventDate = positionDate;
   }
-  
+
   // Parse position ID to get type and number
   const [type, num] = positionId.split('-');
   const positionLabel = type === 'singles' ? `Singles ${num}` : `Doubles ${num}`;
-  
+
   const playerNames = assignedPlayers.map((p) => p.name).join(' / ');
-  
+
   // Confirm with user
   if (!confirm(`Add ${positionLabel} match to calendar?\n\n${playerNames}\nvs ${match.title}\n${match.location}\n${new Date(eventDate).toLocaleString()}`)) {
     return;
   }
-  
+
   // Generate ICS file
   generateICSFile(match, positionLabel, assignedPlayers, eventDate);
 }
 
 function generateICSFile(match, positionLabel, players, eventDate) {
   const startDate = new Date(eventDate);
-  
+
   // Default to 90 minutes for match duration
   const endDate = new Date(startDate.getTime() + 90 * 60000);
-  
+
   // Format dates for ICS (YYYYMMDDTHHMMSS)
   const formatICSDate = (date) => {
     const year = date.getFullYear();
@@ -3417,20 +3483,20 @@ function generateICSFile(match, positionLabel, players, eventDate) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     return `${year}${month}${day}T${hours}${minutes}${seconds}`;
   };
-  
+
   const now = new Date();
   const timestamp = formatICSDate(now);
   const dtstart = formatICSDate(startDate);
   const dtend = formatICSDate(endDate);
-  
+
   const playerNames = players.map((p) => p.name).join(' / ');
   const summary = `Tennis: ${positionLabel} vs ${match.title}`;
   const description = `${positionLabel}\\nPlayers: ${playerNames}\\nOpponent: ${match.title}`;
   const location = match.location || '';
-  
+
   // Generate unique ID
   const uid = `tennis-${match.id}-${positionLabel.replace(/\s+/g, '-')}-${timestamp}@tennis-captain`;
-  
+
   // Create ICS content
   const icsContent = [
     'BEGIN:VCALENDAR',
@@ -3448,9 +3514,9 @@ function generateICSFile(match, positionLabel, players, eventDate) {
     `LOCATION:${location}`,
     'STATUS:CONFIRMED',
     'END:VEVENT',
-    'END:VCALENDAR'
+    'END:VCALENDAR',
   ].join('\r\n');
-  
+
   // Create blob and download
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
   const link = document.createElement('a');
@@ -3473,6 +3539,7 @@ function escapeHtml(text) {
 // ============================================
 
 async function pollForChanges() {
+  if (!store) return;
   if (store.getIsSyncing()) return;
 
   try {
@@ -3499,15 +3566,20 @@ async function pollForChanges() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!listId) {
+    await initTennisListPicker();
+    return;
+  }
+
   await init();
-  
+
   // Handle hash changes for navigation
   window.addEventListener('hashchange', handleHashChange);
   window.addEventListener('popstate', handleHashChange);
-  
+
   // Handle initial hash on load
   handleHashChange();
-  
+
   // Polling disabled - we fetch latest state after every write
   // createPoller(pollForChanges, 5000);
 });

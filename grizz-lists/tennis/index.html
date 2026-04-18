@@ -22,7 +22,7 @@
     <meta property="og:image" content="https://www.grizz.biz/grizz-lists/tennis/og-image.jpeg">
     <meta property="og:image:width" content="1200">
     
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
     <div class="bg-shapes">
@@ -31,6 +31,32 @@
         <div class="bg-shape"></div>
     </div>
 
+    <div id="tennisListPicker" class="tennis-list-picker" hidden>
+        <div class="container tennis-picker-inner">
+            <header>
+                <div class="header-top tennis-picker-header-row">
+                    <a href="../index.html" class="back-link" title="Back to Grizz Lists">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    <h1 class="logo">🎾 <span>Tennis Captain</span></h1>
+                    <div class="header-right tennis-picker-header-spacer" aria-hidden="true"></div>
+                </div>
+            </header>
+            <p id="tennisPickerHint" class="view-subtitle tennis-picker-hint"></p>
+            <div id="tennisListsContainer" class="tennis-lists-container"></div>
+            <div class="tennis-picker-actions">
+                <button type="button" class="modal-btn submit" id="tennisPickerLoginBtn">Log in with email</button>
+                <button type="button" class="modal-btn cancel" id="tennisPickerLogoutBtn" hidden>Log out</button>
+            </div>
+            <p class="tennis-picker-footer">
+                <a href="../index.html">All Grizz Lists</a><span class="tennis-picker-footer-sep"> · </span><a href="../index.html">Create a new list</a>
+            </p>
+        </div>
+    </div>
+
+    <div id="tennisMainApp">
     <div class="container">
         <header>
             <div class="header-top">
@@ -230,6 +256,7 @@
                 <span id="addBtnText">Add Player</span>
             </button>
         </div>
+    </div>
     </div>
 
     <!-- Add Player Modal -->
@@ -479,6 +506,6 @@ Bob Wilson, 555123456, bob@example.com" rows="8"></textarea>
     </div>
 
     <script type="module" src="../cache-buster.v1.js" data-auto-init></script>
-    <script src="scripts.js?v=10" type="module"></script>
+    <script src="scripts.js?v=11" type="module"></script>
 </body>
 </html>
