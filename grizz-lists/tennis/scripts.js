@@ -898,7 +898,7 @@ function switchView(view, skipHistory = false) {
 
   // Update add button and menu visibility
   importPlayersBtn.style.display = 'none'; // Always hide the old import button
-  backToGrizzLists.style.display = 'flex'; // Show back to grizz lists by default
+  backToGrizzLists.style.display = 'flex'; // Show back to tennis overview by default
 
   if (view === 'players') {
     menuBtn.style.display = 'flex';
