@@ -759,12 +759,10 @@ function updateLoginLogoutMenuItem() {
 }
 
 // ============================================
-// NO LIST ID — PICKER (PWA launch / homescreen)
+// EMAIL REQUIRED — same prompt as list overview
 // ============================================
 
-async function initTennisListPicker() {
-  setupEventListeners();
-
+function showTennisEmailRequiredPicker() {
   const mainApp = document.getElementById('tennisMainApp');
   const picker = document.getElementById('tennisListPicker');
   const listsContainer = document.getElementById('tennisListsContainer');
@@ -789,17 +787,56 @@ async function initTennisListPicker() {
 
   if (!listsContainer || !hint) return;
 
-  if (!hasUserEmail()) {
-    hint.textContent = 'Sign in with your email to see and open your tennis lists.';
-    listsContainer.innerHTML = `
+  hint.textContent = 'Sign in with your email to see and open your tennis lists.';
+  listsContainer.innerHTML = `
       <div class="empty-state">
         <div class="empty-emoji">🔐</div>
         <p class="empty-text">Log in to continue</p>
         <p class="empty-hint">Your email is only used to sync lists across devices.</p>
       </div>`;
-    if (loginBtn) loginBtn.hidden = false;
-    if (logoutBtn) logoutBtn.hidden = true;
+  if (loginBtn) loginBtn.hidden = false;
+  if (logoutBtn) logoutBtn.hidden = true;
+}
+
+async function initTennisEmailGate() {
+  setupEventListeners();
+  showTennisEmailRequiredPicker();
+}
+
+// ============================================
+// NO LIST ID — PICKER (PWA launch / homescreen)
+// ============================================
+
+async function initTennisListPicker() {
+  setupEventListeners();
+
+  const mainApp = document.getElementById('tennisMainApp');
+  const picker = document.getElementById('tennisListPicker');
+  const listsContainer = document.getElementById('tennisListsContainer');
+  const hint = document.getElementById('tennisPickerHint');
+  const loginBtn = document.getElementById('tennisPickerLoginBtn');
+  const logoutBtn = document.getElementById('tennisPickerLogoutBtn');
+
+  if (!listsContainer || !hint) return;
+
+  if (!hasUserEmail()) {
+    showTennisEmailRequiredPicker();
     return;
+  }
+
+  if (mainApp) mainApp.style.display = 'none';
+  if (picker) picker.hidden = false;
+
+  document.title = 'Tennis Captain 🎾 - Grizz Lists';
+
+  if (loginBtn) {
+    loginBtn.onclick = () => openEmailModal();
+  }
+  if (logoutBtn) {
+    logoutBtn.onclick = () => {
+      localStorage.removeItem('grizzLists_userEmail');
+      window.location.reload();
+    };
   }
 
   if (loginBtn) loginBtn.hidden = true;
@@ -3568,6 +3605,11 @@ async function pollForChanges() {
 document.addEventListener('DOMContentLoaded', async () => {
   if (!listId) {
     await initTennisListPicker();
+    return;
+  }
+
+  if (!hasUserEmail()) {
+    await initTennisEmailGate();
     return;
   }
 
