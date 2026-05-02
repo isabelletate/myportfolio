@@ -501,6 +501,20 @@ header {
     padding: 0 8px;
 }
 
+.action-btn.sms-reminder {
+    width: auto;
+    min-width: 32px;
+    padding: 0 7px;
+    text-decoration: none;
+    font-size: 1rem;
+    line-height: 1;
+    color: inherit;
+}
+
+.action-btn.sms-reminder:hover {
+    text-decoration: none;
+}
+
 .lineup-count {
     font-size: 0.85rem;
     font-weight: 600;

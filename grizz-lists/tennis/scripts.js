@@ -1936,7 +1936,147 @@ function getMatchesHash() {
     const assign = assignments.get(m.id) || {};
     return `${m.id}:${m.title}:${m.date}:${m.singles}:${m.doubles}:${Array.from(avail).sort().join(',')}:${JSON.stringify(assign)}`;
   }).join('|');
-  return matchData;
+  const phoneSig = players.map((p) => `${p.id}:${p.phone || ''}`).join(';');
+  return `${matchData}||${phoneSig}`;
+}
+
+const SMS_BODY_MAX_LEN = 1800;
+
+function normalizePhoneForSms(phone) {
+  if (!phone || typeof phone !== 'string') return '';
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  if (!cleaned) return '';
+  const digitsOnly = cleaned.replace(/\D/g, '');
+  if (digitsOnly.length < 10) return '';
+  return cleaned;
+}
+
+function getAssignedPlayerIdsForMatch(match) {
+  const matchAssign = assignments.get(match.id) || {};
+  const ids = new Set();
+  for (let i = 0; i < match.singles; i++) {
+    const positionData = matchAssign[`singles-${i + 1}`];
+    if (!positionData) continue;
+    const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+    assignedIds.forEach((id) => ids.add(id));
+  }
+  for (let i = 0; i < match.doubles; i++) {
+    const positionData = matchAssign[`doubles-${i + 1}`];
+    if (!positionData) continue;
+    const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+    assignedIds.forEach((id) => ids.add(id));
+  }
+  return [...ids];
+}
+
+function collectSmsPhonesForMatch(match) {
+  const ids = getAssignedPlayerIdsForMatch(match);
+  const seen = new Set();
+  const phones = [];
+  ids.forEach((id) => {
+    const player = players.find((p) => p.id === id);
+    if (!player || !player.phone) return;
+    const norm = normalizePhoneForSms(player.phone);
+    if (!norm || seen.has(norm)) return;
+    seen.add(norm);
+    phones.push(norm);
+  });
+  return phones;
+}
+
+function buildMatchSmsReminderBody(match, dateDisplayStr) {
+  const lines = [];
+  lines.push(`Reminder: ${match.title}`);
+  lines.push(`When: ${dateDisplayStr}`);
+  lines.push(`Location: ${match.location ? match.location : 'TBD'}`);
+  const fmtParts = [];
+  if (match.singles > 0) fmtParts.push(`${match.singles} Singles`);
+  if (match.doubles > 0) fmtParts.push(`${match.doubles} Doubles`);
+  lines.push(`Format: ${fmtParts.length ? fmtParts.join(', ') : 'TBD'}`);
+
+  const matchAssign = assignments.get(match.id) || {};
+  const isDifferentDay = (date1, date2) => {
+    if (!date1 || !date2) return false;
+    return new Date(date1).toDateString() !== new Date(date2).toDateString();
+  };
+  const formatShortDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${weekday} ${month}/${day}`;
+  };
+
+  const positionLines = [];
+  for (let i = 0; i < match.singles; i++) {
+    const positionId = `singles-${i + 1}`;
+    const positionData = matchAssign[positionId];
+    if (!positionData) continue;
+    const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+    const positionDate = Array.isArray(positionData) ? null : positionData.date;
+    if (assignedIds.length === 0) continue;
+    const assignedPlayer = players.find((p) => p.id === assignedIds[0]);
+    if (!assignedPlayer) continue;
+    let displayDate = match.date;
+    let isDifferent = false;
+    if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
+      displayDate = positionDate;
+      isDifferent = isDifferentDay(match.date, positionDate);
+    }
+    const timeStr = displayDate ? new Date(displayDate).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }) : '';
+    const dateStr = isDifferent && displayDate ? formatShortDate(displayDate) : '';
+    const when = [dateStr, timeStr].filter(Boolean).join(' ');
+    positionLines.push(`S${i + 1}: ${assignedPlayer.name}${when ? ` — ${when}` : ''}`);
+  }
+  for (let i = 0; i < match.doubles; i++) {
+    const positionId = `doubles-${i + 1}`;
+    const positionData = matchAssign[positionId];
+    if (!positionData) continue;
+    const assignedIds = Array.isArray(positionData) ? positionData : (positionData.players || []);
+    const positionDate = Array.isArray(positionData) ? null : positionData.date;
+    if (assignedIds.length === 0) continue;
+    const assignedPlayers = assignedIds.map((pId) => players.find((p) => p.id === pId)).filter(Boolean);
+    if (assignedPlayers.length === 0) continue;
+    let displayDate = match.date;
+    let isDifferent = false;
+    if (positionDate && positionDate !== 'null' && positionDate !== 'undefined') {
+      displayDate = positionDate;
+      isDifferent = isDifferentDay(match.date, positionDate);
+    }
+    const timeStr = displayDate ? new Date(displayDate).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }) : '';
+    const dateStr = isDifferent && displayDate ? formatShortDate(displayDate) : '';
+    const when = [dateStr, timeStr].filter(Boolean).join(' ');
+    const names = assignedPlayers.map((p) => p.name).join(' & ');
+    positionLines.push(`D${i + 1}: ${names}${when ? ` — ${when}` : ''}`);
+  }
+
+  if (positionLines.length) {
+    lines.push('');
+    lines.push('Lineup:');
+    positionLines.forEach((l) => lines.push(l));
+  }
+
+  let body = lines.join('\n');
+  if (body.length > SMS_BODY_MAX_LEN) {
+    body = `${body.slice(0, SMS_BODY_MAX_LEN - 1)}…`;
+  }
+  return body;
+}
+
+/** iOS: multi-recipient uses sms:/open?addresses=... ; body is pre-filled when supported. */
+function buildIosSmsHref(phones, body) {
+  const encodedBody = encodeURIComponent(body);
+  if (phones.length > 0) {
+    const addresses = phones.join(',');
+    return `sms:/open?addresses=${encodeURIComponent(addresses)}&body=${encodedBody}`;
+  }
+  return `sms:?body=${encodedBody}`;
 }
 
 function renderMatchLineupSummary(match) {
@@ -2169,6 +2309,14 @@ function renderMatches(force = false) {
     const matchAvail = availability.get(match.id) || new Set();
     const availableCount = matchAvail.size;
 
+    const assignedIdsForSms = getAssignedPlayerIdsForMatch(match);
+    const showSmsReminder = canEdit()
+      && statusClass === 'upcoming'
+      && assignedIdsForSms.length > 0;
+    const smsPhones = showSmsReminder ? collectSmsPhonesForMatch(match) : [];
+    const smsBody = showSmsReminder ? buildMatchSmsReminderBody(match, dateStr) : '';
+    const smsHref = showSmsReminder ? buildIosSmsHref(smsPhones, smsBody) : '';
+
     html += `
       <div class="match-card" style="animation-delay: ${index * 0.05}s" data-match-id="${match.id}">
         <div class="match-header">
@@ -2184,6 +2332,9 @@ function renderMatches(force = false) {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
             </button>
+            ${showSmsReminder ? `
+            <a class="action-btn sms-reminder" href="${escapeHtml(smsHref)}" title="Text / SMS: open Messages with assigned players and a ready-to-send reminder">💬</a>
+            ` : ''}
             <button class="action-btn edit" data-match-id="${match.id}" title="Edit match">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
