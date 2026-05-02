@@ -1936,7 +1936,7 @@ function getMatchesHash() {
     const assign = assignments.get(m.id) || {};
     return `${m.id}:${m.title}:${m.date}:${m.singles}:${m.doubles}:${Array.from(avail).sort().join(',')}:${JSON.stringify(assign)}`;
   }).join('|');
-  const phoneSig = players.map((p) => `${p.id}:${p.phone || ''}`).join(';');
+  const phoneSig = players.map((p) => `${p.id}:${p.phone || ''}:${p.role || ''}`).join(';');
   return `${matchData}||${phoneSig}`;
 }
 
@@ -1969,17 +1969,23 @@ function getAssignedPlayerIdsForMatch(match) {
   return [...ids];
 }
 
+function pushSmsPhoneForPlayer(player, seen, phones) {
+  if (!player || !player.phone) return;
+  const norm = normalizePhoneForSms(player.phone);
+  if (!norm || seen.has(norm)) return;
+  seen.add(norm);
+  phones.push(norm);
+}
+
+/** Assigned lineup + all team captains (deduped by normalized phone). */
 function collectSmsPhonesForMatch(match) {
-  const ids = getAssignedPlayerIdsForMatch(match);
   const seen = new Set();
   const phones = [];
-  ids.forEach((id) => {
-    const player = players.find((p) => p.id === id);
-    if (!player || !player.phone) return;
-    const norm = normalizePhoneForSms(player.phone);
-    if (!norm || seen.has(norm)) return;
-    seen.add(norm);
-    phones.push(norm);
+  getAssignedPlayerIdsForMatch(match).forEach((id) => {
+    pushSmsPhoneForPlayer(players.find((p) => p.id === id), seen, phones);
+  });
+  players.filter((p) => p.role === 'captain').forEach((p) => {
+    pushSmsPhoneForPlayer(p, seen, phones);
   });
   return phones;
 }
@@ -1993,6 +1999,11 @@ function buildMatchSmsReminderBody(match, dateDisplayStr) {
   if (match.singles > 0) fmtParts.push(`${match.singles} Singles`);
   if (match.doubles > 0) fmtParts.push(`${match.doubles} Doubles`);
   lines.push(`Format: ${fmtParts.length ? fmtParts.join(', ') : 'TBD'}`);
+
+  const captains = players.filter((p) => p.role === 'captain');
+  if (captains.length > 0) {
+    lines.push(`Captains: ${captains.map((c) => c.name).join(', ')}`);
+  }
 
   const matchAssign = assignments.get(match.id) || {};
   const isDifferentDay = (date1, date2) => {
@@ -2333,7 +2344,7 @@ function renderMatches(force = false) {
               </svg>
             </button>
             ${showSmsReminder ? `
-            <a class="action-btn sms-reminder" href="${escapeHtml(smsHref)}" title="Text / SMS: open Messages with assigned players and a ready-to-send reminder">💬</a>
+            <a class="action-btn sms-reminder" href="${escapeHtml(smsHref)}" title="Text / SMS: open Messages with assigned players, all captains, and a ready-to-send reminder">💬</a>
             ` : ''}
             <button class="action-btn edit" data-match-id="${match.id}" title="Edit match">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
